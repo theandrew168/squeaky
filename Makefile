@@ -11,18 +11,36 @@ CFLAGS += -Isrc/
 LDFLAGS =
 LDLIBS  =
 
-default: lispy
-all: liblispy.a lispy
+# https://github.com/antirez/linenoise
+# compile linenoise as C99 (plus POSIX.1-2008) with debug symbols
+LINENOISE_CFLAGS = -std=c99 -D_POSIX_C_SOURCE=200809L -fPIC -g -Og
 
-liblispy_sources =
+default: lispy
+all: liblispy.a liblispy.so lispy
+
+liblispy_sources =  \
+  src/linenoise.c
 liblispy_objects = $(liblispy_sources:.c=.o)
 
+src/linenoise.o: src/linenoise.c src/linenoise.h
+	@echo "CC      $@"
+	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
 
 liblispy.a: $(liblispy_objects)
-	$(AR) rcs $@ $(liblispy_objects)
+	@echo "STATIC  $@"
+	@$(AR) rcs $@ $(liblispy_objects)
+
+liblispy.so: $(liblispy_objects)
+	@echo "SHARED  $@"
+	@$(CC) $(LDFLAGS) -shared -o $@ $(liblispy_objects) $(LDLIBS)
 
 lispy: src/main.c liblispy.a
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c liblispy.a $(LDLIBS)
+	@echo "EXE     $@"
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c liblispy.a $(LDLIBS)
+
+.PHONY: run
+run: lispy
+	./lispy
 
 .PHONY: clean
 clean:
@@ -30,4 +48,5 @@ clean:
 
 .SUFFIXES: .c .o
 .c.o:
-	$(CC) $(CFLAGS) -c -o $@ $<
+	@echo "CC      $@"
+	@$(CC) $(CFLAGS) -c -o $@ $<

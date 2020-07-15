@@ -18,7 +18,7 @@ enum {
     LERR_BAD_NUM,
 };
 
-typedef struct lval {
+struct lval {
     int type;
     long num;
 
@@ -27,21 +27,28 @@ typedef struct lval {
 
     long count;
     struct lval** cell;
-} lval;
+};
 
-lval* lval_num(long x);
-lval* lval_sym(char* s);
-lval* lval_sexpr(void);
-lval* lval_err(char* m);
+struct lval* lval_num(long x);
+struct lval* lval_sym(char* s);
+struct lval* lval_sexpr(void);
+struct lval* lval_err(char* m);
 
-void lval_del(lval* v);
+void lval_del(struct lval* v);
 
-lval* lval_read_num(mpc_ast_t* t);
-lval* lval_read(mpc_ast_t* t);
-lval* lval_add(lval* v, lval* x);
+struct lval* lval_read_num(mpc_ast_t* t);
+struct lval* lval_read(mpc_ast_t* t);
+struct lval* lval_add(struct lval* v, struct lval* x);
 
-void lval_expr_print(lval* v, char open, char close);
-void lval_print(lval* v);
-void lval_println(lval* v);
+struct lval* lval_eval_sexpr(struct lval* v);
+struct lval* lval_eval(struct lval* v);
+struct lval* builtin_op(struct lval* a, char* op);
+
+struct lval* lval_pop(struct lval* v, long i);
+struct lval* lval_take(struct lval* v, long i);
+
+void lval_expr_print(struct lval* v, char open, char close);
+void lval_print(struct lval* v);
+void lval_println(struct lval* v);
 
 #endif

@@ -44,7 +44,7 @@ main(int argc, char* argv[])
 
         mpc_result_t r = { 0 };
         if (mpc_parse("<stdin>", line, Lispy, &r) != 0) {
-            lval* x = lval_read(r.output);
+            struct lval* x = lval_eval(lval_read(r.output));
             lval_println(x);
             lval_del(x);
             mpc_ast_delete(r.output);

@@ -7,13 +7,13 @@
 #include "object.h"
 #include "reader.h"
 
-bool
+static bool
 reader_is_delimiter(int c)
 {
     return isspace(c) || c == EOF || c == '(' || c == ')' || c == '"' || c == ';';
 }
 
-int
+static int
 reader_peek(FILE* stream)
 {
     assert(stream != NULL);
@@ -23,7 +23,7 @@ reader_peek(FILE* stream)
     return c;
 }
 
-void
+static void
 reader_skip_whitespace(FILE* stream)
 {
     assert(stream != NULL);

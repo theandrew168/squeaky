@@ -57,6 +57,20 @@ lexer_peek(struct lexer* lexer)
 }
 
 static bool
+lexer_match(struct lexer* lexer, const char* str)
+{
+    long pos = lexer->pos;
+    while (*str != '\0') {
+        if (lexer_next(lexer) != *str) {
+            lexer->pos = pos;
+            return false;
+        }
+        str++;
+    }
+    return true;
+}
+
+static bool
 lexer_accept(struct lexer* lexer, const char* valid)
 {
     if (strchr(valid, lexer_next(lexer)) != NULL) {
@@ -82,7 +96,7 @@ lexer_emit(struct lexer* lexer, struct token* token, enum token_type type)
     lexer->start = lexer->pos;
 }
 
-static void
+static int
 lexer_lex_fixnum(struct lexer* lexer, struct token* token)
 {
     const char digits[] = "012345679";
@@ -92,6 +106,31 @@ lexer_lex_fixnum(struct lexer* lexer, struct token* token)
     }
 
     lexer_emit(lexer, token, TOKEN_TYPE_FIXNUM);
+    return LEXER_OK;
+}
+
+static int
+lexer_lex_boolean(struct lexer* lexer, struct token* token)
+{
+    lexer_emit(lexer, token, TOKEN_TYPE_BOOLEAN);
+    return LEXER_OK;
+}
+
+static int
+lexer_lex_character(struct lexer* lexer, struct token* token)
+{
+    if (lexer_match(lexer, "newline") || lexer_match(lexer, "space")) {
+        lexer_emit(lexer, token, TOKEN_TYPE_CHARACTER);
+        return LEXER_OK;
+    }
+
+    const char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    if (!lexer_accept(lexer, chars)) {
+        return LEXER_ERROR;
+    }
+
+    lexer_emit(lexer, token, TOKEN_TYPE_CHARACTER);
+    return LEXER_OK;
 }
 
 void
@@ -104,13 +143,29 @@ lexer_print(const struct token* token)
 int
 lexer_lex(struct lexer* lexer, struct token* token)
 {
+    // ignore whitespace and comments lines
     while (lexer_accept(lexer, " \t\r\n")) {
         lexer_ignore(lexer);
+        if (lexer_accept(lexer, ";")) {
+            lexer_ignore(lexer);
+            for (;;) {
+                if (lexer_peek(lexer) == '\n' || lexer_peek(lexer) == -1) break;
+                lexer_next(lexer);
+                lexer_ignore(lexer);
+            }
+        }
     }
 
     if (lexer_accept(lexer, "0123456789")) {
-        lexer_lex_fixnum(lexer, token);
-        return LEXER_OK;
+        return lexer_lex_fixnum(lexer, token);
+    } else if (lexer_accept(lexer, "#")) {
+        if (lexer_accept(lexer, "tf")) {
+            return lexer_lex_boolean(lexer, token);
+        } else if (lexer_accept(lexer, "\\")) {
+            return lexer_lex_character(lexer, token);
+        } else {
+            return LEXER_ERROR;
+        }
     } else {
         return LEXER_ERROR;
     }

@@ -1,9 +1,9 @@
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include "linenoise.h"
+#include "evaluator.h"
+#include "object.h"
+#include "reader.h"
 
 static const char SQUEAKY_PROMPT[] = "squeaky> ";
 static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
@@ -11,25 +11,24 @@ static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
 int
 main(int argc, char* argv[])
 {
-    linenoiseHistoryLoad(SQUEAKY_HISTORY_FILE);
-
     puts("Welcome to Squeaky Scheme!");
     puts("Use Ctrl-c to exit.");
 
-    char* line = NULL;
-    while ((line = linenoise(SQUEAKY_PROMPT)) != NULL) {
-        if (line[0] == '\0') {
-            linenoiseFree(line);
-            break;
-        }
+    for (;;) {
+        printf(SQUEAKY_PROMPT);
 
-        linenoiseHistoryAdd(line);
-        linenoiseHistorySave(SQUEAKY_HISTORY_FILE);
+        struct object exp = { 0 };
+        int rc = reader_read(stdin, &exp);
+        if (rc != READER_OK) break;
 
-        puts(line);
+        struct object res = { 0 };
+        rc = evaluator_eval(&exp, &res);
+        if (rc != EVALUATOR_OK) break;
 
-        linenoiseFree(line);
+        object_print(&res);
+        putchar('\n');
     }
+    
 
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,6 @@
-lispy
-lispy_tests
-.lispy_history
+squeaky
+squeaky_tests
+.squeaky_history
 
 # Prerequisites
 *.d

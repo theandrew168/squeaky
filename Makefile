@@ -15,46 +15,36 @@ LDLIBS  =
 # compile linenoise as C99 (plus POSIX.1-2008) with debug symbols
 LINENOISE_CFLAGS = -std=c99 -D_POSIX_C_SOURCE=200809L -fPIC -g -Og
 
-# https://github.com/orangeduck/mpc
-# compile mpc as C99 with debug symbols
-MPC_CFLAGS = -std=c99 -fPIC -g -Og
+default: squeaky
+all: libsqueaky.a libsqueaky.so squeaky
 
-default: lispy
-all: liblispy.a liblispy.so lispy
-
-liblispy_sources =  \
-  src/linenoise.c   \
-  src/lval.c        \
-  src/mpc.c
-liblispy_objects = $(liblispy_sources:.c=.o)
+libsqueaky_sources =  \
+  src/linenoise.c
+libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/linenoise.o: src/linenoise.c src/linenoise.h
 	@echo "CC      $@"
 	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
-src/lval.o: src/lval.c src/lval.h
-src/mpc.o: src/mpc.c src/mpc.h
-	@echo "CC      $@"
-	@$(CC) -c $(MPC_CFLAGS) -o $@ $<
 
-liblispy.a: $(liblispy_objects)
+libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"
-	@$(AR) rcs $@ $(liblispy_objects)
+	@$(AR) rcs $@ $(libsqueaky_objects)
 
-liblispy.so: $(liblispy_objects)
+libsqueaky.so: $(libsqueaky_objects)
 	@echo "SHARED  $@"
-	@$(CC) $(LDFLAGS) -shared -o $@ $(liblispy_objects) $(LDLIBS)
+	@$(CC) $(LDFLAGS) -shared -o $@ $(libsqueaky_objects) $(LDLIBS)
 
-lispy: src/main.c liblispy.a
+squeaky: src/main.c libsqueaky.a
 	@echo "EXE     $@"
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c liblispy.a $(LDLIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
 
 .PHONY: run
-run: lispy
-	./lispy
+run: squeaky
+	./squeaky
 
 .PHONY: clean
 clean:
-	rm -fr lispy lispy_tests *.a *.so src/*.o
+	rm -fr squeaky squeaky_tests *.a *.so src/*.o
 
 .SUFFIXES: .c .o
 .c.o:

@@ -1,2 +1,2 @@
-# lispy
-Lisp-like language based on "Build Your Own Lisp"
+# squeaky
+Scheme-like language based on Peter Michaux's "Scheme from Scratch"

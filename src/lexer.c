@@ -16,9 +16,11 @@ token_type_name(int type)
         return "BOOLEAN";
     case TOKEN_TYPE_CHARACTER:
         return "CHARACTER";
+    case TOKEN_TYPE_STRING:
+        return "STRING";
     case TOKEN_TYPE_UNDEFINED:
     default:
-        return NULL;
+        return "UNDEFINED";
     }
 }
 
@@ -133,6 +135,28 @@ lexer_lex_character(struct lexer* lexer, struct token* token)
     return LEXER_OK;
 }
 
+static int
+lexer_lex_string(struct lexer* lexer, struct token* token)
+{
+    for (;;) {
+        char next = lexer_peek(lexer);
+        if (next == -1) {
+//            fprintf(stderr, "incomplete string literal\n");
+            return LEXER_ERROR;
+        }
+
+        lexer_next(lexer);
+
+        // use a cheeky lookahead(2) to accept escapes quotes
+        if (next == '\\' && lexer_peek(lexer) == '"') lexer_next(lexer);
+
+        if (next == '"') break;
+    }
+
+    lexer_emit(lexer, token, TOKEN_TYPE_STRING);
+    return LEXER_OK;
+}
+
 void
 lexer_print(const struct token* token)
 {
@@ -158,15 +182,24 @@ lexer_lex(struct lexer* lexer, struct token* token)
 
     if (lexer_accept(lexer, "0123456789")) {
         return lexer_lex_fixnum(lexer, token);
-    } else if (lexer_accept(lexer, "#")) {
+    }
+
+    if (lexer_accept(lexer, "#")) {
         if (lexer_accept(lexer, "tf")) {
             return lexer_lex_boolean(lexer, token);
-        } else if (lexer_accept(lexer, "\\")) {
-            return lexer_lex_character(lexer, token);
-        } else {
-            return LEXER_ERROR;
         }
-    } else {
+
+        if (lexer_accept(lexer, "\\")) {
+            return lexer_lex_character(lexer, token);
+        }
+
         return LEXER_ERROR;
     }
+
+    if (lexer_accept(lexer, "\"")) {
+        return lexer_lex_string(lexer, token);
+    }
+
+
+    return LEXER_ERROR;
 }

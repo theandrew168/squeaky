@@ -12,6 +12,7 @@ enum token_type {
     TOKEN_TYPE_FIXNUM,
     TOKEN_TYPE_BOOLEAN,
     TOKEN_TYPE_CHARACTER,
+    TOKEN_TYPE_STRING,
 };
 
 struct token {

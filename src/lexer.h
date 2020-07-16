@@ -13,6 +13,8 @@ enum token_type {
     TOKEN_TYPE_BOOLEAN,
     TOKEN_TYPE_CHARACTER,
     TOKEN_TYPE_STRING,
+    TOKEN_TYPE_LPAREN,
+    TOKEN_TYPE_RPAREN,
 };
 
 struct token {
@@ -31,6 +33,7 @@ struct lexer {
 
 enum lexer_status {
     LEXER_OK = 0,
+    LEXER_EOF,
     LEXER_ERROR,
 };
 

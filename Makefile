@@ -22,8 +22,7 @@ libsqueaky_sources =  \
   src/evaluator.c     \
   src/lexer.c         \
   src/linenoise.c     \
-  src/object.c        \
-  src/reader.c
+  src/object.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/evaluator.o: src/evaluator.c src/evaluator.h src/object.h

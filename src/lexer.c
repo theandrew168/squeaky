@@ -18,6 +18,10 @@ token_type_name(int type)
         return "CHARACTER";
     case TOKEN_TYPE_STRING:
         return "STRING";
+    case TOKEN_TYPE_LPAREN:
+        return "LPAREN";
+    case TOKEN_TYPE_RPAREN:
+        return "RPAREN";
     case TOKEN_TYPE_UNDEFINED:
     default:
         return "UNDEFINED";
@@ -157,6 +161,20 @@ lexer_lex_string(struct lexer* lexer, struct token* token)
     return LEXER_OK;
 }
 
+static int
+lexer_lex_lparen(struct lexer* lexer, struct token* token)
+{
+    lexer_emit(lexer, token, TOKEN_TYPE_LPAREN);
+    return LEXER_OK;
+}
+
+static int
+lexer_lex_rparen(struct lexer* lexer, struct token* token)
+{
+    lexer_emit(lexer, token, TOKEN_TYPE_RPAREN);
+    return LEXER_OK;
+}
+
 void
 lexer_print(const struct token* token)
 {
@@ -167,6 +185,8 @@ lexer_print(const struct token* token)
 int
 lexer_lex(struct lexer* lexer, struct token* token)
 {
+    if (lexer_peek(lexer) == -1) return LEXER_EOF;
+
     // ignore whitespace and comments lines
     while (lexer_accept(lexer, " \t\r\n")) {
         lexer_ignore(lexer);
@@ -200,6 +220,13 @@ lexer_lex(struct lexer* lexer, struct token* token)
         return lexer_lex_string(lexer, token);
     }
 
+    if (lexer_accept(lexer, "(")) {
+        return lexer_lex_lparen(lexer, token);
+    }
+
+    if (lexer_accept(lexer, ")")) {
+        return lexer_lex_rparen(lexer, token);
+    }
 
     return LEXER_ERROR;
 }

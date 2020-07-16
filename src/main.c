@@ -38,6 +38,10 @@ main(int argc, char* argv[])
             lexer_print(&t);
         }
 
+        if (rc == LEXER_ERROR) {
+            fprintf(stderr, "!!! syntax error !!!\n");
+        }
+
         linenoiseFree(line);
     }
 

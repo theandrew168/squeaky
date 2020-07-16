@@ -49,8 +49,20 @@ reader_read(FILE* stream, struct object* object)
     reader_skip_whitespace(stream);
     int c = getc(stream);
 
-    // check for a fixnum
-    if (isdigit(c) || (c == '-' && isdigit(reader_peek(stream)))) {
+    if (c == '#') {  // check for boolean
+        c = getc(stream);
+        switch (c) {
+            case 't':
+                object_make_boolean(object, true);
+                break;
+            case 'f':
+                object_make_boolean(object, false);
+                break;
+            default:
+                fprintf(stderr, "unknown boolean literal\n");
+                return READER_ERROR;
+        }
+    } else if (isdigit(c) || (c == '-' && isdigit(reader_peek(stream)))) {  // check for fixnum
         int sign = 1;
         long num = 0;
 

@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "evaluator.h"
-#include "object.h"
-#include "reader.h"
+#include "lexer.h"
+#include "linenoise.h"
 
 static const char SQUEAKY_PROMPT[] = "squeaky> ";
 static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
@@ -11,24 +10,36 @@ static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
 int
 main(int argc, char* argv[])
 {
+    linenoiseHistoryLoad(SQUEAKY_HISTORY_FILE);
+
     puts("Welcome to Squeaky Scheme!");
     puts("Use Ctrl-c to exit.");
 
-    for (;;) {
-        printf(SQUEAKY_PROMPT);
+    char* line = NULL;
+    while ((line = linenoise(SQUEAKY_PROMPT)) != NULL) {
+        if (line[0] == '\0') {
+            linenoiseFree(line);
+            break;
+        }
 
-        struct object exp = { 0 };
-        int rc = reader_read(stdin, &exp);
-        if (rc != READER_OK) break;
+        linenoiseHistoryAdd(line);
+        linenoiseHistorySave(SQUEAKY_HISTORY_FILE);
 
-        struct object res = { 0 };
-        rc = evaluator_eval(&exp, &res);
-        if (rc != EVALUATOR_OK) break;
+        puts(line);
 
-        object_print(&res);
-        putchar('\n');
+        struct lexer l = {
+            .input = line,
+            .input_len = strlen(line),
+        };
+
+        int rc = LEXER_OK;
+        struct token t = { 0 };
+        while ((rc = lexer_lex(&l, &t)) == LEXER_OK) {
+            lexer_print(&t);
+        }
+
+        linenoiseFree(line);
     }
-    
 
     return EXIT_SUCCESS;
 }

@@ -13,6 +13,9 @@ main(int argc, char* argv[])
 {
     linenoiseHistoryLoad(SQUEAKY_HISTORY_FILE);
 
+    puts("Welcome to Squeaky Scheme!");
+    puts("Use Ctrl-c to exit.");
+
     char* line = NULL;
     while ((line = linenoise(SQUEAKY_PROMPT)) != NULL) {
         if (line[0] == '\0') {

@@ -19,12 +19,18 @@ default: squeaky
 all: libsqueaky.a libsqueaky.so squeaky
 
 libsqueaky_sources =  \
-  src/linenoise.c
+  src/evaluator.c     \
+  src/linenoise.c     \
+  src/object.c        \
+  src/reader.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
+src/evaluator.o: src/evaluator.c src/evaluator.h src/object.h
 src/linenoise.o: src/linenoise.c src/linenoise.h
 	@echo "CC      $@"
 	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
+src/object.o: src/object.c src/object.h
+src/reader.o: src/reader.c src/reader.h src/object.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"

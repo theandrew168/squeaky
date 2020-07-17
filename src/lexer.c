@@ -6,28 +6,6 @@
 
 #include "lexer.h"
 
-static const char*
-token_type_name(int type)
-{
-    switch (type) {
-    case TOKEN_TYPE_FIXNUM:
-        return "FIXNUM";
-    case TOKEN_TYPE_BOOLEAN:
-        return "BOOLEAN";
-    case TOKEN_TYPE_CHARACTER:
-        return "CHARACTER";
-    case TOKEN_TYPE_STRING:
-        return "STRING";
-    case TOKEN_TYPE_LPAREN:
-        return "LPAREN";
-    case TOKEN_TYPE_RPAREN:
-        return "RPAREN";
-    case TOKEN_TYPE_UNDEFINED:
-    default:
-        return "UNDEFINED";
-    }
-}
-
 static char
 lexer_next(struct lexer* lexer)
 {
@@ -179,7 +157,7 @@ void
 lexer_print(const struct token* token)
 {
     // TODO: check len and truncate extra long tokens
-    printf("%s: %.*s\n", token_type_name(token->type), (int)token->len, token->value);
+    printf("token: %.*s\n", (int)token->len, token->value);
 }
 
 int

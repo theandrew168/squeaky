@@ -22,7 +22,8 @@ libsqueaky_sources =  \
   src/evaluator.c     \
   src/lexer.c         \
   src/linenoise.c     \
-  src/object.c
+  src/object.c        \
+  src/parser.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/evaluator.o: src/evaluator.c src/evaluator.h src/object.h
@@ -31,7 +32,7 @@ src/linenoise.o: src/linenoise.c src/linenoise.h
 	@echo "CC      $@"
 	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
 src/object.o: src/object.c src/object.h
-src/reader.o: src/reader.c src/reader.h src/object.h
+src/parser.o: src/parser.c src/parser.h src/lexer.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"

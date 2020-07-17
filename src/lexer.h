@@ -1,12 +1,6 @@
 #ifndef SQUEAKY_LEXER_H_INCLUDED
 #define SQUEAKY_LEXER_H_INCLUDED
 
-#include <assert.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 enum token_type {
     TOKEN_TYPE_UNDEFINED = 0,
     TOKEN_TYPE_FIXNUM,

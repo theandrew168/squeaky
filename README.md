@@ -1,2 +1,2 @@
 # squeaky
-Scheme-like language based on Peter Michaux's "Scheme from Scratch"
+Scheme-like language based on "Build Your Own Lisp" and "Scheme from Scratch"

@@ -6,7 +6,7 @@ CC      = cc
 CFLAGS  = -std=c99
 CFLAGS += -fPIC -g -Og
 CFLAGS += -Wall -Wextra -Wpedantic
-CFLAGS += -Wno-unused -Wno-unused-result
+CFLAGS += -Wno-unused-parameter -Wno-unused-result
 CFLAGS += -Isrc/
 LDFLAGS =
 LDLIBS  =
@@ -15,24 +15,24 @@ LDLIBS  =
 # compile linenoise as C99 (plus POSIX.1-2008) with debug symbols
 LINENOISE_CFLAGS = -std=c99 -D_POSIX_C_SOURCE=200809L -fPIC -g -Og
 
+# https://github.com/orangeduck/mpc
+# compile mpc as C99 with debug symbols
+MPC_CFLAGS = -std=c99 -fPIC -g -Og
+
 default: squeaky
 all: libsqueaky.a libsqueaky.so squeaky
 
 libsqueaky_sources =  \
-  src/evaluator.c     \
-  src/lexer.c         \
   src/linenoise.c     \
-  src/object.c        \
-  src/parser.c
+  src/mpc.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
-src/evaluator.o: src/evaluator.c src/evaluator.h src/object.h
-src/lexer.o: src/lexer.c src/lexer.h
 src/linenoise.o: src/linenoise.c src/linenoise.h
 	@echo "CC      $@"
 	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
-src/object.o: src/object.c src/object.h
-src/parser.o: src/parser.c src/parser.h src/lexer.h
+src/mpc.o: src/mpc.c src/mpc.h
+	@echo "CC      $@"
+	@$(CC) -c $(MPC_CFLAGS) -o $@ $<
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"

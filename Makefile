@@ -24,12 +24,14 @@ all: libsqueaky.a libsqueaky.so squeaky
 
 libsqueaky_sources =  \
   src/linenoise.c     \
+  src/lobj.c          \
   src/mpc.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/linenoise.o: src/linenoise.c src/linenoise.h
 	@echo "CC      $@"
 	@$(CC) -c $(LINENOISE_CFLAGS) -o $@ $<
+src/lobj.o: src/lobj.c src/lobj.h
 src/mpc.o: src/mpc.c src/mpc.h
 	@echo "CC      $@"
 	@$(CC) -c $(MPC_CFLAGS) -o $@ $<

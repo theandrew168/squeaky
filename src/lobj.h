@@ -7,6 +7,7 @@ enum lobj_type {
     LOBJ_TYPE_NUMBER,
     LOBJ_TYPE_SYMBOL,
     LOBJ_TYPE_SEXPR,
+    LOBJ_TYPE_QEXPR,
 };
 
 struct lobj {
@@ -22,13 +23,16 @@ struct lobj* lobj_make_number(long number);
 struct lobj* lobj_make_error(const char* error);
 struct lobj* lobj_make_symbol(const char* symbol);
 struct lobj* lobj_make_sexpr(void);
-
+struct lobj* lobj_make_qexpr(void);
 void lobj_free(struct lobj* obj);
+
 void lobj_print(const struct lobj* obj);
 void lobj_println(const struct lobj* obj);
 
-void lobj_sexpr_append(struct lobj* sexpr, struct lobj* obj);
-struct lobj* lobj_sexpr_pop(struct lobj* sexpr, long i);
-struct lobj* lobj_sexpr_take(struct lobj* sexpr, long i);
+// operations on lists
+struct lobj* lobj_list_append(struct lobj* list, struct lobj* obj);
+struct lobj* lobj_list_pop(struct lobj* list, long i);
+struct lobj* lobj_list_take(struct lobj* list, long i);
+struct lobj* lobj_list_join(struct lobj* list, struct lobj* extras);
 
 #endif

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lenv.h"
 #include "linenoise.h"
 #include "lobj.h"
 #include "mpc.h"
@@ -13,8 +14,9 @@
 static const char SQUEAKY_PROMPT[] = "squeaky> ";
 static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
 
-struct lobj* eval_sexpr(struct lobj* obj);
-struct lobj* eval(struct lobj* obj);
+
+struct lobj* eval_sexpr(struct lenv* env, struct lobj* obj);
+struct lobj* eval(struct lenv* env, struct lobj* obj);
 
 static struct lobj*
 lobj_read_number(mpc_ast_t* ast)
@@ -51,7 +53,7 @@ lobj_read(mpc_ast_t* ast)
 }
 
 struct lobj*
-builtin_op(struct lobj* obj, char* op)
+builtin_op(struct lenv* env, struct lobj* obj, char* op)
 {
     // ensure all args are numbers
     for (long i = 0; i < obj->cell_count; i++) {
@@ -95,14 +97,38 @@ builtin_op(struct lobj* obj, char* op)
 }
 
 struct lobj*
-builtin_list(struct lobj* obj)
+builtin_add(struct lenv* env, struct lobj* obj)
+{
+    return builtin_op(env, obj, "+");
+}
+
+struct lobj*
+builtin_sub(struct lenv* env, struct lobj* obj)
+{
+    return builtin_op(env, obj, "-");
+}
+
+struct lobj*
+builtin_mul(struct lenv* env, struct lobj* obj)
+{
+    return builtin_op(env, obj, "*");
+}
+
+struct lobj*
+builtin_div(struct lenv* env, struct lobj* obj)
+{
+    return builtin_op(env, obj, "/");
+}
+
+struct lobj*
+builtin_list(struct lenv* env, struct lobj* obj)
 {
     obj->type = LOBJ_TYPE_QEXPR;
     return obj;
 }
 
 struct lobj*
-builtin_head(struct lobj* obj)
+builtin_head(struct lenv* env, struct lobj* obj)
 {
     LASSERT(obj, obj->cell_count == 1, "function 'head' passed too many args");
     LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'head' passed incorrect type");
@@ -114,7 +140,7 @@ builtin_head(struct lobj* obj)
 }
 
 struct lobj*
-builtin_tail(struct lobj* obj)
+builtin_tail(struct lenv* env, struct lobj* obj)
 {
     LASSERT(obj, obj->cell_count == 1, "function 'tail' passed too many args");
     LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'tail' passed incorrect type");
@@ -126,7 +152,7 @@ builtin_tail(struct lobj* obj)
 }
 
 struct lobj*
-builtin_join(struct lobj* obj)
+builtin_join(struct lenv* env, struct lobj* obj)
 {
     for (long i = 0; i < obj->cell_count; i++ ) {
         LASSERT(obj, obj->cell[i]->type == LOBJ_TYPE_QEXPR, "function 'join' passed incorrect type");
@@ -142,35 +168,70 @@ builtin_join(struct lobj* obj)
 }
 
 struct lobj*
-builtin_eval(struct lobj* obj)
+builtin_eval(struct lenv* env, struct lobj* obj)
 {
     LASSERT(obj, obj->cell_count == 1, "function 'eval' passed too many args");
     LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'eval' passed incorrect type");
 
     struct lobj* sexpr = lobj_list_take(obj, 0);
     sexpr->type = LOBJ_TYPE_SEXPR;
-    return eval(sexpr);
+    return eval(env, sexpr);
 }
 
 struct lobj*
-builtin(struct lobj* obj, char* func)
+builtin_def(struct lenv* env, struct lobj* obj)
 {
-    if (strcmp("list", func) == 0) return builtin_list(obj);
-    if (strcmp("head", func) == 0) return builtin_head(obj);
-    if (strcmp("tail", func) == 0) return builtin_tail(obj);
-    if (strcmp("join", func) == 0) return builtin_join(obj);
-    if (strcmp("eval", func) == 0) return builtin_eval(obj);
-    if (strstr("+-/*", func)) return builtin_op(obj, func);
+    LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'def' passed incorrect type");
+
+    struct lobj* symbols = obj->cell[0];
+    for (long i = 0; i < symbols->cell_count; i++) {
+        LASSERT(obj, symbols->cell[i]->type == LOBJ_TYPE_SYMBOL, "function 'def' cannot define non-symbol");
+    }
+
+    LASSERT(obj, symbols->cell_count == obj->cell_count - 1, "function 'def' passed mismatched number of symbols and objects");
+
+    // assign copies of objects to symbols
+    for (long i = 0; i < symbols->cell_count; i++) {
+        lenv_put(env, symbols->cell[i], obj->cell[i + 1]);
+    }
+
     lobj_free(obj);
-    return lobj_make_error("unknown function");
+    return lobj_make_sexpr();
+}
+
+void
+add_builtin(struct lenv* env, const char* name, lbuiltin func)
+{
+    struct lobj* k = lobj_make_symbol(name);
+    struct lobj* v = lobj_make_func(func);
+    lenv_put(env, k, v);
+    lobj_free(k);
+    lobj_free(v);
+}
+
+void
+add_builtins(struct lenv* env)
+{
+    add_builtin(env, "list", builtin_list);
+    add_builtin(env, "head", builtin_head);
+    add_builtin(env, "tail", builtin_tail);
+    add_builtin(env, "join", builtin_join);
+    add_builtin(env, "eval", builtin_eval);
+
+    add_builtin(env, "+", builtin_add);
+    add_builtin(env, "-", builtin_sub);
+    add_builtin(env, "*", builtin_mul);
+    add_builtin(env, "/", builtin_div);
+
+    add_builtin(env, "def", builtin_def);
 }
 
 struct lobj*
-eval_sexpr(struct lobj* obj)
+eval_sexpr(struct lenv* env, struct lobj* obj)
 {
     // eval children
     for (long i = 0; i < obj->cell_count; i++) {
-        obj->cell[i] = eval(obj->cell[i]);
+        obj->cell[i] = eval(env, obj->cell[i]);
     }
 
     // error checking
@@ -186,22 +247,31 @@ eval_sexpr(struct lobj* obj)
 
     // ensure first element is a symbol
     struct lobj* f = lobj_list_pop(obj, 0);
-    if (f->type != LOBJ_TYPE_SYMBOL) {
+    if (f->type != LOBJ_TYPE_FUNC) {
         lobj_free(f);
         lobj_free(obj);
-        return lobj_make_error("s-expressions does not start with symbol");
+        return lobj_make_error("s-expressions does not start with a function");
     }
 
     // call builtin with operator
-    struct lobj* result = builtin(obj, f->symbol);
+    struct lobj* result = f->func(env, obj);
     lobj_free(f);
     return result;
 }
 
 struct lobj*
-eval(struct lobj* obj)
+eval(struct lenv* env, struct lobj* obj)
 {
-    if (obj->type == LOBJ_TYPE_SEXPR) return eval_sexpr(obj);
+    if (obj->type == LOBJ_TYPE_SYMBOL) {
+        struct lobj* v = lenv_get(env, obj);
+        lobj_free(obj);
+        return v;
+    }
+
+    if (obj->type == LOBJ_TYPE_SEXPR) {
+        return eval_sexpr(env, obj);
+    }
+
     return obj;
 }
 
@@ -217,9 +287,7 @@ main(int argc, char* argv[])
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "number  : /-?[0-9]+/ ;"
-        "symbol  : \"list\" | \"head\" | \"tail\" "
-        "        | \"join\" | \"eval\" "
-        "        | '+' | '-' | '*' | '/' ;"
+        "symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;"
         "sexpr   : '(' <expr>* ')' ;"
         "qexpr   : '{' <expr>* '}' ;"
         "expr    : <number> | <symbol> | <sexpr> | <qexpr> ;"
@@ -231,6 +299,9 @@ main(int argc, char* argv[])
 
     linenoiseHistoryLoad(SQUEAKY_HISTORY_FILE);
 
+    struct lenv* env = lenv_make();
+    add_builtins(env);
+
     char* line = NULL;
     while ((line = linenoise(SQUEAKY_PROMPT)) != NULL) {
         if (line[0] != '\0') {
@@ -240,7 +311,7 @@ main(int argc, char* argv[])
 
         mpc_result_t r = { 0 };
         if (mpc_parse("<stdin>", line, Squeaky, &r) != 0) {
-            struct lobj* res = eval(lobj_read(r.output));
+            struct lobj* res = eval(env, lobj_read(r.output));
             lobj_println(res);
             lobj_free(res);
 
@@ -253,6 +324,7 @@ main(int argc, char* argv[])
         linenoiseFree(line);
     }
 
+    lenv_free(env);
     mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Squeaky);
     return EXIT_SUCCESS;
 }

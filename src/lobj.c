@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,12 +7,19 @@
 #include "lobj.h"
 
 struct lobj*
-lobj_make_error(const char* error)
+lobj_make_error(const char* fmt, ...)
 {
     struct lobj* obj = malloc(sizeof(struct lobj));
     obj->type = LOBJ_TYPE_ERROR;
-    obj->error = malloc(strlen(error) + 1);
-    strcpy(obj->error, error);
+
+    va_list va;
+    va_start(va, fmt);
+
+    obj->error = malloc(512);
+    vsnprintf(obj->error, 511, fmt, va);
+    obj->error = realloc(obj->error, strlen(obj->error) + 1);
+
+    va_end(va);
     return obj;
 }
 
@@ -35,6 +43,15 @@ lobj_make_symbol(const char* symbol)
 }
 
 struct lobj*
+lobj_make_func(lbuiltin func)
+{
+    struct lobj* obj = malloc(sizeof(struct lobj));
+    obj->type = LOBJ_TYPE_FUNC;
+    obj->func = func;
+    return obj;
+}
+
+struct lobj*
 lobj_make_sexpr(void)
 {
     struct lobj* obj = malloc(sizeof(struct lobj));
@@ -52,6 +69,42 @@ lobj_make_qexpr(void)
     obj->cell_count = 0;
     obj->cell = NULL;
     return obj;
+}
+
+struct lobj*
+lobj_copy(const struct lobj* obj)
+{
+    assert(obj != NULL);
+
+    struct lobj* copy = malloc(sizeof(struct lobj));
+    copy->type = obj->type;
+
+    switch (obj->type) {
+        case LOBJ_TYPE_ERROR:
+            copy->error = malloc(strlen(obj->error) + 1);
+            strcpy(copy->error, obj->error);
+            break;
+        case LOBJ_TYPE_NUMBER:
+            copy->number = obj->number;
+            break;
+        case LOBJ_TYPE_SYMBOL:
+            copy->symbol = malloc(strlen(obj->symbol) + 1);
+            strcpy(copy->symbol, obj->symbol);
+            break;
+        case LOBJ_TYPE_FUNC:
+            copy->func = obj->func;
+            break;
+        case LOBJ_TYPE_SEXPR:
+        case LOBJ_TYPE_QEXPR:
+            copy->cell_count = obj->cell_count;
+            copy->cell = malloc(sizeof(struct lobj*) * obj->cell_count);
+            for (long i = 0; i < obj->cell_count; i++) {
+                copy->cell[i] = lobj_copy(obj->cell[i]);
+            }
+            break;
+    }
+
+    return copy;
 }
 
 void
@@ -80,6 +133,7 @@ lobj_print(const struct lobj* obj)
         case LOBJ_TYPE_ERROR: printf("error: %s", obj->error); break;
         case LOBJ_TYPE_NUMBER: printf("%ld", obj->number); break;
         case LOBJ_TYPE_SYMBOL: printf("%s", obj->symbol); break;
+        case LOBJ_TYPE_FUNC: printf("<func>"); break;
         case LOBJ_TYPE_SEXPR:
             putchar('(');
             for (long i = 0; i < obj->cell_count; i++) {

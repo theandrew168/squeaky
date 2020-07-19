@@ -124,6 +124,22 @@ lobj_free(struct lobj* obj)
     free(obj);
 }
 
+const char*
+lobj_type_name(int lobj_type)
+{
+    switch (lobj_type) {
+        case LOBJ_TYPE_ERROR: return "Error";
+        case LOBJ_TYPE_NUMBER: return "Number";
+        case LOBJ_TYPE_SYMBOL: return "Symbol";
+        case LOBJ_TYPE_FUNC: return "Function";
+        case LOBJ_TYPE_SEXPR: return "S-Expression";
+        case LOBJ_TYPE_QEXPR: return "Q-Expression";
+        case LOBJ_TYPE_UNDEFINED:
+        default:
+            return "Undefined";
+    }
+}
+
 void
 lobj_print(const struct lobj* obj)
 {

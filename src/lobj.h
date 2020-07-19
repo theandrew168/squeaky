@@ -37,6 +37,7 @@ struct lobj* lobj_make_qexpr(void);
 struct lobj* lobj_copy(const struct lobj* obj);
 void lobj_free(struct lobj* obj);
 
+const char* lobj_type_name(int lobj_type);
 void lobj_print(const struct lobj* obj);
 void lobj_println(const struct lobj* obj);
 

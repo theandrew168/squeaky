@@ -11,9 +11,15 @@
 #define LASSERT(args, cond, err)  \
     if (!(cond)) { lobj_free(args); return lobj_make_error(err); }
 
+#define LASSERTF(args, cond, fmt, ...)                           \
+    if (!(cond)) {                                               \
+        struct lobj* err = lobj_make_error(fmt, ##__VA_ARGS__);  \
+        lobj_free(args);                                         \
+        return err;                                              \
+    }
+
 static const char SQUEAKY_PROMPT[] = "squeaky> ";
 static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
-
 
 struct lobj* eval_sexpr(struct lenv* env, struct lobj* obj);
 struct lobj* eval(struct lenv* env, struct lobj* obj);
@@ -57,10 +63,10 @@ builtin_op(struct lenv* env, struct lobj* obj, char* op)
 {
     // ensure all args are numbers
     for (long i = 0; i < obj->cell_count; i++) {
-        if (obj->cell[i]->type != LOBJ_TYPE_NUMBER) {
-            lobj_free(obj);
-            return lobj_make_error("cannot operate on non-number");
-        }
+        LASSERTF(obj, obj->cell[i]->type == LOBJ_TYPE_NUMBER,
+            "function '%s' passed incorrect type for arg %i: "
+            "want %s, got %s",
+            op, i, lobj_type_name(LOBJ_TYPE_NUMBER), lobj_type_name(obj->cell[0]->type));
     }
 
     // pop the first element
@@ -130,8 +136,14 @@ builtin_list(struct lenv* env, struct lobj* obj)
 struct lobj*
 builtin_head(struct lenv* env, struct lobj* obj)
 {
-    LASSERT(obj, obj->cell_count == 1, "function 'head' passed too many args");
-    LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'head' passed incorrect type");
+    LASSERTF(obj, obj->cell_count == 1,
+        "function 'head' passed too many args: "
+        "want %i, got %i",
+        1, obj->cell_count);
+    LASSERTF(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR,
+        "function 'head' passed incorrect type for arg %i: "
+        "want %s, got %s",
+        0, lobj_type_name(LOBJ_TYPE_QEXPR), lobj_type_name(obj->cell[0]->type));
     LASSERT(obj, obj->cell[0]->cell_count != 0, "function 'head' passed empty list");
 
     struct lobj* head = lobj_list_take(obj, 0);
@@ -142,8 +154,14 @@ builtin_head(struct lenv* env, struct lobj* obj)
 struct lobj*
 builtin_tail(struct lenv* env, struct lobj* obj)
 {
-    LASSERT(obj, obj->cell_count == 1, "function 'tail' passed too many args");
-    LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'tail' passed incorrect type");
+    LASSERTF(obj, obj->cell_count == 1,
+        "function 'tail' passed too many args: "
+        "want %i, got %i",
+        1, obj->cell_count);
+    LASSERTF(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR,
+        "function 'tail' passed incorrect type for arg %i: "
+        "want %s, got %s",
+        0, lobj_type_name(LOBJ_TYPE_QEXPR), lobj_type_name(obj->cell[0]->type));
     LASSERT(obj, obj->cell[0]->cell_count != 0, "function 'tail' passed empty list");
 
     struct lobj* tail = lobj_list_take(obj, 0);
@@ -155,7 +173,10 @@ struct lobj*
 builtin_join(struct lenv* env, struct lobj* obj)
 {
     for (long i = 0; i < obj->cell_count; i++ ) {
-        LASSERT(obj, obj->cell[i]->type == LOBJ_TYPE_QEXPR, "function 'join' passed incorrect type");
+        LASSERTF(obj, obj->cell[i]->type == LOBJ_TYPE_QEXPR,
+            "function 'tail' passed incorrect type for arg %i: "
+            "want %s, got %s",
+            i, lobj_type_name(LOBJ_TYPE_QEXPR), lobj_type_name(obj->cell[i]->type));
     }
 
     struct lobj* list = lobj_list_pop(obj, 0);
@@ -170,8 +191,14 @@ builtin_join(struct lenv* env, struct lobj* obj)
 struct lobj*
 builtin_eval(struct lenv* env, struct lobj* obj)
 {
-    LASSERT(obj, obj->cell_count == 1, "function 'eval' passed too many args");
-    LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'eval' passed incorrect type");
+    LASSERTF(obj, obj->cell_count == 1,
+        "function 'eval' passed too many args: "
+        "want %i, got %i",
+        1, obj->cell_count);
+    LASSERTF(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR,
+        "function 'eval' passed incorrect type for arg %i: "
+        "want %s, got %s",
+        0, lobj_type_name(LOBJ_TYPE_QEXPR), lobj_type_name(obj->cell[0]->type));
 
     struct lobj* sexpr = lobj_list_take(obj, 0);
     sexpr->type = LOBJ_TYPE_SEXPR;
@@ -181,7 +208,10 @@ builtin_eval(struct lenv* env, struct lobj* obj)
 struct lobj*
 builtin_def(struct lenv* env, struct lobj* obj)
 {
-    LASSERT(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR, "function 'def' passed incorrect type");
+    LASSERTF(obj, obj->cell[0]->type == LOBJ_TYPE_QEXPR,
+        "function 'def' passed incorrect type for arg %i: "
+        "want %s, got %s",
+        0, lobj_type_name(LOBJ_TYPE_QEXPR), lobj_type_name(obj->cell[0]->type));
 
     struct lobj* symbols = obj->cell[0];
     for (long i = 0; i < symbols->cell_count; i++) {

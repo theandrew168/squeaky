@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "lenv.h"
-#include "linenoise.h"
 #include "lval.h"
 #include "mpc.h"
 
@@ -17,9 +16,6 @@
         lval_free(args);                                         \
         return err;                                              \
     }
-
-static const char SQUEAKY_PROMPT[] = "squeaky> ";
-static const char SQUEAKY_HISTORY_FILE[] = ".squeaky_history";
 
 struct lval* eval_sexpr(struct lenv* env, struct lval* val);
 struct lval* eval(struct lenv* env, struct lval* val);
@@ -327,18 +323,13 @@ main(int argc, char* argv[])
     puts("Welcome to Squeaky Scheme!");
     puts("Use Ctrl-c to exit.");
 
-    linenoiseHistoryLoad(SQUEAKY_HISTORY_FILE);
-
     struct lenv* env = lenv_make();
     add_builtins(env);
 
-    char* line = NULL;
-    while ((line = linenoise(SQUEAKY_PROMPT)) != NULL) {
-        if (line[0] != '\0') {
-            linenoiseHistoryAdd(line);
-            linenoiseHistorySave(SQUEAKY_HISTORY_FILE);
-        }
+    printf("squeaky> ");
 
+    char line[512] = { 0 };
+    while (fgets(line, sizeof(line), stdin) != NULL) {
         mpc_result_t r = { 0 };
         if (mpc_parse("<stdin>", line, Squeaky, &r) != 0) {
             struct lval* res = eval(env, lval_read(r.output));
@@ -351,7 +342,7 @@ main(int argc, char* argv[])
             mpc_err_delete(r.error);
         }
 
-        linenoiseFree(line);
+        printf("squeaky> ");
     }
 
     lenv_free(env);

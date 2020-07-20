@@ -10,6 +10,7 @@ struct lenv*
 lenv_make(void)
 {
     struct lenv* env = malloc(sizeof(struct lenv));
+    env->parent = NULL;
     env->count = 0;
     env->symbols = NULL;
     env->values = NULL;
@@ -39,7 +40,11 @@ lenv_get(const struct lenv* env, const struct lval* k)
         }
     }
 
-    return lval_make_error("unbound symbol '%s'", k->symbol);
+    if (env->parent != NULL) {
+        return lenv_get(env->parent, k);
+    } else {
+        return lval_make_error("unbound symbol '%s'", k->symbol);
+    }
 }
 
 void
@@ -66,8 +71,25 @@ lenv_put(struct lenv* env, const struct lval* k, const struct lval* v)
     strcpy(env->symbols[env->count - 1], k->symbol);
 }
 
+void
+lenv_def(struct lenv* env, const struct lval* k, const struct lval* v)
+{
+    while (env->parent != NULL) env = env->parent;
+    lenv_put(env, k, v);
+}
+
 struct lenv*
 lenv_copy(const struct lenv* env)
 {
-    return env;
+    struct lenv* new = malloc(sizeof(struct lenv));
+    new->parent = env->parent;
+    new->count = env->count;
+    new->symbols = malloc(env->count * sizeof(char*));
+    new->values = malloc(env->count * sizeof(struct lval*));
+    for (long i = 0; i < env->count; i++) {
+        new->symbols[i] = malloc(strlen(env->symbols[i]) + 1);
+        strcpy(new->symbols[i], env->symbols[i]);
+        new->values[i] = lval_copy(env->values[i]);
+    }
+    return new;
 }

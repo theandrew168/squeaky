@@ -195,24 +195,47 @@ builtin_eval(struct lenv* env, struct lval* val)
 }
 
 struct lval*
-builtin_def(struct lenv* env, struct lval* val)
+builtin_var(struct lenv* env, struct lval* val, const char* func)
 {
-    LASSERT_TYPE("def", val, 0, LVAL_TYPE_QEXPR);
+    LASSERT_TYPE(func, val, 0, LVAL_TYPE_QEXPR);
 
     struct lval* symbols = val->cell[0];
     for (long i = 0; i < symbols->cell_count; i++) {
-        LASSERT(val, symbols->cell[i]->type == LVAL_TYPE_SYMBOL, "function 'def' cannot define non-symbol");
+        LASSERTF(val, symbols->cell[i]->type == LVAL_TYPE_SYMBOL,
+            "function '%s' cannot define non-symbol: "
+            "got %s at index %i",
+            func, lval_type_name(symbols->cell[i]->type), i);
     }
 
-    LASSERT(val, symbols->cell_count == val->cell_count - 1, "function 'def' passed mismatched number of symbols and valects");
+    LASSERTF(val, symbols->cell_count == val->cell_count - 1,
+        "function '%s' passed mismatched number of symbols and values: "
+        "want %i, got %i",
+        func, val->cell_count - 1, symbols->cell_count);
 
     // assign copies of valects to symbols
     for (long i = 0; i < symbols->cell_count; i++) {
-        lenv_put(env, symbols->cell[i], val->cell[i + 1]);
+        if (strcmp(func, "def") == 0) {
+            lenv_def(env, symbols->cell[i], val->cell[i + 1]);
+        }
+        if (strcmp(func, "=") == 0) {
+            lenv_put(env, symbols->cell[i], val->cell[i + 1]);
+        }
     }
 
     lval_free(val);
     return lval_make_sexpr();
+}
+
+struct lval*
+builtin_def(struct lenv* env, struct lval* val)
+{
+    return builtin_var(env, val, "def");
+}
+
+struct lval*
+builtin_put(struct lenv* env, struct lval* val)
+{
+    return builtin_var(env, val, "=");
 }
 
 struct lval*
@@ -232,6 +255,95 @@ builtin_lambda(struct lenv* env, struct lval* val)
     lval_free(val);
 
     return lval_make_lambda(formals, body);
+}
+
+struct lval*
+call(struct lenv* env, struct lval* func, struct lval* val)
+{
+    // if builtin then just call it
+    if (func->builtin != NULL) {
+        return func->builtin(env, val);
+    }
+
+    long given = val->cell_count;
+    long total = func->formals->cell_count;
+
+    while (val->cell_count > 0) {
+        LASSERTF(val, func->formals->cell_count > 0,
+            "function passed too many args: want %i, got %i",
+            total, given);
+
+        // match next symbol with next value and add to env
+        struct lval* symbol = lval_list_pop(func->formals, 0);
+        struct lval* value = lval_list_pop(val, 0);
+        lenv_put(func->env, symbol, value);
+        lval_free(symbol);
+        lval_free(value);
+    }
+
+    // args are all bound so orig list can be freed
+    lval_free(val);
+
+    // eval if all args have been bound
+    if (func->formals->cell_count == 0) {
+        // set the parent env and eval the body
+        func->env->parent = env;
+        return builtin_eval(func->env, lval_list_append(lval_make_sexpr(), lval_copy(func->body)));
+    } else {
+        // otherwise return the partially evaluated function
+        return lval_copy(func);
+    }
+}
+
+struct lval*
+eval_sexpr(struct lenv* env, struct lval* val)
+{
+    // eval children
+    for (long i = 0; i < val->cell_count; i++) {
+        val->cell[i] = eval(env, val->cell[i]);
+    }
+
+    // error checking
+    for (long i = 0; i < val->cell_count; i++) {
+        if (val->cell[i]->type == LVAL_TYPE_ERROR) return lval_list_take(val, i);
+    }
+
+    // empty expression
+    if (val->cell_count == 0) return val;
+
+    // single expression
+    if (val->cell_count == 1) return lval_list_take(val, 0);
+
+    // ensure first element is a symbol
+    struct lval* func = lval_list_pop(val, 0);
+    if (func->type != LVAL_TYPE_FUNC) {
+        lval_free(func);
+        lval_free(val);
+        return lval_make_error(
+            "s-expressions starts with invalid type: want %s, got %s",
+            lval_type_name(LVAL_TYPE_FUNC), lval_type_name(func->type)); 
+    }
+
+    // call builtin with operator
+    struct lval* result = call(env, func, val);
+    lval_free(func);
+    return result;
+}
+
+struct lval*
+eval(struct lenv* env, struct lval* val)
+{
+    if (val->type == LVAL_TYPE_SYMBOL) {
+        struct lval* v = lenv_get(env, val);
+        lval_free(val);
+        return v;
+    }
+
+    if (val->type == LVAL_TYPE_SEXPR) {
+        return eval_sexpr(env, val);
+    }
+
+    return val;
 }
 
 void
@@ -259,57 +371,8 @@ add_builtins(struct lenv* env)
     add_builtin(env, "/", builtin_div);
 
     add_builtin(env, "def", builtin_def);
-    add_builtin(env, "\\", builtin_lambda);
+    add_builtin(env, "=", builtin_put);
     add_builtin(env, "lambda", builtin_lambda);
-}
-
-struct lval*
-eval_sexpr(struct lenv* env, struct lval* val)
-{
-    // eval children
-    for (long i = 0; i < val->cell_count; i++) {
-        val->cell[i] = eval(env, val->cell[i]);
-    }
-
-    // error checking
-    for (long i = 0; i < val->cell_count; i++) {
-        if (val->cell[i]->type == LVAL_TYPE_ERROR) return lval_list_take(val, i);
-    }
-
-    // empty expression
-    if (val->cell_count == 0) return val;
-
-    // single expression
-    if (val->cell_count == 1) return lval_list_take(val, 0);
-
-    // ensure first element is a symbol
-    struct lval* f = lval_list_pop(val, 0);
-    if (f->type != LVAL_TYPE_FUNC) {
-        lval_free(f);
-        lval_free(val);
-        return lval_make_error("s-expressions does not start with a function");
-    }
-
-    // call builtin with operator
-    struct lval* result = f->builtin(env, val);
-    lval_free(f);
-    return result;
-}
-
-struct lval*
-eval(struct lenv* env, struct lval* val)
-{
-    if (val->type == LVAL_TYPE_SYMBOL) {
-        struct lval* v = lenv_get(env, val);
-        lval_free(val);
-        return v;
-    }
-
-    if (val->type == LVAL_TYPE_SEXPR) {
-        return eval_sexpr(env, val);
-    }
-
-    return val;
 }
 
 int

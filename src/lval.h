@@ -21,7 +21,11 @@ struct lval {
     char* error;
     long number;
     char* symbol;
-    lbuiltin func;
+
+    lbuiltin builtin;
+    struct lenv* env;
+    struct lval* formals;
+    struct lval* body;
 
     long cell_count;
     struct lval** cell;
@@ -30,7 +34,8 @@ struct lval {
 struct lval* lval_make_number(long number);
 struct lval* lval_make_error(const char* fmt, ...);
 struct lval* lval_make_symbol(const char* symbol);
-struct lval* lval_make_func(lbuiltin func);
+struct lval* lval_make_builtin(lbuiltin builtin);
+struct lval* lval_make_lambda(struct lval* formals, struct lval* body);
 struct lval* lval_make_sexpr(void);
 struct lval* lval_make_qexpr(void);
 

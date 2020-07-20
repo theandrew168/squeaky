@@ -65,3 +65,9 @@ lenv_put(struct lenv* env, const struct lval* k, const struct lval* v)
     env->symbols[env->count - 1] = malloc(strlen(k->symbol) + 1);
     strcpy(env->symbols[env->count - 1], k->symbol);
 }
+
+struct lenv*
+lenv_copy(const struct lenv* env)
+{
+    return env;
+}

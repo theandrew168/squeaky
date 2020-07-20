@@ -14,5 +14,6 @@ void lenv_free(struct lenv* env);
 
 struct lval* lenv_get(const struct lenv* env, const struct lval* k);
 void lenv_put(struct lenv* env, const struct lval* k, const struct lval* v);
+struct lenv* lenv_copy(const struct lenv* env);
 
 #endif

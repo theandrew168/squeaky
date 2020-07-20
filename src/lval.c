@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "lenv.h"
 #include "lval.h"
 
 struct lval*
@@ -43,11 +44,26 @@ lval_make_symbol(const char* symbol)
 }
 
 struct lval*
-lval_make_func(lbuiltin func)
+lval_make_builtin(lbuiltin builtin)
 {
     struct lval* val = malloc(sizeof(struct lval));
     val->type = LVAL_TYPE_FUNC;
-    val->func = func;
+    val->builtin = builtin;
+    return val;
+}
+
+struct lval*
+lval_make_lambda(struct lval* formals, struct lval* body)
+{
+    struct lval* val = malloc(sizeof(struct lval));
+    val->type = LVAL_TYPE_FUNC;
+
+    val->builtin = NULL;
+
+    val->env = lenv_make();
+    val->formals = formals;
+    val->body = body;
+
     return val;
 }
 
@@ -92,7 +108,14 @@ lval_copy(const struct lval* val)
             strcpy(copy->symbol, val->symbol);
             break;
         case LVAL_TYPE_FUNC:
-            copy->func = val->func;
+            if (val->builtin != NULL) {
+                copy->builtin = val->builtin;
+            } else {
+                copy->builtin = NULL;
+                copy->env = lenv_copy(val->env);
+                copy->formals = lval_copy(val->formals);
+                copy->body = lval_copy(val->body);
+            }
             break;
         case LVAL_TYPE_SEXPR:
         case LVAL_TYPE_QEXPR:
@@ -114,6 +137,11 @@ lval_free(struct lval* val)
 
     if (val->type == LVAL_TYPE_ERROR) free(val->error);
     if (val->type == LVAL_TYPE_SYMBOL) free(val->symbol);
+    if (val->type == LVAL_TYPE_FUNC && val->builtin == NULL) {
+        lenv_free(val->env);
+        lval_free(val->formals);
+        lval_free(val->body);
+    }
     if (val->type == LVAL_TYPE_SEXPR || val->type == LVAL_TYPE_QEXPR) {
         for (long i = 0; i < val->cell_count; i++) {
             lval_free(val->cell[i]);
@@ -149,7 +177,17 @@ lval_print(const struct lval* val)
         case LVAL_TYPE_ERROR: printf("error: %s", val->error); break;
         case LVAL_TYPE_NUMBER: printf("%ld", val->number); break;
         case LVAL_TYPE_SYMBOL: printf("%s", val->symbol); break;
-        case LVAL_TYPE_FUNC: printf("<func>"); break;
+        case LVAL_TYPE_FUNC:
+            if (val->builtin != NULL) {
+                printf("<builtin>");
+            } else {
+                printf("(lambda ");
+                lval_print(val->formals);
+                putchar(' ');
+                lval_print(val->body);
+                putchar(')');
+            }
+            break;
         case LVAL_TYPE_SEXPR:
             putchar('(');
             for (long i = 0; i < val->cell_count; i++) {

@@ -17,6 +17,23 @@
         return err;                                              \
     }
 
+#define LASSERT_ARITY(func, args, num)          \
+    LASSERTF(args, args->cell_count == num,     \
+        "function '%s' passed too many args: "  \
+        "want %i, got %i",                      \
+        func, num, args->cell_count);
+
+#define LASSERT_TYPE(func, args, index, lval_type)          \
+    LASSERTF(args, args->cell[index]->type == lval_type,    \
+        "function '%s' passed incorrect type for arg %i: "  \
+        "want %s, got %s",                                  \
+        func, index, lval_type_name(lval_type), lval_type_name(args->cell[index]->type));
+
+#define LASSERT_NOT_EMPTY(func, args, index)             \
+    LASSERTF(args, args->cell[index]->cell_count != 0,   \
+        "function '%s' passed empty list for arg %i: ",  \
+        func, index);
+
 struct lval* eval_sexpr(struct lenv* env, struct lval* val);
 struct lval* eval(struct lenv* env, struct lval* val);
 
@@ -59,10 +76,7 @@ builtin_op(struct lenv* env, struct lval* val, char* op)
 {
     // ensure all args are numbers
     for (long i = 0; i < val->cell_count; i++) {
-        LASSERTF(val, val->cell[i]->type == LVAL_TYPE_NUMBER,
-            "function '%s' passed incorrect type for arg %i: "
-            "want %s, got %s",
-            op, i, lval_type_name(LVAL_TYPE_NUMBER), lval_type_name(val->cell[0]->type));
+        LASSERT_TYPE(op, val, i, LVAL_TYPE_NUMBER);
     }
 
     // pop the first element
@@ -132,15 +146,9 @@ builtin_list(struct lenv* env, struct lval* val)
 struct lval*
 builtin_head(struct lenv* env, struct lval* val)
 {
-    LASSERTF(val, val->cell_count == 1,
-        "function 'head' passed too many args: "
-        "want %i, got %i",
-        1, val->cell_count);
-    LASSERTF(val, val->cell[0]->type == LVAL_TYPE_QEXPR,
-        "function 'head' passed incorrect type for arg %i: "
-        "want %s, got %s",
-        0, lval_type_name(LVAL_TYPE_QEXPR), lval_type_name(val->cell[0]->type));
-    LASSERT(val, val->cell[0]->cell_count != 0, "function 'head' passed empty list");
+    LASSERT_ARITY("head", val, 1);
+    LASSERT_TYPE("head", val, 0, LVAL_TYPE_QEXPR);
+    LASSERT_NOT_EMPTY("head", val, 0);
 
     struct lval* head = lval_list_take(val, 0);
     while (head->cell_count > 1) lval_free(lval_list_pop(head, 1));
@@ -150,15 +158,9 @@ builtin_head(struct lenv* env, struct lval* val)
 struct lval*
 builtin_tail(struct lenv* env, struct lval* val)
 {
-    LASSERTF(val, val->cell_count == 1,
-        "function 'tail' passed too many args: "
-        "want %i, got %i",
-        1, val->cell_count);
-    LASSERTF(val, val->cell[0]->type == LVAL_TYPE_QEXPR,
-        "function 'tail' passed incorrect type for arg %i: "
-        "want %s, got %s",
-        0, lval_type_name(LVAL_TYPE_QEXPR), lval_type_name(val->cell[0]->type));
-    LASSERT(val, val->cell[0]->cell_count != 0, "function 'tail' passed empty list");
+    LASSERT_ARITY("tail", val, 1);
+    LASSERT_TYPE("tail", val, 0, LVAL_TYPE_QEXPR);
+    LASSERT_NOT_EMPTY("tail", val, 0);
 
     struct lval* tail = lval_list_take(val, 0);
     lval_free(lval_list_pop(tail, 0));
@@ -169,10 +171,7 @@ struct lval*
 builtin_join(struct lenv* env, struct lval* val)
 {
     for (long i = 0; i < val->cell_count; i++ ) {
-        LASSERTF(val, val->cell[i]->type == LVAL_TYPE_QEXPR,
-            "function 'tail' passed incorrect type for arg %i: "
-            "want %s, got %s",
-            i, lval_type_name(LVAL_TYPE_QEXPR), lval_type_name(val->cell[i]->type));
+        LASSERT_TYPE("join", val, i, LVAL_TYPE_QEXPR);
     }
 
     struct lval* list = lval_list_pop(val, 0);
@@ -187,14 +186,8 @@ builtin_join(struct lenv* env, struct lval* val)
 struct lval*
 builtin_eval(struct lenv* env, struct lval* val)
 {
-    LASSERTF(val, val->cell_count == 1,
-        "function 'eval' passed too many args: "
-        "want %i, got %i",
-        1, val->cell_count);
-    LASSERTF(val, val->cell[0]->type == LVAL_TYPE_QEXPR,
-        "function 'eval' passed incorrect type for arg %i: "
-        "want %s, got %s",
-        0, lval_type_name(LVAL_TYPE_QEXPR), lval_type_name(val->cell[0]->type));
+    LASSERT_ARITY("eval", val, 1);
+    LASSERT_TYPE("eval", val, 0, LVAL_TYPE_QEXPR);
 
     struct lval* sexpr = lval_list_take(val, 0);
     sexpr->type = LVAL_TYPE_SEXPR;
@@ -204,10 +197,7 @@ builtin_eval(struct lenv* env, struct lval* val)
 struct lval*
 builtin_def(struct lenv* env, struct lval* val)
 {
-    LASSERTF(val, val->cell[0]->type == LVAL_TYPE_QEXPR,
-        "function 'def' passed incorrect type for arg %i: "
-        "want %s, got %s",
-        0, lval_type_name(LVAL_TYPE_QEXPR), lval_type_name(val->cell[0]->type));
+    LASSERT_TYPE("def", val, 0, LVAL_TYPE_QEXPR);
 
     struct lval* symbols = val->cell[0];
     for (long i = 0; i < symbols->cell_count; i++) {
@@ -225,11 +215,30 @@ builtin_def(struct lenv* env, struct lval* val)
     return lval_make_sexpr();
 }
 
+struct lval*
+builtin_lambda(struct lenv* env, struct lval* val)
+{
+    LASSERT_ARITY("lambda", val, 2);
+    LASSERT_TYPE("lambda", val, 0, LVAL_TYPE_QEXPR);
+    LASSERT_TYPE("lambda", val, 1, LVAL_TYPE_QEXPR);
+
+    // ensure first qexpr contains only symbols
+    for (long i = 0; i < val->cell[0]->cell_count; i++) {
+        LASSERT(val, val->cell[0]->cell[i]->type == LVAL_TYPE_SYMBOL, "function 'lambda' cannot define non-symbol");
+    }
+
+    struct lval* formals = lval_list_pop(val, 0);
+    struct lval* body = lval_list_pop(val, 0);
+    lval_free(val);
+
+    return lval_make_lambda(formals, body);
+}
+
 void
 add_builtin(struct lenv* env, const char* name, lbuiltin func)
 {
     struct lval* k = lval_make_symbol(name);
-    struct lval* v = lval_make_func(func);
+    struct lval* v = lval_make_builtin(func);
     lenv_put(env, k, v);
     lval_free(k);
     lval_free(v);
@@ -250,6 +259,8 @@ add_builtins(struct lenv* env)
     add_builtin(env, "/", builtin_div);
 
     add_builtin(env, "def", builtin_def);
+    add_builtin(env, "\\", builtin_lambda);
+    add_builtin(env, "lambda", builtin_lambda);
 }
 
 struct lval*
@@ -280,7 +291,7 @@ eval_sexpr(struct lenv* env, struct lval* val)
     }
 
     // call builtin with operator
-    struct lval* result = f->func(env, val);
+    struct lval* result = f->builtin(env, val);
     lval_free(f);
     return result;
 }

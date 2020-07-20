@@ -29,7 +29,7 @@ libsqueaky_sources =  \
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/lenv.o: src/lenv.c src/lenv.h src/lval.h
-src/lval.o: src/lval.c src/lval.h
+src/lval.o: src/lval.c src/lval.h src/lenv.h
 src/mpc.o: src/mpc.c src/mpc.h
 	@echo "CC      $@"
 	@$(CC) -c $(MPC_CFLAGS) -o $@ $<
@@ -48,7 +48,7 @@ squeaky: src/main.c libsqueaky.a
 
 .PHONY: run
 run: squeaky
-	./squeaky
+	rlwrap ./squeaky
 
 .PHONY: clean
 clean:

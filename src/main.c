@@ -7,69 +7,17 @@
 #include "lval.h"
 #include "mpc.h"
 
-#define LASSERT(args, cond, err)  \
-    if (!(cond)) { lval_free(args); return lval_make_error(err); }
-
-#define LASSERTF(args, cond, fmt, ...)                           \
-    if (!(cond)) {                                               \
-        struct lval* err = lval_make_error(fmt, ##__VA_ARGS__);  \
-        lval_free(args);                                         \
-        return err;                                              \
-    }
-
-#define LASSERT_ARITY(func, args, num)          \
-    LASSERTF(args, args->cell_count == num,     \
-        "function '%s' passed too many args: "  \
-        "want %i, got %i",                      \
-        func, num, args->cell_count);
-
-#define LASSERT_TYPE(func, args, index, lval_type)          \
-    LASSERTF(args, args->cell[index]->type == lval_type,    \
-        "function '%s' passed incorrect type for arg %i: "  \
-        "want %s, got %s",                                  \
-        func, index, lval_type_name(lval_type), lval_type_name(args->cell[index]->type));
-
-#define LASSERT_NOT_EMPTY(func, args, index)             \
-    LASSERTF(args, args->cell[index]->cell_count != 0,   \
-        "function '%s' passed empty list for arg %i: ",  \
-        func, index);
+static mpc_parser_t* Number  = NULL;
+static mpc_parser_t* Symbol  = NULL;
+static mpc_parser_t* String  = NULL;
+static mpc_parser_t* Comment = NULL;
+static mpc_parser_t* Sexpr   = NULL;
+static mpc_parser_t* Qexpr   = NULL;
+static mpc_parser_t* Expr    = NULL;
+static mpc_parser_t* Squeaky = NULL;
 
 struct lval* eval_sexpr(struct lenv* env, struct lval* val);
 struct lval* eval(struct lenv* env, struct lval* val);
-
-static struct lval*
-lval_read_number(mpc_ast_t* ast)
-{
-    errno = 0;
-    long x = strtol(ast->contents, NULL, 10);
-    return errno != ERANGE ? lval_make_number(x) : lval_make_error("invalid number");
-}
-
-static struct lval*
-lval_read(mpc_ast_t* ast)
-{
-    // if number or symbol, convert to that type
-    if (strstr(ast->tag, "number")) return lval_read_number(ast);
-    if (strstr(ast->tag, "symbol")) return lval_make_symbol(ast->contents);
-
-    // if root or sexpr then create an empty list
-    struct lval* list = NULL;
-    if (strcmp(ast->tag, ">") == 0) list = lval_make_sexpr();
-    if (strstr(ast->tag, "sexpr")) list = lval_make_sexpr();
-    if (strstr(ast->tag, "qexpr")) list = lval_make_qexpr();
-
-    // fill the list with any valid sub-expressions
-    for (long i = 0; i < ast->children_num; i++) {
-        if (strcmp(ast->children[i]->contents, "(") == 0) continue;
-        if (strcmp(ast->children[i]->contents, ")") == 0) continue;
-        if (strcmp(ast->children[i]->contents, "{") == 0) continue;
-        if (strcmp(ast->children[i]->contents, "}") == 0) continue;
-        if (strcmp(ast->children[i]->tag, "regex") == 0) continue;
-        list = lval_list_append(list, lval_read(ast->children[i]));
-    }
-
-    return list;
-}
 
 struct lval*
 builtin_op(struct lenv* env, struct lval* val, char* op)
@@ -134,6 +82,159 @@ struct lval*
 builtin_div(struct lenv* env, struct lval* val)
 {
     return builtin_op(env, val, "/");
+}
+
+struct lval*
+builtin_ord(struct lenv* env, struct lval* val, const char* op)
+{
+    LASSERT_ARITY(op, val, 2);
+    LASSERT_TYPE(op, val, 0, LVAL_TYPE_NUMBER);
+    LASSERT_TYPE(op, val, 1, LVAL_TYPE_NUMBER);
+    
+    long res = -1;
+    if (strcmp(op, "<") == 0) res = val->cell[0]->number < val->cell[1]->number ? 1 : 0;
+    if (strcmp(op, "<=") == 0) res = val->cell[0]->number <= val->cell[1]->number ? 1 : 0;
+    if (strcmp(op, ">") == 0) res = val->cell[0]->number > val->cell[1]->number ? 1 : 0;
+    if (strcmp(op, ">=") == 0) res = val->cell[0]->number >= val->cell[1]->number ? 1 : 0;
+
+    lval_free(val);
+    return lval_make_number(res);
+}
+
+struct lval*
+builtin_lt(struct lenv* env, struct lval* val)
+{
+    return builtin_ord(env, val, "<");
+}
+
+struct lval*
+builtin_lte(struct lenv* env, struct lval* val)
+{
+    return builtin_ord(env, val, "<=");
+}
+
+struct lval*
+builtin_gt(struct lenv* env, struct lval* val)
+{
+    return builtin_ord(env, val, ">");
+}
+
+struct lval*
+builtin_gte(struct lenv* env, struct lval* val)
+{
+    return builtin_ord(env, val, ">=");
+}
+
+struct lval*
+builtin_cmp(struct lenv* env, struct lval* val, const char* op)
+{
+    LASSERT_ARITY(op, val, 2);
+
+    long res = -1;
+    if (strcmp(op, "==") == 0) res = lval_eq(val->cell[0], val->cell[1]);
+    if (strcmp(op, "!=") == 0) res = !lval_eq(val->cell[0], val->cell[1]);
+
+    lval_free(val);
+    return lval_make_number(res);
+}
+
+struct lval*
+builtin_eq(struct lenv* env, struct lval* val)
+{
+    return builtin_cmp(env, val, "==");
+}
+
+struct lval*
+builtin_neq(struct lenv* env, struct lval* val)
+{
+    return builtin_cmp(env, val, "!=");
+}
+
+struct lval*
+builtin_if(struct lenv* env, struct lval* val)
+{
+    LASSERT_ARITY("if", val, 3);
+    LASSERT_TYPE("if", val, 0, LVAL_TYPE_NUMBER);
+    LASSERT_TYPE("if", val, 1, LVAL_TYPE_QEXPR);
+    LASSERT_TYPE("if", val, 2, LVAL_TYPE_QEXPR);
+
+    // mark both expressions as evaluable
+    val->cell[1]->type = LVAL_TYPE_SEXPR;
+    val->cell[2]->type = LVAL_TYPE_SEXPR;
+
+    struct lval* res = NULL;
+    if (val->cell[0]->number) {
+        // if condition is true then eval the first expression
+        res = eval(env, lval_list_pop(val, 1));
+    } else {
+        // else eval the second expression
+        res = eval(env, lval_list_pop(val, 2));
+    }
+
+    lval_free(val);
+    return res;
+}
+
+struct lval*
+builtin_load(struct lenv* env, struct lval* val)
+{
+    LASSERT_ARITY("load", val, 1);
+    LASSERT_TYPE("load", val, 0, LVAL_TYPE_STRING);
+
+    mpc_result_t r = { 0 };
+
+    // parse file by name
+    if (mpc_parse_contents(val->cell[0]->string, Squeaky, &r)) {
+        struct lval* expr = lval_read(r.output);
+        mpc_ast_delete(r.output);
+
+        // eval each expression
+        while (expr->cell_count > 0) {
+            struct lval* x = eval(env, lval_list_pop(expr, 0));
+            if (x->type == LVAL_TYPE_ERROR) lval_println(x);
+            lval_free(x);
+        }
+
+        lval_free(expr);
+        lval_free(val);
+
+        return lval_make_sexpr();
+    } else {
+        char* error_msg = mpc_err_string(r.error);
+        mpc_err_delete(r.error);
+
+        struct lval* error = lval_make_error("load failed: %s", error_msg);
+        free(error_msg);
+        lval_free(val);
+
+        return error;
+    }
+}
+
+struct lval*
+builtin_print(struct lenv* env, struct lval* val)
+{
+    for (long i = 0; i < val->cell_count; i++) {
+        lval_print(val->cell[i]);
+        putchar(' ');
+    }
+
+    putchar('\n');
+    lval_free(val);
+
+    return lval_make_sexpr();
+}
+
+struct lval*
+builtin_error(struct lenv* env, struct lval* val)
+{
+    LASSERT_ARITY("error", val, 1);
+    LASSERT_TYPE("error", val, 0, LVAL_TYPE_STRING);
+
+    struct lval* error = lval_make_error(val->cell[0]->string);
+
+    lval_free(val);
+    return error;
 }
 
 struct lval*
@@ -406,6 +507,17 @@ add_builtins(struct lenv* env)
     add_builtin(env, "-", builtin_sub);
     add_builtin(env, "*", builtin_mul);
     add_builtin(env, "/", builtin_div);
+    add_builtin(env, "<", builtin_lt);
+    add_builtin(env, "<=", builtin_lte);
+    add_builtin(env, ">", builtin_gt);
+    add_builtin(env, ">=", builtin_gte);
+    add_builtin(env, "==", builtin_eq);
+    add_builtin(env, "!=", builtin_neq);
+    add_builtin(env, "if", builtin_if);
+
+    add_builtin(env, "load", builtin_load);
+    add_builtin(env, "print", builtin_print);
+    add_builtin(env, "error", builtin_error);
 
     add_builtin(env, "def", builtin_def);
     add_builtin(env, "=", builtin_put);
@@ -415,27 +527,41 @@ add_builtins(struct lenv* env)
 int
 main(int argc, char* argv[])
 {
-    mpc_parser_t* Number  = mpc_new("number");
-    mpc_parser_t* Symbol  = mpc_new("symbol");
-    mpc_parser_t* Sexpr   = mpc_new("sexpr");
-    mpc_parser_t* Qexpr   = mpc_new("qexpr");
-    mpc_parser_t* Expr    = mpc_new("expr");
-    mpc_parser_t* Squeaky = mpc_new("squeaky");
+    Number  = mpc_new("number");
+    Symbol  = mpc_new("symbol");
+    String  = mpc_new("string");
+    Comment = mpc_new("comment");
+    Sexpr   = mpc_new("sexpr");
+    Qexpr   = mpc_new("qexpr");
+    Expr    = mpc_new("expr");
+    Squeaky = mpc_new("squeaky");
 
     mpca_lang(MPCA_LANG_DEFAULT,
         "number  : /-?[0-9]+/ ;"
         "symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;"
+        "string  : /\"(\\\\.|[^\"])*\"/ ;"
+        "comment : /;[^\\r\\n]*/ ;"
         "sexpr   : '(' <expr>* ')' ;"
         "qexpr   : '{' <expr>* '}' ;"
-        "expr    : <number> | <symbol> | <sexpr> | <qexpr> ;"
+        "expr    : <number> | <symbol> | <string>"
+        "        | <comment> | <sexpr> | <qexpr> ;"
         "squeaky : /^/ <expr>* /$/ ;",
-        Number, Symbol, Sexpr, Qexpr, Expr, Squeaky, NULL);
-
-    puts("Welcome to Squeaky Scheme!");
-    puts("Use Ctrl-c to exit.");
+        Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Squeaky, NULL);
 
     struct lenv* env = lenv_make();
     add_builtins(env);
+
+    if (argc >= 2) {
+        for (long i = 1; i < argc; i++) {
+            struct lval* args = lval_list_append(lval_make_sexpr(), lval_make_string(argv[i]));
+            struct lval* x = builtin_load(env, args);
+            if (x->type == LVAL_TYPE_ERROR) lval_println(x);
+            lval_free(x);
+        }
+    }
+
+    puts("Welcome to Squeaky Scheme!");
+    puts("Use Ctrl-c to exit.");
 
     printf("squeaky> ");
 
@@ -443,11 +569,16 @@ main(int argc, char* argv[])
     while (fgets(line, sizeof(line), stdin) != NULL) {
         mpc_result_t r = { 0 };
         if (mpc_parse("<stdin>", line, Squeaky, &r) != 0) {
-            struct lval* res = eval(env, lval_read(r.output));
-            lval_println(res);
-            lval_free(res);
-
+            struct lval* expr = lval_read(r.output);
             mpc_ast_delete(r.output);
+
+            while (expr->cell_count > 0) {
+                struct lval* res = eval(env, lval_list_pop(expr, 0));
+                lval_println(res);
+                lval_free(res);
+            }
+
+            lval_free(expr);
         } else {
             mpc_err_print(r.error);
             mpc_err_delete(r.error);
@@ -457,6 +588,6 @@ main(int argc, char* argv[])
     }
 
     lenv_free(env);
-    mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Squeaky);
+    mpc_cleanup(8, Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Squeaky);
     return EXIT_SUCCESS;
 }

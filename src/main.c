@@ -275,6 +275,23 @@ call(struct lenv* env, struct lval* func, struct lval* val)
 
         // match next symbol with next value and add to env
         struct lval* symbol = lval_list_pop(func->formals, 0);
+
+        // special case to deal with '&'
+        if (strcmp(symbol->symbol, "&") == 0) {
+            // ensure '&' is followed by a symbol
+            if (func->formals->cell_count != 1) {
+                lval_free(val);
+                return lval_make_error("invalid function format: symbol '&' not followed by single symbol");
+            }
+
+            // bind next formal to a list of the remaining args
+            struct lval* group = lval_list_pop(func->formals, 0);
+            lenv_put(func->env, group, builtin_list(env, val));
+            lval_free(symbol);
+            lval_free(group);
+            break;
+        }
+
         struct lval* value = lval_list_pop(val, 0);
         lenv_put(func->env, symbol, value);
         lval_free(symbol);
@@ -283,6 +300,26 @@ call(struct lenv* env, struct lval* func, struct lval* val)
 
     // args are all bound so orig list can be freed
     lval_free(val);
+
+    // if '&' remains in formals then bind it to an empty list
+    if (func->formals->cell_count > 0 && strcmp(func->formals->cell[0]->symbol, "&") == 0) {
+        // ensure '&' is followed by a symbol
+        if (func->formals->cell_count != 2) {
+            return lval_make_error("invalid function format: symbol '&' not followed by single symbol");
+        }
+
+        // pop and delete '&' symbol
+        lval_free(lval_list_pop(func->formals, 0));
+
+        // pop next symbol and create empty list
+        struct lval* symbol = lval_list_pop(func->formals, 0);
+        struct lval* value = lval_make_qexpr();
+
+        // bind to env and delete
+        lenv_put(func->env, symbol, value);
+        lval_free(symbol);
+        lval_free(value);
+    }
 
     // eval if all args have been bound
     if (func->formals->cell_count == 0) {

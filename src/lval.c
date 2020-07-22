@@ -271,7 +271,7 @@ lval_string_unescape(char c)
 static void
 lval_print_string(const struct lval* val)
 {
-    putchar('"');
+//    putchar('"');
     for (long i = 0; i < (long)strlen(val->string); i++) {
         if (strchr(STRING_ESCAPABLE_CHARS, val->string[i])) {
             printf("%s", lval_string_escape(val->string[i]));
@@ -279,7 +279,7 @@ lval_print_string(const struct lval* val)
             putchar(val->string[i]);
         }
     }
-    putchar('"');
+//    putchar('"');
 }
 
 void

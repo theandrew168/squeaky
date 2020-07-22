@@ -207,13 +207,21 @@ builtin_load(struct lenv* env, struct lval* val)
 }
 
 struct lval*
-builtin_print(struct lenv* env, struct lval* val)
+builtin_display(struct lenv* env, struct lval* val)
 {
     for (long i = 0; i < val->cell_count; i++) {
         lval_print(val->cell[i]);
         putchar(' ');
     }
 
+    lval_free(val);
+
+    return lval_make_sexpr();
+}
+
+struct lval*
+builtin_newline(struct lenv* env, struct lval* val)
+{
     putchar('\n');
     lval_free(val);
 
@@ -445,7 +453,7 @@ eval_sexpr(struct lenv* env, struct lval* val)
     if (val->cell_count == 0) return val;
 
     // single expression
-    if (val->cell_count == 1) return lval_list_take(val, 0);
+//    if (val->cell_count == 1) return lval_list_take(val, 0);
 
     // ensure first element is a symbol
     struct lval* func = lval_list_pop(val, 0);
@@ -511,7 +519,8 @@ add_builtins(struct lenv* env)
     add_builtin(env, "if", builtin_if);
 
     add_builtin(env, "load", builtin_load);
-    add_builtin(env, "print", builtin_print);
+    add_builtin(env, "display", builtin_display);
+    add_builtin(env, "newline", builtin_newline);
     add_builtin(env, "error", builtin_error);
 
     add_builtin(env, "def", builtin_def);
@@ -549,7 +558,11 @@ main(int argc, char* argv[])
             struct lval* expr = lval_read_expr(line, &pos, '\0');
             while (expr->cell_count > 0) {
                 struct lval* res = eval(env, lval_list_pop(expr, 0));
-                lval_println(res);
+                if (res->type == LVAL_TYPE_SEXPR && res->cell_count == 0) {
+                    // don't print empty () responses
+                } else {
+                    lval_println(res);
+                }
                 lval_free(res);
             }
 

@@ -5,16 +5,6 @@
 
 #include "lenv.h"
 #include "lval.h"
-#include "mpc.h"
-
-static mpc_parser_t* Number  = NULL;
-static mpc_parser_t* Symbol  = NULL;
-static mpc_parser_t* String  = NULL;
-static mpc_parser_t* Comment = NULL;
-static mpc_parser_t* Sexpr   = NULL;
-static mpc_parser_t* Qexpr   = NULL;
-static mpc_parser_t* Expr    = NULL;
-static mpc_parser_t* Squeaky = NULL;
 
 struct lval* eval_sexpr(struct lenv* env, struct lval* val);
 struct lval* eval(struct lenv* env, struct lval* val);
@@ -181,34 +171,39 @@ builtin_load(struct lenv* env, struct lval* val)
     LASSERT_ARITY("load", val, 1);
     LASSERT_TYPE("load", val, 0, LVAL_TYPE_STRING);
 
-    mpc_result_t r = { 0 };
+    FILE* f = fopen(val->cell[0]->string, "rb");
+    if (f == NULL) {
+        struct lval* error = lval_make_error("load failed: %s", val->cell[0]->string);
+        lval_free(val);
+        return error;
+    }
 
-    // parse file by name
-    if (mpc_parse_contents(val->cell[0]->string, Squeaky, &r)) {
-        struct lval* expr = lval_read(r.output);
-        mpc_ast_delete(r.output);
+    fseek(f, 0, SEEK_END);
+    long size = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char* input = malloc(size + 1);
+    fread(input, 1, size, f);
+    input[size] = '\0';
+    fclose(f);
 
-        // eval each expression
+    long pos = 0;
+    struct lval* expr = lval_read_expr(input, &pos, '\0');
+    free(input);
+
+    if (expr->type != LVAL_TYPE_ERROR) {
         while (expr->cell_count > 0) {
             struct lval* x = eval(env, lval_list_pop(expr, 0));
             if (x->type == LVAL_TYPE_ERROR) lval_println(x);
             lval_free(x);
         }
-
-        lval_free(expr);
-        lval_free(val);
-
-        return lval_make_sexpr();
     } else {
-        char* error_msg = mpc_err_string(r.error);
-        mpc_err_delete(r.error);
-
-        struct lval* error = lval_make_error("load failed: %s", error_msg);
-        free(error_msg);
-        lval_free(val);
-
-        return error;
+        lval_println(expr);
     }
+
+    lval_free(expr);
+    lval_free(val);
+
+    return lval_make_sexpr();
 }
 
 struct lval*
@@ -527,27 +522,6 @@ add_builtins(struct lenv* env)
 int
 main(int argc, char* argv[])
 {
-    Number  = mpc_new("number");
-    Symbol  = mpc_new("symbol");
-    String  = mpc_new("string");
-    Comment = mpc_new("comment");
-    Sexpr   = mpc_new("sexpr");
-    Qexpr   = mpc_new("qexpr");
-    Expr    = mpc_new("expr");
-    Squeaky = mpc_new("squeaky");
-
-    mpca_lang(MPCA_LANG_DEFAULT,
-        "number  : /-?[0-9]+/ ;"
-        "symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;"
-        "string  : /\"(\\\\.|[^\"])*\"/ ;"
-        "comment : /;[^\\r\\n]*/ ;"
-        "sexpr   : '(' <expr>* ')' ;"
-        "qexpr   : '{' <expr>* '}' ;"
-        "expr    : <number> | <symbol> | <string>"
-        "        | <comment> | <sexpr> | <qexpr> ;"
-        "squeaky : /^/ <expr>* /$/ ;",
-        Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Squeaky, NULL);
-
     struct lenv* env = lenv_make();
     add_builtins(env);
 
@@ -558,20 +532,16 @@ main(int argc, char* argv[])
             if (x->type == LVAL_TYPE_ERROR) lval_println(x);
             lval_free(x);
         }
-    }
+    } else {
+        puts("Welcome to Squeaky Scheme!");
+        puts("Use Ctrl-c to exit.");
 
-    puts("Welcome to Squeaky Scheme!");
-    puts("Use Ctrl-c to exit.");
+        printf("squeaky> ");
 
-    printf("squeaky> ");
-
-    char line[512] = { 0 };
-    while (fgets(line, sizeof(line), stdin) != NULL) {
-        mpc_result_t r = { 0 };
-        if (mpc_parse("<stdin>", line, Squeaky, &r) != 0) {
-            struct lval* expr = lval_read(r.output);
-            mpc_ast_delete(r.output);
-
+        char line[512] = { 0 };
+        while (fgets(line, sizeof(line), stdin) != NULL) {
+            long pos = 0;
+            struct lval* expr = lval_read_expr(line, &pos, '\0');
             while (expr->cell_count > 0) {
                 struct lval* res = eval(env, lval_list_pop(expr, 0));
                 lval_println(res);
@@ -579,15 +549,11 @@ main(int argc, char* argv[])
             }
 
             lval_free(expr);
-        } else {
-            mpc_err_print(r.error);
-            mpc_err_delete(r.error);
-        }
 
-        printf("squeaky> ");
+            printf("squeaky> ");
+        }
     }
 
     lenv_free(env);
-    mpc_cleanup(8, Number, Symbol, String, Comment, Sexpr, Qexpr, Expr, Squeaky);
     return EXIT_SUCCESS;
 }

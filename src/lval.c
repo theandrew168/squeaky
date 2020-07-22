@@ -1,14 +1,24 @@
 #include <assert.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#include <mpc.h>
-
 #include "lenv.h"
 #include "lval.h"
+
+static const char SYMBOL_VALID_CHARS[] = 
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789_+-*\\/=<>!&?";
+
+static const char STRING_ESCAPABLE_CHARS[] =
+    "\a\b\f\n\r\t\v\\\'\"";
+
+static const char STRING_UNESCAPABLE_CHARS[] =
+    "abfnrtv\\\'\"";
 
 struct lval*
 lval_make_error(const char* fmt, ...)
@@ -221,15 +231,55 @@ lval_type_name(int lval_type)
     }
 }
 
+static const char*
+lval_string_escape(char c)
+{
+    switch (c) {
+        case '\a': return "\\a";
+        case '\b': return "\\b";
+        case '\f': return "\\f";
+        case '\n': return "\\n";
+        case '\r': return "\\r";
+        case '\t': return "\\t";
+        case '\v': return "\\v";
+        case '\\': return "\\\\";
+        case '\'': return "\\\'";
+        case '\"': return "\\\"";
+        default: return "";
+    }
+}
+
+
+static char
+lval_string_unescape(char c)
+{
+    switch (c) {
+        case 'a': return '\a';
+        case 'b': return '\b';
+        case 'f': return '\f';
+        case 'n': return '\n';
+        case 'r': return '\r';
+        case 't': return '\t';
+        case 'v': return '\v';
+        case '\\': return '\\';
+        case '\'': return '\'';
+        case '\"': return '\"';
+        default: return '\0';
+    }
+}
+
 static void
 lval_print_string(const struct lval* val)
 {
-    char* escaped = malloc(strlen(val->string) + 1);
-    strcpy(escaped, val->string);
-
-    escaped = mpcf_escape(escaped);
-    printf("\"%s\"", escaped);
-    free(escaped);
+    putchar('"');
+    for (long i = 0; i < (long)strlen(val->string); i++) {
+        if (strchr(STRING_ESCAPABLE_CHARS, val->string[i])) {
+            printf("%s", lval_string_escape(val->string[i]));
+        } else {
+            putchar(val->string[i]);
+        }
+    }
+    putchar('"');
 }
 
 void
@@ -333,56 +383,147 @@ lval_list_join(struct lval* list, struct lval* extras)
 }
 
 static struct lval*
-lval_read_number(mpc_ast_t* ast)
+lval_read_symbol(char* s, long* i)
 {
-    errno = 0;
-    long x = strtol(ast->contents, NULL, 10);
-    return errno != ERANGE ? lval_make_number(x) : lval_make_error("invalid number");
+    // alloc an empty string
+    char* part = malloc(1 * sizeof(char));
+    *part = '\0';
+
+    // while valid symbol chars
+    while (strchr(SYMBOL_VALID_CHARS, s[*i]) && s[*i] != '\0') {
+        // append char to end of string
+        part = realloc(part, strlen(part) + 2);
+        part[strlen(part) + 1] = '\0';
+        part[strlen(part) + 0] = s[*i];
+        (*i)++;
+    }
+
+    // check if symbol looks like a number
+    bool is_num = strchr("-0123456789", part[0]) != NULL;
+    for (long j = 1; j < (long)strlen(part); j++) {
+        if (strchr("0123456789", part[j]) == NULL) {
+            is_num = false;
+            break;
+        }
+    }
+    if (strlen(part) == 1 && part[0] == '-') is_num = false;
+
+    // create lval as either number or symbol
+    struct lval* x = NULL;
+    if (is_num) {
+        errno = 0;
+        long v = strtol(part, NULL, 10);
+        x = (errno != ERANGE) ? lval_make_number(v) : lval_make_error("invalid number: %s", part);
+    } else {
+        x = lval_make_symbol(part);
+    }
+
+    free(part);
+    return x;
 }
 
 static struct lval*
-lval_read_string(mpc_ast_t* ast)
+lval_read_string(char* s, long* i)
 {
-    // cut off final quote char
-    ast->contents[strlen(ast->contents) - 1] = '\0';
+    // alloc an empty string
+    char* part = malloc(1 * sizeof(char));
+    *part = '\0';
 
-    // copy the string except first quote char
-    char* unescaped = malloc(strlen(ast->contents + 1) + 1);
-    strcpy(unescaped, ast->contents + 1);
+    (*i)++;
+    while (s[*i] != '"') {
+        char c = s[*i];
 
-    // unescape and make the lval
-    unescaped = mpcf_unescape(unescaped);
-    struct lval* string = lval_make_string(unescaped);
+        // if EOI then there is an incomplete string literal
+        if (c == '\0') {
+            free(part);
+            return lval_make_error("unexpected end of input");
+        }
 
-    // free the unescaped string copy and return
-    free(unescaped);
-    return string;
+        // if backslash then unescape the following char
+        if (c == '\\') {
+            (*i)++;
+            if (strchr(STRING_UNESCAPABLE_CHARS, s[*i])) {
+                c = lval_string_unescape(s[*i]);
+            } else {
+                free(part);
+                return lval_make_error("invalid escape sequence: \\%c", s[*i]);
+            }
+        }
+
+        // append char to end of string
+        part = realloc(part, strlen(part) + 2);
+        part[strlen(part) + 1] = '\0';
+        part[strlen(part) + 0] = c;
+        (*i)++;
+    }
+
+    // move forward past final quote char
+    (*i)++;
+
+    struct lval* x = lval_make_string(part);
+    free(part);
+    return x;
+}
+
+static struct lval*
+lval_read(char* s, long* i)
+{
+    // skip whitespace and comments
+    while (strchr(" \t\v\r\n;", s[*i]) && s[*i] != '\0') {
+        if (s[*i] == ';') {
+            while (s[*i] != '\n' && s[*i] != '\0') (*i)++;
+        }
+        (*i)++;
+    }
+
+    struct lval* x = NULL;
+
+    if (s[*i] == '\0') {
+        // if we reach EOI then we're missing something
+        return lval_make_error("unexpected end of input");
+    } else if (s[*i] == '(') {
+        // if next char is ( then read s-expr
+        (*i)++;
+        x = lval_read_expr(s, i, ')');
+    } else if (s[*i] == '{') {
+        // if next char is { then read q-expr
+        (*i)++;
+        x = lval_read_expr(s, i, '}');
+    } else if (strchr(SYMBOL_VALID_CHARS, s[*i])) {
+        // if next char is part of a symbol then read a symbol
+        x = lval_read_symbol(s, i);
+    } else if (strchr("\"", s[*i])) {
+        // if next char is dub quote then read a string
+        x = lval_read_string(s, i);
+    } else {
+        x = lval_make_error("unexpected character: %c", s[*i]);
+    }
+
+    while (strchr(" \t\v\r\n;", s[*i]) && s[*i] != '\0') {
+        if (s[*i] == ';') {
+            while (s[*i] != '\n' && s[*i] != '\0') (*i)++;
+        }
+        (*i)++;
+    }
+
+    return x;
 }
 
 struct lval*
-lval_read(mpc_ast_t* ast)
-{   // TODO: don't treat root exprs as sexprs... its weird
-    // if number or symbol, convert to that type
-    if (strstr(ast->tag, "number")) return lval_read_number(ast);
-    if (strstr(ast->tag, "symbol")) return lval_make_symbol(ast->contents);
-    if (strstr(ast->tag, "string")) return lval_read_string(ast);
+lval_read_expr(char* s, long* i, char end)
+{
+    struct lval* x = (end == '}') ? lval_make_qexpr() : lval_make_sexpr();
 
-    // if root or sexpr then create an empty list
-    struct lval* list = NULL;
-    if (strcmp(ast->tag, ">") == 0) list = lval_make_sexpr();
-    if (strstr(ast->tag, "sexpr")) list = lval_make_sexpr();
-    if (strstr(ast->tag, "qexpr")) list = lval_make_qexpr();
-
-    // fill the list with any valid sub-expressions
-    for (long i = 0; i < ast->children_num; i++) {
-        if (strcmp(ast->children[i]->contents, "(") == 0) continue;
-        if (strcmp(ast->children[i]->contents, ")") == 0) continue;
-        if (strcmp(ast->children[i]->contents, "{") == 0) continue;
-        if (strcmp(ast->children[i]->contents, "}") == 0) continue;
-        if (strcmp(ast->children[i]->tag, "regex") == 0) continue;
-        if (strcmp(ast->children[i]->tag, "comment") == 0) continue;
-        list = lval_list_append(list, lval_read(ast->children[i]));
+    while (s[*i] != end) {
+        struct lval* y = lval_read(s, i);
+        if (y->type == LVAL_TYPE_ERROR) {
+            lval_free(x);
+            return y;
+        } else {
+            lval_list_append(x, y);
+        }
     }
 
-    return list;
+    (*i)++;
+    return x;
 }

@@ -3,8 +3,6 @@
 
 #include <stdbool.h>
 
-#include <mpc.h>
-
 #define LASSERT(args, cond, err)  \
     if (!(cond)) { lval_free(args); return lval_make_error(err); }
 
@@ -90,7 +88,6 @@ struct lval* lval_list_pop(struct lval* list, long i);
 struct lval* lval_list_take(struct lval* list, long i);
 struct lval* lval_list_join(struct lval* list, struct lval* extras);
 
-// reading from an mpc AST
-struct lval* lval_read(mpc_ast_t* ast);
+struct lval* lval_read_expr(char* s, long* i, char end);
 
 #endif

@@ -525,6 +525,11 @@ main(int argc, char* argv[])
     struct lenv* env = lenv_make();
     add_builtins(env);
 
+    // silently attempt to load prelude
+    struct lval* res = builtin_load(env,
+        lval_list_append(lval_make_sexpr(), lval_make_string("prelude.sqky")));
+    lval_free(res);
+
     if (argc >= 2) {
         for (long i = 1; i < argc; i++) {
             struct lval* args = lval_list_append(lval_make_sexpr(), lval_make_string(argv[i]));

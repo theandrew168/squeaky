@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+
 #include "lenv.h"
 #include "lval.h"
 
@@ -362,6 +364,23 @@ builtin_lambda(struct lenv* env, struct lval* val)
 }
 
 struct lval*
+builtin_make_window(struct lenv* env, struct lval* val)
+{
+    LASSERT_ARITY("make-window", val, 3);
+    LASSERT_TYPE("make-window", val, 0, LVAL_TYPE_STRING);
+    LASSERT_TYPE("make-window", val, 1, LVAL_TYPE_NUMBER);
+    LASSERT_TYPE("make-window", val, 2, LVAL_TYPE_NUMBER);
+
+    const char* title = val->cell[0]->string;
+    long width = val->cell[1]->number;
+    long height = val->cell[2]->number;
+
+    struct lval* window = lval_make_window(title, width, height);
+    lval_free(val);
+    return window;
+}
+
+struct lval*
 call(struct lenv* env, struct lval* func, struct lval* val)
 {
     // if builtin then just call it
@@ -526,11 +545,18 @@ add_builtins(struct lenv* env)
     add_builtin(env, "def", builtin_def);
     add_builtin(env, "=", builtin_put);
     add_builtin(env, "lambda", builtin_lambda);
+
+    add_builtin(env, "make-window", builtin_make_window);
 }
 
 int
 main(int argc, char* argv[])
 {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
     struct lenv* env = lenv_make();
     add_builtins(env);
 
@@ -573,5 +599,6 @@ main(int argc, char* argv[])
     }
 
     lenv_free(env);
+    SDL_Quit();
     return EXIT_SUCCESS;
 }

@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
 #include "lenv.h"
 #include "lval.h"
 
@@ -63,6 +66,49 @@ lval_make_string(const char* string)
     val->type = LVAL_TYPE_STRING;
     val->string = malloc(strlen(string) + 1);
     strcpy(val->string, string);
+    return val;
+}
+
+struct lval*
+lval_make_window(const char* title, long width, long height)
+{
+    // Request at least 32-bit color
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
+    // Request a double-buffered, OpenGL 3.3 (or higher) core profile
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+    SDL_Window* window = SDL_CreateWindow(
+        title,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        width,
+        height,
+        SDL_WINDOW_OPENGL);
+
+    if (window == NULL) {
+        return lval_make_error("failed to create SDL2 window: %s", SDL_GetError());
+    }
+
+    // SDL_GLContext is an alias for void*
+    SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (context == NULL) {
+        SDL_DestroyWindow(window);
+        return lval_make_error("failed to create OpenGL context: %s", SDL_GetError());
+    }
+
+    SDL_GL_SetSwapInterval(1);
+
+    struct lval* val = malloc(sizeof(struct lval));
+    val->type = LVAL_TYPE_WINDOW;
+    val->window = window;
+    val->context = context;
     return val;
 }
 
@@ -134,6 +180,10 @@ lval_copy(const struct lval* val)
             copy->string = malloc(strlen(val->string) + 1);
             strcpy(copy->string, val->string);
             break;
+        case LVAL_TYPE_WINDOW:  // TODO: is this safe / valid?
+            copy->window = val->window;
+            copy->context = val->context;
+            break;
         case LVAL_TYPE_FUNC:
             if (val->builtin != NULL) {
                 copy->builtin = val->builtin;
@@ -165,6 +215,10 @@ lval_free(struct lval* val)
     if (val->type == LVAL_TYPE_ERROR) free(val->error);
     if (val->type == LVAL_TYPE_SYMBOL) free(val->symbol);
     if (val->type == LVAL_TYPE_STRING) free(val->string);
+    if (val->type == LVAL_TYPE_WINDOW) {
+//        SDL_GL_DeleteContext(val->context);
+//        SDL_DestroyWindow(val->window);
+    }
     if (val->type == LVAL_TYPE_FUNC && val->builtin == NULL) {
         lenv_free(val->env);
         lval_free(val->formals);
@@ -199,6 +253,8 @@ lval_eq(const struct lval* x, const struct lval* y)
             return strcmp(x->symbol, y->symbol) == 0;
         case LVAL_TYPE_STRING:
             return strcmp(x->string, y->string) == 0;
+        case LVAL_TYPE_WINDOW:
+            return x->window == y->window && x->context == y->context;
         case LVAL_TYPE_FUNC:
             if (x->builtin || y->builtin) return x->builtin == y->builtin;
             else return lval_eq(x->formals, y->formals) && lval_eq(x->body, y->body);
@@ -222,6 +278,7 @@ lval_type_name(int lval_type)
         case LVAL_TYPE_NUMBER: return "Number";
         case LVAL_TYPE_SYMBOL: return "Symbol";
         case LVAL_TYPE_STRING: return "String";
+        case LVAL_TYPE_WINDOW: return "Window";
         case LVAL_TYPE_FUNC: return "Function";
         case LVAL_TYPE_SEXPR: return "S-Expression";
         case LVAL_TYPE_QEXPR: return "Q-Expression";
@@ -292,6 +349,7 @@ lval_print(const struct lval* val)
         case LVAL_TYPE_NUMBER: printf("%ld", val->number); break;
         case LVAL_TYPE_SYMBOL: printf("%s", val->symbol); break;
         case LVAL_TYPE_STRING: lval_print_string(val); break;
+        case LVAL_TYPE_WINDOW: printf("<window>"); break;
         case LVAL_TYPE_FUNC:
             if (val->builtin != NULL) {
                 printf("<builtin>");
@@ -319,7 +377,7 @@ lval_print(const struct lval* val)
             }
             putchar('}');
             break;
-        default: printf("undefined lisp valect"); break;
+        default: printf("undefined lisp value"); break;
     }
 }
 

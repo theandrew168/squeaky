@@ -7,17 +7,20 @@
 #include "lval_number.h"
 
 bool
-lval_number_init(struct lval_number* val, long number)
+lval_number_init(union lval* val, long number)
 {
     assert(val != NULL);
 
-    val->type = LVAL_TYPE_NUMBER;
-    val->number = number;
+    struct lval_number* v = AS_NUMBER(val);
+
+    v->type = LVAL_TYPE_NUMBER;
+    v->number = number;
+
     return true;
 }
 
 void
-lval_number_free(struct lval_number* val)
+lval_number_free(union lval* val)
 {
     assert(val != NULL);
 
@@ -25,27 +28,36 @@ lval_number_free(struct lval_number* val)
 }
 
 void
-lval_number_copy(const struct lval_number* val, struct lval_number* copy)
+lval_number_copy(const union lval* val, union lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    copy->number = val->number;
+    const struct lval_number* v = AS_CONST_NUMBER(val);
+    struct lval_number* c = AS_NUMBER(copy);
+
+    c->type = v->type;
+    c->number = v->number;
 }
 
 void
-lval_number_print(const struct lval_number* val)
+lval_number_print(const union lval* val)
 {
     assert(val != NULL);
 
-    printf("%ld", val->number);
+    const struct lval_number* v = AS_CONST_NUMBER(val);
+
+    printf("%ld", v->number);
 }
 
 bool
-lval_number_equal(const struct lval_number* a, const struct lval_number* b)
+lval_number_equal(const union lval* a, const union lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return a->number == b->number;
+    const struct lval_number* aa = AS_CONST_NUMBER(a);
+    const struct lval_number* bb = AS_CONST_NUMBER(b);
+
+    return aa->number == bb->number;
 }

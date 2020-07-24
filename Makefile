@@ -28,7 +28,7 @@ libsqueaky_sources =  \
   src/lval_window.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
-src/lenv.o: src/lenv.c src/lenv.h src/lval.h
+src/lenv.o: src/lenv.c src/lenv.h src/lval.h src/lval_symbol.h
 src/lval.o: src/lval.c src/lval.h src/lenv.h
 src/lval_builtin.o: src/lval_builtin.c src/lval_builtin.h src/lval.h
 src/lval_error.o: src/lval_error.c src/lval_error.h src/lval.h

@@ -6,268 +6,154 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-
 #include "lenv.h"
+#include "lbuiltin.h"
 #include "lval.h"
+#include "lval_error.h"
+#include "lval_number.h"
+#include "lval_symbol.h"
+#include "lval_string.h"
+#include "lval_window.h"
+#include "lval_builtin.h"
+#include "lval_lambda.h"
+#include "lval_sexpr.h"
+#include "lval_qexpr.h"
 
 static const char SYMBOL_VALID_CHARS[] = 
     "abcdefghijklmnopqrstuvwxyz"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "0123456789_+-*\\/=<>!&?";
 
-static const char STRING_ESCAPABLE_CHARS[] =
-    "\a\b\f\n\r\t\v\\\'\"";
+//static const char STRING_ESCAPABLE_CHARS[] =
+//    "\a\b\f\n\r\t\v\\\'\"";
 
 static const char STRING_UNESCAPABLE_CHARS[] =
     "abfnrtv\\\'\"";
 
-struct lval*
+
+union lval*
 lval_make_error(const char* fmt, ...)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_ERROR;
+    va_list args;
+    va_start(args, fmt);
 
-    va_list va;
-    va_start(va, fmt);
+    union lval* val = malloc(sizeof(union lval));
+    lval_error_init(val, fmt, args);
 
-    val->error = malloc(512);
-    vsnprintf(val->error, 511, fmt, va);
-    val->error = realloc(val->error, strlen(val->error) + 1);
-
-    va_end(va);
+    va_end(args);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_number(long number)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_NUMBER;
-    val->number = number;
+    union lval* val = malloc(sizeof(union lval));
+    lval_number_init(val, number);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_symbol(const char* symbol)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_SYMBOL;
-    val->symbol = malloc(strlen(symbol) + 1);
-    strcpy(val->symbol, symbol);
+    union lval* val = malloc(sizeof(union lval));
+    lval_symbol_init(val, symbol);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_string(const char* string)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_STRING;
-    val->string = malloc(strlen(string) + 1);
-    strcpy(val->string, string);
+    union lval* val = malloc(sizeof(union lval));
+    lval_string_init(val, string);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_window(const char* title, long width, long height)
 {
-    // Request at least 32-bit color
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-
-    // Request a double-buffered, OpenGL 3.3 (or higher) core profile
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-    SDL_Window* window = SDL_CreateWindow(
-        title,
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        width,
-        height,
-        SDL_WINDOW_OPENGL);
-
-    if (window == NULL) {
-        return lval_make_error("failed to create SDL2 window: %s", SDL_GetError());
-    }
-
-    // SDL_GLContext is an alias for void*
-    SDL_GLContext context = SDL_GL_CreateContext(window);
-    if (context == NULL) {
-        SDL_DestroyWindow(window);
-        return lval_make_error("failed to create OpenGL context: %s", SDL_GetError());
-    }
-
-    SDL_GL_SetSwapInterval(1);
-
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_WINDOW;
-    val->window = window;
-    val->context = context;
+    // TODO: check the rc on this
+    union lval* val = malloc(sizeof(union lval));
+    lval_window_init(val, title, width, height);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_builtin(lbuiltin builtin)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_FUNC;
-    val->builtin = builtin;
+    union lval* val = malloc(sizeof(union lval));
+    lval_builtin_init(val, builtin);
     return val;
 }
 
-struct lval*
-lval_make_lambda(struct lval* formals, struct lval* body)
+union lval*
+lval_make_lambda(union lval* formals, union lval* body)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_FUNC;
-
-    val->builtin = NULL;
-
-    val->env = lenv_make();
-    val->formals = formals;
-    val->body = body;
-
+    union lval* val = malloc(sizeof(union lval));
+    lval_lambda_init(val, formals, body);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_sexpr(void)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_SEXPR;
-    val->cell_count = 0;
-    val->cell = NULL;
+    union lval* val = malloc(sizeof(union lval));
+    lval_sexpr_init(val);
     return val;
 }
 
-struct lval*
+union lval*
 lval_make_qexpr(void)
 {
-    struct lval* val = malloc(sizeof(struct lval));
-    val->type = LVAL_TYPE_QEXPR;
-    val->cell_count = 0;
-    val->cell = NULL;
+    union lval* val = malloc(sizeof(union lval));
+    lval_qexpr_init(val);
     return val;
 }
 
-struct lval*
-lval_copy(const struct lval* val)
-{
-    assert(val != NULL);
-
-    struct lval* copy = malloc(sizeof(struct lval));
-    copy->type = val->type;
-
-    switch (val->type) {
-        case LVAL_TYPE_ERROR:
-            copy->error = malloc(strlen(val->error) + 1);
-            strcpy(copy->error, val->error);
-            break;
-        case LVAL_TYPE_NUMBER:
-            copy->number = val->number;
-            break;
-        case LVAL_TYPE_SYMBOL:
-            copy->symbol = malloc(strlen(val->symbol) + 1);
-            strcpy(copy->symbol, val->symbol);
-            break;
-        case LVAL_TYPE_STRING:
-            copy->string = malloc(strlen(val->string) + 1);
-            strcpy(copy->string, val->string);
-            break;
-        case LVAL_TYPE_WINDOW:  // TODO: is this safe / valid?
-            copy->window = val->window;
-            copy->context = val->context;
-            break;
-        case LVAL_TYPE_FUNC:
-            if (val->builtin != NULL) {
-                copy->builtin = val->builtin;
-            } else {
-                copy->builtin = NULL;
-                copy->env = lenv_copy(val->env);
-                copy->formals = lval_copy(val->formals);
-                copy->body = lval_copy(val->body);
-            }
-            break;
-        case LVAL_TYPE_SEXPR:
-        case LVAL_TYPE_QEXPR:
-            copy->cell_count = val->cell_count;
-            copy->cell = malloc(sizeof(struct lval*) * val->cell_count);
-            for (long i = 0; i < val->cell_count; i++) {
-                copy->cell[i] = lval_copy(val->cell[i]);
-            }
-            break;
-    }
-
-    return copy;
-}
 
 void
-lval_free(struct lval* val)
+lval_free(union lval* val)
 {
     assert(val != NULL);
 
-    if (val->type == LVAL_TYPE_ERROR) free(val->error);
-    if (val->type == LVAL_TYPE_SYMBOL) free(val->symbol);
-    if (val->type == LVAL_TYPE_STRING) free(val->string);
-    if (val->type == LVAL_TYPE_WINDOW) {
-//        SDL_GL_DeleteContext(val->context);
-//        SDL_DestroyWindow(val->window);
-    }
-    if (val->type == LVAL_TYPE_FUNC && val->builtin == NULL) {
-        lenv_free(val->env);
-        lval_free(val->formals);
-        lval_free(val->body);
-    }
-    if (val->type == LVAL_TYPE_SEXPR || val->type == LVAL_TYPE_QEXPR) {
-        for (long i = 0; i < val->cell_count; i++) {
-            lval_free(val->cell[i]);
-        }
-        free(val->cell);
+    // delegate freeing to each type's specific free func
+    switch (val->type) {
+        case LVAL_TYPE_ERROR: lval_error_free(val); break;
+        case LVAL_TYPE_NUMBER: lval_number_free(val); break;
+        case LVAL_TYPE_SYMBOL: lval_symbol_free(val); break;
+        case LVAL_TYPE_STRING: lval_string_free(val); break;
+        case LVAL_TYPE_WINDOW: lval_window_free(val); break;
+        case LVAL_TYPE_BUILTIN: lval_builtin_free(val); break;
+        case LVAL_TYPE_LAMBDA: lval_lambda_free(val); break;
+        case LVAL_TYPE_SEXPR: lval_sexpr_free(val); break;
+        case LVAL_TYPE_QEXPR: lval_qexpr_free(val); break;
     }
 
+    // free the base lval itself
     free(val);
 }
 
-bool
-lval_eq(const struct lval* x, const struct lval* y)
+union lval*
+lval_copy(const union lval* val)
 {
-    assert(x != NULL);
-    assert(y != NULL);
+    assert(val != NULL);
 
-    // diff types are never equal
-    if (x->type != y->type) return false;
+    // alloc the new lval to serve as the copy
+    union lval* copy = malloc(sizeof(union lval));
 
-    // compare based on the type
-    switch (x->type) {
-        case LVAL_TYPE_ERROR:
-            return strcmp(x->error, y->error) == 0;
-        case LVAL_TYPE_NUMBER:
-            return x->number == y->number;
-        case LVAL_TYPE_SYMBOL:
-            return strcmp(x->symbol, y->symbol) == 0;
-        case LVAL_TYPE_STRING:
-            return strcmp(x->string, y->string) == 0;
-        case LVAL_TYPE_WINDOW:
-            return x->window == y->window && x->context == y->context;
-        case LVAL_TYPE_FUNC:
-            if (x->builtin || y->builtin) return x->builtin == y->builtin;
-            else return lval_eq(x->formals, y->formals) && lval_eq(x->body, y->body);
-        case LVAL_TYPE_SEXPR:
-        case LVAL_TYPE_QEXPR:
-            if (x->cell_count != y->cell_count) return false;
-            for (long i = 0; i < x->cell_count; i++) {
-                if (!lval_eq(x->cell[i], y->cell[i])) return false;
-            }
-            return true;
-        default:
-            return false;
+    // delegate copying to each type's specific copy func
+    switch (val->type) {
+        case LVAL_TYPE_ERROR: lval_error_copy(val, copy); break;
+        case LVAL_TYPE_NUMBER: lval_number_copy(val, copy); break;
+        case LVAL_TYPE_SYMBOL: lval_symbol_copy(val, copy); break;
+        case LVAL_TYPE_STRING: lval_string_copy(val, copy); break;
+        case LVAL_TYPE_WINDOW: lval_window_copy(val, copy); break;
+        case LVAL_TYPE_BUILTIN: lval_builtin_copy(val, copy); break;
+        case LVAL_TYPE_LAMBDA: lval_lambda_copy(val, copy); break;
+        case LVAL_TYPE_SEXPR: lval_sexpr_copy(val, copy); break;
+        case LVAL_TYPE_QEXPR: lval_qexpr_copy(val, copy); break;
     }
+
+    return copy;
 }
 
 const char*
@@ -279,32 +165,57 @@ lval_type_name(int lval_type)
         case LVAL_TYPE_SYMBOL: return "Symbol";
         case LVAL_TYPE_STRING: return "String";
         case LVAL_TYPE_WINDOW: return "Window";
-        case LVAL_TYPE_FUNC: return "Function";
+        case LVAL_TYPE_BUILTIN: return "Builtin";
+        case LVAL_TYPE_LAMBDA: return "Lambda";
         case LVAL_TYPE_SEXPR: return "S-Expression";
         case LVAL_TYPE_QEXPR: return "Q-Expression";
-        case LVAL_TYPE_UNDEFINED:
-        default:
-            return "Undefined";
     }
+
+    return "Undefined";
 }
 
-static const char*
-lval_string_escape(char c)
+bool
+lval_equal(const union lval* a, const union lval* b)
 {
-    switch (c) {
-        case '\a': return "\\a";
-        case '\b': return "\\b";
-        case '\f': return "\\f";
-        case '\n': return "\\n";
-        case '\r': return "\\r";
-        case '\t': return "\\t";
-        case '\v': return "\\v";
-        case '\\': return "\\\\";
-        case '\'': return "\\\'";
-        case '\"': return "\\\"";
-        default: return "";
+    assert(a != NULL);
+    assert(b != NULL);
+
+    // diff types are never equal
+    if (a->type != b->type) return false;
+
+    // delegate equality check to each type's specific equal func
+    switch (a->type) {
+        case LVAL_TYPE_ERROR: return lval_error_equal(a, b);
+        case LVAL_TYPE_NUMBER: return lval_number_equal(a, b);
+        case LVAL_TYPE_SYMBOL: return lval_symbol_equal(a, b);
+        case LVAL_TYPE_STRING: return lval_string_equal(a, b);
+        case LVAL_TYPE_WINDOW: return lval_window_equal(a, b);
+        case LVAL_TYPE_BUILTIN: return lval_builtin_equal(a, b);
+        case LVAL_TYPE_LAMBDA: return lval_lambda_equal(a, b);
+        case LVAL_TYPE_SEXPR: return lval_sexpr_equal(a, b);
+        case LVAL_TYPE_QEXPR: return lval_qexpr_equal(a, b);
     }
+
+    return false;
 }
+
+//static const char*
+//lval_string_escape(char c)
+//{
+//    switch (c) {
+//        case '\a': return "\\a";
+//        case '\b': return "\\b";
+//        case '\f': return "\\f";
+//        case '\n': return "\\n";
+//        case '\r': return "\\r";
+//        case '\t': return "\\t";
+//        case '\v': return "\\v";
+//        case '\\': return "\\\\";
+//        case '\'': return "\\\'";
+//        case '\"': return "\\\"";
+//        default: return "";
+//    }
+//}
 
 
 static char
@@ -325,122 +236,94 @@ lval_string_unescape(char c)
     }
 }
 
-static void
-lval_print_string(const struct lval* val)
-{
-//    putchar('"');
-    for (long i = 0; i < (long)strlen(val->string); i++) {
-        if (strchr(STRING_ESCAPABLE_CHARS, val->string[i])) {
-            printf("%s", lval_string_escape(val->string[i]));
-        } else {
-            putchar(val->string[i]);
-        }
-    }
-//    putchar('"');
-}
-
 void
-lval_print(const struct lval* val)
+lval_print(const union lval* val)
 {
     assert(val != NULL);
 
+    // delegate printing to each type's specific print func
     switch (val->type) {
-        case LVAL_TYPE_ERROR: printf("error: %s", val->error); break;
-        case LVAL_TYPE_NUMBER: printf("%ld", val->number); break;
-        case LVAL_TYPE_SYMBOL: printf("%s", val->symbol); break;
-        case LVAL_TYPE_STRING: lval_print_string(val); break;
-        case LVAL_TYPE_WINDOW: printf("<window>"); break;
-        case LVAL_TYPE_FUNC:
-            if (val->builtin != NULL) {
-                printf("<builtin>");
-            } else {
-                printf("(lambda ");
-                lval_print(val->formals);
-                putchar(' ');
-                lval_print(val->body);
-                putchar(')');
-            }
-            break;
-        case LVAL_TYPE_SEXPR:
-            putchar('(');
-            for (long i = 0; i < val->cell_count; i++) {
-                lval_print(val->cell[i]);
-                if (i != (val->cell_count - 1)) putchar(' ');
-            }
-            putchar(')');
-            break;
-        case LVAL_TYPE_QEXPR:
-            putchar('{');
-            for (long i = 0; i < val->cell_count; i++) {
-                lval_print(val->cell[i]);
-                if (i != (val->cell_count - 1)) putchar(' ');
-            }
-            putchar('}');
-            break;
-        default: printf("undefined lisp value"); break;
+        case LVAL_TYPE_ERROR: lval_error_print(val); break;
+        case LVAL_TYPE_NUMBER: lval_number_print(val); break;
+        case LVAL_TYPE_SYMBOL: lval_symbol_print(val); break;
+        case LVAL_TYPE_STRING: lval_string_print(val); break;
+        case LVAL_TYPE_WINDOW: lval_window_print(val); break;
+        case LVAL_TYPE_BUILTIN: lval_builtin_print(val); break;
+        case LVAL_TYPE_LAMBDA: lval_lambda_print(val); break;
+        case LVAL_TYPE_SEXPR: lval_sexpr_print(val); break;
+        case LVAL_TYPE_QEXPR: lval_qexpr_print(val); break;
+        default: printf("!!! undefined lisp value !!!"); break;
     }
 }
 
 void
-lval_println(const struct lval* val)
+lval_println(const union lval* val)
 {
     assert(val != NULL);
 
+    // defer to lval_print and add a newline
     lval_print(val);
     putchar('\n');
 }
 
-struct lval*
-lval_list_append(struct lval* list, struct lval* val)
+
+union lval*
+lval_list_append(union lval* list, union lval* val)
 {
     assert(list != NULL);
     assert(val != NULL);
 
-    list->cell_count++;
-    list->cell = realloc(list->cell, sizeof(struct val*) * list->cell_count);
-    list->cell[list->cell_count - 1] = val;
-    return list;
+    struct lval_qexpr* l = AS_QEXPR(list);
+
+    l->count++;
+    l->list = realloc(l->list, sizeof(union lval*) * l->count);
+    l->list[l->count - 1] = val;
+    return (union lval*)l;
 }
 
-struct lval*
-lval_list_pop(struct lval* list, long i)
+union lval*
+lval_list_pop(union lval* list, long i)
 {
     assert(list != NULL);
     assert(i >= 0);
-    assert(i < list->cell_count);
 
-    struct lval* val = list->cell[i];
-    memmove(&list->cell[i], &list->cell[i + 1], sizeof(struct lval*) * (list->cell_count - i - 1));
-    list->cell_count--;
-    list->cell = realloc(list->cell, sizeof(struct lval*) * list->cell_count);
+    struct lval_qexpr* l = AS_QEXPR(list);
+    assert(i < l->count);
+
+    union lval* val = l->list[i];
+    memmove(&l->list[i], &l->list[i + 1], sizeof(union lval*) * (l->count - i - 1));
+
+    l->count--;
+    l->list = realloc(l->list, sizeof(union lval*) * l->count);
     return val;
 }
 
-struct lval*
-lval_list_take(struct lval* list, long i)
+union lval*
+lval_list_take(union lval* list, long i)
 {
     assert(list != NULL);
 
-    struct lval* val = lval_list_pop(list, i);
+    union lval* val = lval_list_pop(list, i);
     lval_free(list);
     return val;
 }
 
-struct lval*
-lval_list_join(struct lval* list, struct lval* extras)
+union lval*
+lval_list_join(union lval* list, union lval* extras)
 {
     assert(list != NULL);
     assert(extras != NULL);
 
-    while (extras->cell_count) {
-        list = lval_list_append(list, lval_list_pop(extras, 0));
+    struct lval_qexpr* e = AS_QEXPR(extras);
+    while (e->count > 0) {
+        list = lval_list_append(list, lval_list_pop((union lval*)e, 0));
     }
 
     lval_free(extras);
     return list;
 }
 
-static struct lval*
+static union lval*
 lval_read_symbol(char* s, long* i)
 {
     // alloc an empty string
@@ -467,7 +350,7 @@ lval_read_symbol(char* s, long* i)
     if (strlen(part) == 1 && part[0] == '-') is_num = false;
 
     // create lval as either number or symbol
-    struct lval* x = NULL;
+    union lval* x = NULL;
     if (is_num) {
         errno = 0;
         long v = strtol(part, NULL, 10);
@@ -480,7 +363,7 @@ lval_read_symbol(char* s, long* i)
     return x;
 }
 
-static struct lval*
+static union lval*
 lval_read_string(char* s, long* i)
 {
     // alloc an empty string
@@ -518,12 +401,12 @@ lval_read_string(char* s, long* i)
     // move forward past final quote char
     (*i)++;
 
-    struct lval* x = lval_make_string(part);
+    union lval* x = lval_make_string(part);
     free(part);
     return x;
 }
 
-static struct lval*
+static union lval*
 lval_read(char* s, long* i)
 {
     // skip whitespace and comments
@@ -534,7 +417,7 @@ lval_read(char* s, long* i)
         (*i)++;
     }
 
-    struct lval* x = NULL;
+    union lval* x = NULL;
 
     if (s[*i] == '\0') {
         // if we reach EOI then we're missing something
@@ -567,13 +450,13 @@ lval_read(char* s, long* i)
     return x;
 }
 
-struct lval*
+union lval*
 lval_read_expr(char* s, long* i, char end)
 {
-    struct lval* x = (end == '}') ? lval_make_qexpr() : lval_make_sexpr();
+    union lval* x = (end == '}') ? lval_make_qexpr() : lval_make_sexpr();
 
     while (s[*i] != end) {
-        struct lval* y = lval_read(s, i);
+        union lval* y = lval_read(s, i);
         if (y->type == LVAL_TYPE_ERROR) {
             lval_free(x);
             return y;

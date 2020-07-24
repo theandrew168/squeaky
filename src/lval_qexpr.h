@@ -3,19 +3,22 @@
 
 #include <stdbool.h>
 
-struct lval;
+union lval;
 
 struct lval_qexpr {
     int type;
     long count;
-    struct lval** list;
+    union lval** list;
 };
 
-bool lval_qexpr_init(struct lval_qexpr* val);
-void lval_qexpr_free(struct lval_qexpr* val);
-void lval_qexpr_copy(const struct lval_qexpr* val, struct lval_qexpr* copy);
+#define AS_QEXPR(val) ((struct lval_qexpr*)(val))
+#define AS_CONST_QEXPR(val) ((const struct lval_qexpr*)(val))
 
-void lval_qexpr_print(const struct lval_qexpr* val);
-bool lval_qexpr_equal(const struct lval_qexpr* a, const struct lval_qexpr* b);
+bool lval_qexpr_init(union lval* val);
+void lval_qexpr_free(union lval* val);
+void lval_qexpr_copy(const union lval* val, union lval* copy);
+
+void lval_qexpr_print(const union lval* val);
+bool lval_qexpr_equal(const union lval* a, const union lval* b);
 
 #endif

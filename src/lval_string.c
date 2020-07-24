@@ -11,33 +11,42 @@ static const char ESCAPABLE_CHARS[] = "\a\b\f\n\r\t\v\\\'\"";
 //static const char UNESCAPABLE_CHARS[] = "abfnrtv\\\'\"";
 
 bool
-lval_string_init(struct lval_string* val, const char* string)
+lval_string_init(union lval* val, const char* string)
 {
     assert(val != NULL);
     assert(string != NULL);
 
-    val->type = LVAL_TYPE_STRING;
-    val->string = malloc(strlen(string) + 1);
-    strcpy(val->string, string);
+    struct lval_string* v = AS_STRING(val);
+
+    v->type = LVAL_TYPE_STRING;
+    v->string = malloc(strlen(string) + 1);
+    strcpy(v->string, string);
+
     return true;
 }
 
 void
-lval_string_free(struct lval_string* val)
+lval_string_free(union lval* val)
 {
     assert(val != NULL);
 
-    free(val->string);
+    struct lval_string* v = AS_STRING(val);
+
+    free(v->string);
 }
 
 void
-lval_string_copy(const struct lval_string* val, struct lval_string* copy)
+lval_string_copy(const union lval* val, union lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    copy->string = malloc(strlen(val->string) + 1);
-    strcpy(copy->string, val->string);
+    const struct lval_string* v = AS_CONST_STRING(val);
+    struct lval_string* c = AS_STRING(copy);
+
+    c->type = v->type;
+    c->string = malloc(strlen(v->string) + 1);
+    strcpy(c->string, v->string);
 }
 
 static const char*
@@ -78,27 +87,32 @@ escape(char c)
 //}
 
 void
-lval_string_print(const struct lval_string* val)
+lval_string_print(const union lval* val)
 {
     assert(val != NULL);
 
+    const struct lval_string* v = AS_CONST_STRING(val);
+
 //    putchar('"');
-    for (long i = 0; i < (long)strlen(val->string); i++) {
+    for (long i = 0; i < (long)strlen(v->string); i++) {
         // escape chars for printing when necessary
-        if (strchr(ESCAPABLE_CHARS, val->string[i])) {
-            printf("%s", escape(val->string[i]));
+        if (strchr(ESCAPABLE_CHARS, v->string[i])) {
+            printf("%s", escape(v->string[i]));
         } else {
-            putchar(val->string[i]);
+            putchar(v->string[i]);
         }
     }
 //    putchar('"');
 }
 
 bool
-lval_string_equal(const struct lval_string* a, const struct lval_string* b)
+lval_string_equal(const union lval* a, const union lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return strcmp(a->string, b->string) == 0;
+    const struct lval_string* aa = AS_CONST_STRING(a);
+    const struct lval_string* bb = AS_CONST_STRING(b);
+
+    return strcmp(aa->string, bb->string) == 0;
 }

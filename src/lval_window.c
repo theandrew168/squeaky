@@ -10,10 +10,12 @@
 #include "lval_window.h"
 
 bool
-lval_window_init(struct lval_window* val, const char* title, long width, long height)
+lval_window_init(union lval* val, const char* title, long width, long height)
 {
     assert(val != NULL);
     assert(title != NULL);
+
+    struct lval_window* v = AS_WINDOW(val);
 
     // Request at least 32-bit color
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -50,16 +52,19 @@ lval_window_init(struct lval_window* val, const char* title, long width, long he
 
     SDL_GL_SetSwapInterval(1);
 
-    val->type = LVAL_TYPE_WINDOW;
-    val->window = window;
-    val->context = context;
+    v->type = LVAL_TYPE_WINDOW;
+    v->window = window;
+    v->context = context;
+
     return true;
 }
 
 void
-lval_window_free(struct lval_window* val)
+lval_window_free(union lval* val)
 {
     assert(val != NULL);
+
+//    struct lval_window* v = AS_WINDOW(val);
 
     // TODO: ref count deez boiz
     // otherwise any copy new + free old deletes the window :(
@@ -68,17 +73,21 @@ lval_window_free(struct lval_window* val)
 }
 
 void
-lval_window_copy(const struct lval_window* val, struct lval_window* copy)
+lval_window_copy(const union lval* val, union lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    copy->window = val->window;
-    copy->context = val->context;
+    const struct lval_window* v = AS_CONST_WINDOW(val);
+    struct lval_window* c = AS_WINDOW(copy);
+
+    c->type = v->type;
+    c->window = v->window;
+    c->context = v->context;
 }
 
 void
-lval_window_print(const struct lval_window* val)
+lval_window_print(const union lval* val)
 {
     assert(val != NULL);
 
@@ -86,10 +95,13 @@ lval_window_print(const struct lval_window* val)
 }
 
 bool
-lval_window_equal(const struct lval_window* a, const struct lval_window* b)
+lval_window_equal(const union lval* a, const union lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return a->window == b->window && a->context == b->context;
+    const struct lval_window* aa = AS_CONST_WINDOW(a);
+    const struct lval_window* bb = AS_CONST_WINDOW(b);
+
+    return aa->window == bb->window && aa->context == bb->context;
 }

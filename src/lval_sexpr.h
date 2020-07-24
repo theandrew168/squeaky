@@ -3,19 +3,22 @@
 
 #include <stdbool.h>
 
-struct lval;
+union lval;
 
 struct lval_sexpr {
     int type;
     long count;
-    struct lval** list;
+    union lval** list;
 };
 
-bool lval_sexpr_init(struct lval_sexpr* val);
-void lval_sexpr_free(struct lval_sexpr* val);
-void lval_sexpr_copy(const struct lval_sexpr* val, struct lval_sexpr* copy);
+#define AS_SEXPR(val) ((struct lval_sexpr*)(val))
+#define AS_CONST_SEXPR(val) ((const struct lval_sexpr*)(val))
 
-void lval_sexpr_print(const struct lval_sexpr* val);
-bool lval_sexpr_equal(const struct lval_sexpr* a, const struct lval_sexpr* b);
+bool lval_sexpr_init(union lval* val);
+void lval_sexpr_free(union lval* val);
+void lval_sexpr_copy(const union lval* val, union lval* copy);
+
+void lval_sexpr_print(const union lval* val);
+bool lval_sexpr_equal(const union lval* a, const union lval* b);
 
 #endif

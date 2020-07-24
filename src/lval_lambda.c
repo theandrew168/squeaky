@@ -8,57 +8,71 @@
 #include "lval_lambda.h"
 
 bool
-lval_lambda_init(struct lval_lambda* val, struct lval* formals, struct lval* body)
+lval_lambda_init(union lval* val, union lval* formals, union lval* body)
 {
     assert(val != NULL);
     assert(formals != NULL);
     assert(body != NULL);
 
-    val->type = LVAL_TYPE_LAMBDA;
-    val->env = lenv_make();
-    val->formals = formals;
-    val->body = body;
+    struct lval_lambda* v = AS_LAMBDA(val);
+
+    v->type = LVAL_TYPE_LAMBDA;
+    v->env = lenv_make();
+    v->formals = formals;
+    v->body = body;
+
     return true;
 }
 
 void
-lval_lambda_free(struct lval_lambda* val)
+lval_lambda_free(union lval* val)
 {
     assert(val != NULL);
 
-    lenv_free(val->env);
-    lval_free(val->formals);
-    lval_free(val->body);
+    struct lval_lambda* v = AS_LAMBDA(val);
+
+    lenv_free(v->env);
+    lval_free(v->formals);
+    lval_free(v->body);
 }
 
 void
-lval_lambda_copy(const struct lval_lambda* val, struct lval_lambda* copy)
+lval_lambda_copy(const union lval* val, union lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    copy->env = lenv_copy(val->env);
-    copy->formals = lval_copy(val->formals);
-    copy->body = lval_copy(val->body);
+    const struct lval_lambda* v = AS_CONST_LAMBDA(val);
+    struct lval_lambda* c = AS_LAMBDA(copy);
+
+    c->type = v->type;
+    c->env = lenv_copy(v->env);
+    c->formals = lval_copy(v->formals);
+    c->body = lval_copy(v->body);
 }
 
 void
-lval_lambda_print(const struct lval_lambda* val)
+lval_lambda_print(const union lval* val)
 {
     assert(val != NULL);
 
+    const struct lval_lambda* v = AS_LAMBDA(val);
+
     printf("(lambda ");
-    lval_print(val->formals);
+    lval_print(v->formals);
     putchar(' ');
-    lval_print(val->body);
+    lval_print(v->body);
     putchar(')');
 }
 
 bool
-lval_lambda_equal(const struct lval_lambda* a, const struct lval_lambda* b)
+lval_lambda_equal(const union lval* a, const union lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return lval_eq(a->formals, b->formals) && lval_eq(a->body, b->body);
+    const struct lval_lambda* aa = AS_CONST_LAMBDA(a);
+    const struct lval_lambda* bb = AS_CONST_LAMBDA(b);
+
+    return lval_equal(aa->formals, bb->formals) && lval_equal(aa->body, bb->body);
 }

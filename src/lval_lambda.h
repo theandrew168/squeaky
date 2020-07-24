@@ -4,20 +4,23 @@
 #include <stdbool.h>
 
 struct lenv;
-struct lval;
+union lval;
 
 struct lval_lambda {
     int type;
     struct lenv* env;
-    struct lval* formals;
-    struct lval* body;
+    union lval* formals;
+    union lval* body;
 };
 
-bool lval_lambda_init(struct lval_lambda* val, struct lval* formals, struct lval* body);
-void lval_lambda_free(struct lval_lambda* val);
-void lval_lambda_copy(const struct lval_lambda* val, struct lval_lambda* copy);
+#define AS_LAMBDA(val) ((struct lval_lambda*)(val))
+#define AS_CONST_LAMBDA(val) ((const struct lval_lambda*)(val))
 
-void lval_lambda_print(const struct lval_lambda* val);
-bool lval_lambda_equal(const struct lval_lambda* a, const struct lval_lambda* b);
+bool lval_lambda_init(union lval* val, union lval* formals, union lval* body);
+void lval_lambda_free(union lval* val);
+void lval_lambda_copy(const union lval* val, union lval* copy);
+
+void lval_lambda_print(const union lval* val);
+bool lval_lambda_equal(const union lval* a, const union lval* b);
 
 #endif

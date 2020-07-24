@@ -7,68 +7,85 @@
 #include "lval_qexpr.h"
 
 bool
-lval_qexpr_init(struct lval_qexpr* val)
+lval_qexpr_init(union lval* val)
 {
     assert(val != NULL);
 
-    val->type = LVAL_TYPE_QEXPR;
-    val->count = 0;
-    val->list = NULL;
+    struct lval_qexpr* v = AS_QEXPR(val);
+
+    v->type = LVAL_TYPE_QEXPR;
+    v->count = 0;
+    v->list = NULL;
+
     return true;
 }
 
 void
-lval_qexpr_free(struct lval_qexpr* val)
+lval_qexpr_free(union lval* val)
 {
     assert(val != NULL);
 
+    struct lval_qexpr* v = AS_QEXPR(val);
+
     // free all children
-    for (long i = 0; i < val->count; i++) {
-        lval_free(val->list[i]);
+    for (long i = 0; i < v->count; i++) {
+        lval_free(v->list[i]);
     }
 
     // free the list itself
-    free(val->list);
+    free(v->list);
 }
 
 void
-lval_qexpr_copy(const struct lval_qexpr* val, struct lval_qexpr* copy)
+lval_qexpr_copy(const union lval* val, union lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
+    const struct lval_qexpr* v = AS_CONST_QEXPR(val);
+    struct lval_qexpr* c = AS_QEXPR(copy);
+
+    c->type = v->type;
+    c->count = v->count;
+
     // copy each child
-    copy->count = val->count;
-    for (long i = 0; i < val->count; i++) {
-        copy->list[i] = lval_copy(val->list[i]);
+    for (long i = 0; i < v->count; i++) {
+        c->list[i] = lval_copy(v->list[i]);
     }
 }
 
 void
-lval_qexpr_print(const struct lval_qexpr* val)
+lval_qexpr_print(const union lval* val)
 {
     assert(val != NULL);
 
+    const struct lval_qexpr* v = AS_CONST_QEXPR(val);
+
     putchar('{');
-    for (long i = 0; i < val->count; i++) {
-        lval_print(val->list[i]); 
-        if (i != (val->count - 1)) putchar(' ');
+    for (long i = 0; i < v->count; i++) {
+        lval_print(v->list[i]); 
+        if (i != (v->count - 1)) {
+            putchar(' ');
+        }
     }
     putchar('}');
 }
 
 bool
-lval_qexpr_equal(const struct lval_qexpr* a, const struct lval_qexpr* b)
+lval_qexpr_equal(const union lval* a, const union lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
+    const struct lval_qexpr* aa = AS_CONST_QEXPR(a);
+    const struct lval_qexpr* bb = AS_CONST_QEXPR(b);
+
     // not equal if sizes aren't equal
-    if (a->count != b->count) return false;
+    if (aa->count != bb->count) return false;
 
     // check each pair of children for equality
-    for (long i = 0; i < a->count; i++) {
-        if (!lval_eq(a->list[i], b->list[i])) return false;
+    for (long i = 0; i < aa->count; i++) {
+        if (!lval_equal(aa->list[i], bb->list[i])) return false;
     }
 
     return false;

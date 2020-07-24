@@ -3,21 +3,19 @@
 
 #include <stdbool.h>
 
-union lval;
+struct lval;
 
 struct lval_symbol {
-    int type;
     char* symbol;
 };
 
-#define AS_SYMBOL(val) ((struct lval_symbol*)(val))
-#define AS_CONST_SYMBOL(val) ((const struct lval_symbol*)(val))
+#define AS_SYMBOL(val) ((val)->as.symbol)
 
-bool lval_symbol_init(union lval* val, const char* symbol);
-void lval_symbol_free(union lval* val);
-void lval_symbol_copy(const union lval* val, union lval* copy);
+bool lval_symbol_init(struct lval* val, const char* symbol);
+void lval_symbol_free(struct lval* val);
+void lval_symbol_copy(const struct lval* val, struct lval* copy);
 
-void lval_symbol_print(const union lval* val);
-bool lval_symbol_equal(const union lval* a, const union lval* b);
+void lval_symbol_print(const struct lval* val);
+bool lval_symbol_equal(const struct lval* a, const struct lval* b);
 
 #endif

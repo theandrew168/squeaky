@@ -20,9 +20,8 @@ libsqueaky_sources =  \
   src/lval_builtin.c  \
   src/lval_error.c    \
   src/lval_lambda.c   \
+  src/lval_list.c     \
   src/lval_number.c   \
-  src/lval_qexpr.c    \
-  src/lval_sexpr.c    \
   src/lval_string.c   \
   src/lval_symbol.c   \
   src/lval_window.c
@@ -34,8 +33,7 @@ src/lval_builtin.o: src/lval_builtin.c src/lval_builtin.h src/lval.h
 src/lval_error.o: src/lval_error.c src/lval_error.h src/lval.h
 src/lval_lambda.o: src/lval_lambda.c src/lval_lambda.h src/lval.h src/lenv.h
 src/lval_number.o: src/lval_number.c src/lval_number.h src/lval.h
-src/lval_qexpr.o: src/lval_qexpr.c src/lval_qexpr.h src/lval.h
-src/lval_sexpr.o: src/lval_sexpr.c src/lval_sexpr.h src/lval.h
+src/lval_list.o: src/lval_list.c src/lval_list.h src/lval.h
 src/lval_string.o: src/lval_string.c src/lval_string.h src/lval.h
 src/lval_symbol.o: src/lval_symbol.c src/lval_symbol.h src/lval.h
 src/lval_window.o: src/lval_window.c src/lval_window.h src/lval.h

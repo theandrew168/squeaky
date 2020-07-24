@@ -34,11 +34,11 @@ lenv_free(struct lenv* env)
 
 // TODO: typecheck for symbols
 
-union lval*
-lenv_get(const struct lenv* env, const union lval* k)
+struct lval*
+lenv_get(const struct lenv* env, const struct lval* k)
 {
     for (long i = 0; i < env->count; i++) {
-        if (strcmp(env->symbols[i], ((struct lval_symbol*)k)->symbol) == 0) {
+        if (strcmp(env->symbols[i], k->as.symbol.symbol) == 0) {
             return lval_copy(env->values[i]);
         }
     }
@@ -46,12 +46,12 @@ lenv_get(const struct lenv* env, const union lval* k)
     if (env->parent != NULL) {
         return lenv_get(env->parent, k);
     } else {
-        return lval_make_error("unbound symbol '%s'", k->symbol);
+        return lval_make_error("unbound symbol '%s'", k->as.symbol.symbol);
     }
 }
 
 void
-lenv_put(struct lenv* env, const union lval* k, const union lval* v)
+lenv_put(struct lenv* env, const struct lval* k, const struct lval* v)
 {
     // check for existing key
     for (long i = 0; i < env->count; i++) {
@@ -65,7 +65,7 @@ lenv_put(struct lenv* env, const union lval* k, const union lval* v)
 
     // alloc slot for new entry
     env->count++;
-    env->values = realloc(env->values, env->count * sizeof(union lval*));
+    env->values = realloc(env->values, env->count * sizeof(struct lval*));
     env->symbols = realloc(env->symbols, env->count * sizeof(char*));
 
     // copy in the new value and its symbol
@@ -75,7 +75,7 @@ lenv_put(struct lenv* env, const union lval* k, const union lval* v)
 }
 
 void
-lenv_def(struct lenv* env, const union lval* k, const union lval* v)
+lenv_def(struct lenv* env, const struct lval* k, const struct lval* v)
 {
     while (env->parent != NULL) env = env->parent;
     lenv_put(env, k, v);
@@ -88,7 +88,7 @@ lenv_copy(const struct lenv* env)
     new->parent = env->parent;
     new->count = env->count;
     new->symbols = malloc(env->count * sizeof(char*));
-    new->values = malloc(env->count * sizeof(union lval*));
+    new->values = malloc(env->count * sizeof(struct lval*));
     for (long i = 0; i < env->count; i++) {
         new->symbols[i] = malloc(strlen(env->symbols[i]) + 1);
         strcpy(new->symbols[i], env->symbols[i]);

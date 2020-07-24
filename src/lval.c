@@ -9,15 +9,14 @@
 #include "lenv.h"
 #include "lbuiltin.h"
 #include "lval.h"
-#include "lval_error.h"
-#include "lval_number.h"
-#include "lval_symbol.h"
-#include "lval_string.h"
-#include "lval_window.h"
 #include "lval_builtin.h"
+#include "lval_error.h"
 #include "lval_lambda.h"
-#include "lval_sexpr.h"
-#include "lval_qexpr.h"
+#include "lval_list.h"
+#include "lval_number.h"
+#include "lval_string.h"
+#include "lval_symbol.h"
+#include "lval_window.h"
 
 static const char SYMBOL_VALID_CHARS[] = 
     "abcdefghijklmnopqrstuvwxyz"
@@ -97,7 +96,7 @@ union lval*
 lval_make_sexpr(void)
 {
     union lval* val = malloc(sizeof(union lval));
-    lval_sexpr_init(val);
+    lval_list_init(val, LVAL_TYPE_SEXPR);
     return val;
 }
 
@@ -105,7 +104,7 @@ union lval*
 lval_make_qexpr(void)
 {
     union lval* val = malloc(sizeof(union lval));
-    lval_qexpr_init(val);
+    lval_list_init(val, LVAL_TYPE_QEXPR);
     return val;
 }
 
@@ -124,8 +123,8 @@ lval_free(union lval* val)
         case LVAL_TYPE_WINDOW: lval_window_free(val); break;
         case LVAL_TYPE_BUILTIN: lval_builtin_free(val); break;
         case LVAL_TYPE_LAMBDA: lval_lambda_free(val); break;
-        case LVAL_TYPE_SEXPR: lval_sexpr_free(val); break;
-        case LVAL_TYPE_QEXPR: lval_qexpr_free(val); break;
+        case LVAL_TYPE_SEXPR: lval_list_free(val); break;
+        case LVAL_TYPE_QEXPR: lval_list_free(val); break;
     }
 
     // free the base lval itself
@@ -149,8 +148,8 @@ lval_copy(const union lval* val)
         case LVAL_TYPE_WINDOW: lval_window_copy(val, copy); break;
         case LVAL_TYPE_BUILTIN: lval_builtin_copy(val, copy); break;
         case LVAL_TYPE_LAMBDA: lval_lambda_copy(val, copy); break;
-        case LVAL_TYPE_SEXPR: lval_sexpr_copy(val, copy); break;
-        case LVAL_TYPE_QEXPR: lval_qexpr_copy(val, copy); break;
+        case LVAL_TYPE_SEXPR: lval_list_copy(val, copy); break;
+        case LVAL_TYPE_QEXPR: lval_list_copy(val, copy); break;
     }
 
     return copy;
@@ -192,8 +191,8 @@ lval_equal(const union lval* a, const union lval* b)
         case LVAL_TYPE_WINDOW: return lval_window_equal(a, b);
         case LVAL_TYPE_BUILTIN: return lval_builtin_equal(a, b);
         case LVAL_TYPE_LAMBDA: return lval_lambda_equal(a, b);
-        case LVAL_TYPE_SEXPR: return lval_sexpr_equal(a, b);
-        case LVAL_TYPE_QEXPR: return lval_qexpr_equal(a, b);
+        case LVAL_TYPE_SEXPR: return lval_list_equal(a, b);
+        case LVAL_TYPE_QEXPR: return lval_list_equal(a, b);
     }
 
     return false;
@@ -250,8 +249,8 @@ lval_print(const union lval* val)
         case LVAL_TYPE_WINDOW: lval_window_print(val); break;
         case LVAL_TYPE_BUILTIN: lval_builtin_print(val); break;
         case LVAL_TYPE_LAMBDA: lval_lambda_print(val); break;
-        case LVAL_TYPE_SEXPR: lval_sexpr_print(val); break;
-        case LVAL_TYPE_QEXPR: lval_qexpr_print(val); break;
+        case LVAL_TYPE_SEXPR: lval_list_print(val, '(', ')'); break;
+        case LVAL_TYPE_QEXPR: lval_list_print(val, '{', '}'); break;
         default: printf("!!! undefined lisp value !!!"); break;
     }
 }
@@ -266,62 +265,6 @@ lval_println(const union lval* val)
     putchar('\n');
 }
 
-
-union lval*
-lval_list_append(union lval* list, union lval* val)
-{
-    assert(list != NULL);
-    assert(val != NULL);
-
-    struct lval_qexpr* l = AS_QEXPR(list);
-
-    l->count++;
-    l->list = realloc(l->list, sizeof(union lval*) * l->count);
-    l->list[l->count - 1] = val;
-    return (union lval*)l;
-}
-
-union lval*
-lval_list_pop(union lval* list, long i)
-{
-    assert(list != NULL);
-    assert(i >= 0);
-
-    struct lval_qexpr* l = AS_QEXPR(list);
-    assert(i < l->count);
-
-    union lval* val = l->list[i];
-    memmove(&l->list[i], &l->list[i + 1], sizeof(union lval*) * (l->count - i - 1));
-
-    l->count--;
-    l->list = realloc(l->list, sizeof(union lval*) * l->count);
-    return val;
-}
-
-union lval*
-lval_list_take(union lval* list, long i)
-{
-    assert(list != NULL);
-
-    union lval* val = lval_list_pop(list, i);
-    lval_free(list);
-    return val;
-}
-
-union lval*
-lval_list_join(union lval* list, union lval* extras)
-{
-    assert(list != NULL);
-    assert(extras != NULL);
-
-    struct lval_qexpr* e = AS_QEXPR(extras);
-    while (e->count > 0) {
-        list = lval_list_append(list, lval_list_pop((union lval*)e, 0));
-    }
-
-    lval_free(extras);
-    return list;
-}
 
 static union lval*
 lval_read_symbol(char* s, long* i)

@@ -3,22 +3,20 @@
 
 #include <stdbool.h>
 
-union lval;
+struct lval;
 
 // TODO: this can be expanded with GMP for big number funsies
 struct lval_number {
-    int type;
     long number;
 };
 
-#define AS_NUMBER(val) ((struct lval_number*)(val))
-#define AS_CONST_NUMBER(val) ((const struct lval_number*)(val))
+#define AS_NUMBER(val) ((val)->as->number)
 
-bool lval_number_init(union lval* val, long number);
-void lval_number_free(union lval* val);
-void lval_number_copy(const union lval* val, union lval* copy);
+bool lval_number_init(struct lval* val, long number);
+void lval_number_free(struct lval* val);
+void lval_number_copy(const struct lval* val, struct lval* copy);
 
-void lval_number_print(const union lval* val);
-bool lval_number_equal(const union lval* a, const union lval* b);
+void lval_number_print(const struct lval* val);
+bool lval_number_equal(const struct lval* a, const struct lval* b);
 
 #endif

@@ -8,61 +8,49 @@
 #include "lval_symbol.h"
 
 bool
-lval_symbol_init(union lval* val, const char* symbol)
+lval_symbol_init(struct lval* val, const char* symbol)
 {
     assert(val != NULL);
     assert(symbol != NULL);
 
-    struct lval_symbol* v = AS_SYMBOL(val);
-
-    v->type = LVAL_TYPE_SYMBOL;
-    v->symbol = malloc(strlen(symbol) + 1);
-    strcpy(v->symbol, symbol);
+    val->type = LVAL_TYPE_SYMBOL;
+    AS_SYMBOL(val)->symbol = malloc(strlen(symbol) + 1);
+    strcpy(AS_SYMBOL(val)->symbol, symbol);
     return true;
 }
 
 void
-lval_symbol_free(union lval* val)
+lval_symbol_free(struct lval* val)
 {
     assert(val != NULL);
 
-    struct lval_symbol* v = AS_SYMBOL(val);
-
-    free(v->symbol);
+    free(AS_SYMBOL(val)->symbol);
 }
 
 void
-lval_symbol_copy(const union lval* val, union lval* copy)
+lval_symbol_copy(const struct lval* val, struct lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    const struct lval_symbol* v = AS_CONST_SYMBOL(val);
-    struct lval_symbol* c = AS_SYMBOL(copy);
-
-    c->type = v->type;
-    c->symbol = malloc(strlen(v->symbol) + 1);
-    strcpy(c->symbol, v->symbol);
+    copy->type = val->type;
+    AS_SYMBOL(copy)->symbol = malloc(strlen(AS_SYMBOL(val)->symbol) + 1);
+    strcpy(AS_SYMBOL(copy)->symbol, AS_SYMBOL(val)->symbol);
 }
 
 void
-lval_symbol_print(const union lval* val)
+lval_symbol_print(const struct lval* val)
 {
     assert(val != NULL);
 
-    const struct lval_symbol* v = AS_CONST_SYMBOL(val);
-
-    printf("%s", v->symbol);
+    printf("%s", AS_SYMBOL(val)->symbol);
 }
 
 bool
-lval_symbol_equal(const union lval* a, const union lval* b)
+lval_symbol_equal(const struct lval* a, const struct lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    const struct lval_symbol* aa = AS_CONST_SYMBOL(a);
-    const struct lval_symbol* bb = AS_CONST_SYMBOL(b);
-
-    return strcmp(aa->symbol, bb->symbol) == 0;
+    return strcmp(AS_SYMBOL(a)->symbol, AS_SYMBOL(b)->symbol) == 0;
 }

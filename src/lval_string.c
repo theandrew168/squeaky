@@ -17,8 +17,8 @@ lval_string_init(struct lval* val, const char* string)
     assert(string != NULL);
 
     val->type = LVAL_TYPE_STRING;
-    AS_STRING(val)->string = malloc(strlen(string) + 1);
-    strcpy(AS_STRING(val)->string, string);
+    val->as.string = malloc(strlen(string) + 1);
+    strcpy(val->as.string, string);
 
     return true;
 }
@@ -28,7 +28,7 @@ lval_string_free(struct lval* val)
 {
     assert(val != NULL);
 
-    free(AS_STRING(val)->string);
+    free(val->as.string);
 }
 
 void
@@ -38,8 +38,8 @@ lval_string_copy(const struct lval* val, struct lval* copy)
     assert(copy != NULL);
 
     copy->type = val->type;
-    AS_STRING(copy)->string = malloc(strlen(AS_STRING(val)->string) + 1);
-    strcpy(AS_STRING(copy)->string, AS_STRING(val)->string);
+    copy->as.string = malloc(strlen(val->as.string) + 1);
+    strcpy(copy->as.string, val->as.string);
 }
 
 static const char*
@@ -85,12 +85,12 @@ lval_string_print(const struct lval* val)
     assert(val != NULL);
 
 //    putchar('"');
-    for (long i = 0; i < (long)strlen(AS_STRING(val)->string); i++) {
+    for (long i = 0; i < (long)strlen(val->as.string); i++) {
         // escape chars for printing when necessary
-        if (strchr(ESCAPABLE_CHARS, AS_STRING(val)->string[i])) {
-            printf("%s", escape(AS_STRING(val)->string[i]));
+        if (strchr(ESCAPABLE_CHARS, val->as.string[i])) {
+            printf("%s", escape(val->as.string[i]));
         } else {
-            putchar(AS_STRING(val)->string[i]);
+            putchar(val->as.string[i]);
         }
     }
 //    putchar('"');
@@ -102,5 +102,5 @@ lval_string_equal(const struct lval* a, const struct lval* b)
     assert(a != NULL);
     assert(b != NULL);
 
-    return strcmp(AS_STRING(a)->string, AS_STRING(b)->string) == 0;
+    return strcmp(a->as.string, b->as.string) == 0;
 }

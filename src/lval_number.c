@@ -7,18 +7,18 @@
 #include "lval_number.h"
 
 bool
-lval_number_init(union lval* val, long number)
+lval_number_init(struct lval* val, long number)
 {
     assert(val != NULL);
 
     val->type = LVAL_TYPE_NUMBER;
-    AS_NUMBER(val)->number = number;
+    val->as.number = number;
 
     return true;
 }
 
 void
-lval_number_free(union lval* val)
+lval_number_free(struct lval* val)
 {
     assert(val != NULL);
 
@@ -26,28 +26,28 @@ lval_number_free(union lval* val)
 }
 
 void
-lval_number_copy(const union lval* val, union lval* copy)
+lval_number_copy(const struct lval* val, struct lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
     copy->type = val->type;
-    copy->number = AS_NUMBER(val)->number;
+    copy->as.number = val->as.number;
 }
 
 void
-lval_number_print(const union lval* val)
+lval_number_print(const struct lval* val)
 {
     assert(val != NULL);
 
-    printf("%ld", AS_NUMBER(val)->number);
+    printf("%ld", val->as.number);
 }
 
 bool
-lval_number_equal(const union lval* a, const union lval* b)
+lval_number_equal(const struct lval* a, const struct lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    return AS_NUMBER(a)->number == AS_NUMBER(b)->number;
+    return a->as.number == b->as.number;
 }

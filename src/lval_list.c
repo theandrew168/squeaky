@@ -11,9 +11,9 @@ lval_list_init(struct lval* val, int type)
 {
     assert(val != NULL);
 
-    v->type = type;
-    v->count = 0;
-    v->list = NULL;
+    val->type = type;
+    val->count = 0;
+    val->list = NULL;
 
     return true;
 }
@@ -42,6 +42,7 @@ lval_list_copy(const struct lval* val, struct lval* copy)
     copy->count = val->count;
 
     // copy each child
+    copy->list = malloc(val->count * sizeof(struct lval*));
     for (long i = 0; i < val->count; i++) {
         copy->list[i] = lval_copy(val->list[i]);
     }

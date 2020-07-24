@@ -5,12 +5,6 @@
 
 struct lval;
 
-struct lval_symbol {
-    char* symbol;
-};
-
-#define AS_SYMBOL(val) ((val)->as.symbol)
-
 bool lval_symbol_init(struct lval* val, const char* symbol);
 void lval_symbol_free(struct lval* val);
 void lval_symbol_copy(const struct lval* val, struct lval* copy);

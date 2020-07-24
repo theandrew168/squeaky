@@ -8,21 +8,19 @@
 #include "lval_builtin.h"
 
 bool
-lval_builtin_init(union lval* val, lbuiltin builtin)
+lval_builtin_init(struct lval* val, lbuiltin builtin)
 {
     assert(val != NULL);
     assert(builtin != NULL);
 
-    struct lval_builtin* v = AS_BUILTIN(val);
-
-    v->type = LVAL_TYPE_BUILTIN;
-    v->builtin = builtin;
+    val->type = LVAL_TYPE_BUILTIN;
+    val->as.builtin = builtin;
 
     return true;
 }
 
 void
-lval_builtin_free(union lval* val)
+lval_builtin_free(struct lval* val)
 {
     assert(val != NULL);
 
@@ -30,20 +28,17 @@ lval_builtin_free(union lval* val)
 }
 
 void
-lval_builtin_copy(const union lval* val, union lval* copy)
+lval_builtin_copy(const struct lval* val, struct lval* copy)
 {
     assert(val != NULL);
     assert(copy != NULL);
 
-    const struct lval_builtin* v = AS_CONST_BUILTIN(val);
-    struct lval_builtin* c = AS_BUILTIN(val);
-
-    c->type = v->type;
-    c->builtin = v->builtin;
+    copy->type = val->type;
+    copy->as.builtin = val->as.builtin;
 }
 
 void
-lval_builtin_print(const union lval* val)
+lval_builtin_print(const struct lval* val)
 {
     assert(val != NULL);
 
@@ -51,13 +46,10 @@ lval_builtin_print(const union lval* val)
 }
 
 bool
-lval_builtin_equal(const union lval* a, const union lval* b)
+lval_builtin_equal(const struct lval* a, const struct lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
 
-    const struct lval_builtin* aa = AS_CONST_BUILTIN(a);
-    const struct lval_builtin* bb = AS_CONST_BUILTIN(b);
-
-    return aa->builtin == bb->builtin;
+    return a->as.builtin == b->as.builtin;
 }

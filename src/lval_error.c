@@ -57,5 +57,5 @@ lval_error_equal(const struct lval* a, const struct lval* b)
     assert(a != NULL);
     assert(b != NULL);
 
-    return strcmp(aa->error, bb->error) == 0;
+    return strcmp(a->as.error, b->as.error) == 0;
 }

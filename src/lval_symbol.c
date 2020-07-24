@@ -14,8 +14,8 @@ lval_symbol_init(struct lval* val, const char* symbol)
     assert(symbol != NULL);
 
     val->type = LVAL_TYPE_SYMBOL;
-    AS_SYMBOL(val)->symbol = malloc(strlen(symbol) + 1);
-    strcpy(AS_SYMBOL(val)->symbol, symbol);
+    val->as.symbol = malloc(strlen(symbol) + 1);
+    strcpy(val->as.symbol, symbol);
     return true;
 }
 
@@ -24,7 +24,7 @@ lval_symbol_free(struct lval* val)
 {
     assert(val != NULL);
 
-    free(AS_SYMBOL(val)->symbol);
+    free(val->as.symbol);
 }
 
 void
@@ -34,8 +34,8 @@ lval_symbol_copy(const struct lval* val, struct lval* copy)
     assert(copy != NULL);
 
     copy->type = val->type;
-    AS_SYMBOL(copy)->symbol = malloc(strlen(AS_SYMBOL(val)->symbol) + 1);
-    strcpy(AS_SYMBOL(copy)->symbol, AS_SYMBOL(val)->symbol);
+    copy->as.symbol = malloc(strlen(val->as.symbol) + 1);
+    strcpy(copy->as.symbol, val->as.symbol);
 }
 
 void
@@ -43,7 +43,7 @@ lval_symbol_print(const struct lval* val)
 {
     assert(val != NULL);
 
-    printf("%s", AS_SYMBOL(val)->symbol);
+    printf("%s", val->as.symbol);
 }
 
 bool
@@ -52,5 +52,5 @@ lval_symbol_equal(const struct lval* a, const struct lval* b)
     assert(a != NULL);
     assert(b != NULL);
 
-    return strcmp(AS_SYMBOL(a)->symbol, AS_SYMBOL(b)->symbol) == 0;
+    return strcmp(a->as.symbol, b->as.symbol) == 0;
 }

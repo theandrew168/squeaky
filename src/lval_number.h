@@ -5,13 +5,6 @@
 
 struct lval;
 
-// TODO: this can be expanded with GMP for big number funsies
-struct lval_number {
-    long number;
-};
-
-#define AS_NUMBER(val) ((val)->as->number)
-
 bool lval_number_init(struct lval* val, long number);
 void lval_number_free(struct lval* val);
 void lval_number_copy(const struct lval* val, struct lval* copy);

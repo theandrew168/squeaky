@@ -30,87 +30,87 @@ static const char STRING_UNESCAPABLE_CHARS[] =
     "abfnrtv\\\'\"";
 
 
-union lval*
+struct lval*
 lval_make_error(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
 
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_error_init(val, fmt, args);
 
     va_end(args);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_number(long number)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_number_init(val, number);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_symbol(const char* symbol)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_symbol_init(val, symbol);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_string(const char* string)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_string_init(val, string);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_window(const char* title, long width, long height)
 {
     // TODO: check the rc on this
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_window_init(val, title, width, height);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_builtin(lbuiltin builtin)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_builtin_init(val, builtin);
     return val;
 }
 
-union lval*
-lval_make_lambda(union lval* formals, union lval* body)
+struct lval*
+lval_make_lambda(struct lval* formals, struct lval* body)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_lambda_init(val, formals, body);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_sexpr(void)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_list_init(val, LVAL_TYPE_SEXPR);
     return val;
 }
 
-union lval*
+struct lval*
 lval_make_qexpr(void)
 {
-    union lval* val = malloc(sizeof(union lval));
+    struct lval* val = malloc(sizeof(struct lval));
     lval_list_init(val, LVAL_TYPE_QEXPR);
     return val;
 }
 
 
 void
-lval_free(union lval* val)
+lval_free(struct lval* val)
 {
     assert(val != NULL);
 
@@ -131,13 +131,13 @@ lval_free(union lval* val)
     free(val);
 }
 
-union lval*
-lval_copy(const union lval* val)
+struct lval*
+lval_copy(const struct lval* val)
 {
     assert(val != NULL);
 
     // alloc the new lval to serve as the copy
-    union lval* copy = malloc(sizeof(union lval));
+    struct lval* copy = malloc(sizeof(struct lval));
 
     // delegate copying to each type's specific copy func
     switch (val->type) {
@@ -174,7 +174,7 @@ lval_type_name(int lval_type)
 }
 
 bool
-lval_equal(const union lval* a, const union lval* b)
+lval_equal(const struct lval* a, const struct lval* b)
 {
     assert(a != NULL);
     assert(b != NULL);
@@ -236,7 +236,7 @@ lval_string_unescape(char c)
 }
 
 void
-lval_print(const union lval* val)
+lval_print(const struct lval* val)
 {
     assert(val != NULL);
 
@@ -256,7 +256,7 @@ lval_print(const union lval* val)
 }
 
 void
-lval_println(const union lval* val)
+lval_println(const struct lval* val)
 {
     assert(val != NULL);
 
@@ -266,7 +266,7 @@ lval_println(const union lval* val)
 }
 
 
-static union lval*
+static struct lval*
 lval_read_symbol(char* s, long* i)
 {
     // alloc an empty string
@@ -293,7 +293,7 @@ lval_read_symbol(char* s, long* i)
     if (strlen(part) == 1 && part[0] == '-') is_num = false;
 
     // create lval as either number or symbol
-    union lval* x = NULL;
+    struct lval* x = NULL;
     if (is_num) {
         errno = 0;
         long v = strtol(part, NULL, 10);
@@ -306,7 +306,7 @@ lval_read_symbol(char* s, long* i)
     return x;
 }
 
-static union lval*
+static struct lval*
 lval_read_string(char* s, long* i)
 {
     // alloc an empty string
@@ -344,12 +344,12 @@ lval_read_string(char* s, long* i)
     // move forward past final quote char
     (*i)++;
 
-    union lval* x = lval_make_string(part);
+    struct lval* x = lval_make_string(part);
     free(part);
     return x;
 }
 
-static union lval*
+static struct lval*
 lval_read(char* s, long* i)
 {
     // skip whitespace and comments
@@ -360,7 +360,7 @@ lval_read(char* s, long* i)
         (*i)++;
     }
 
-    union lval* x = NULL;
+    struct lval* x = NULL;
 
     if (s[*i] == '\0') {
         // if we reach EOI then we're missing something
@@ -393,13 +393,13 @@ lval_read(char* s, long* i)
     return x;
 }
 
-union lval*
+struct lval*
 lval_read_expr(char* s, long* i, char end)
 {
-    union lval* x = (end == '}') ? lval_make_qexpr() : lval_make_sexpr();
+    struct lval* x = (end == '}') ? lval_make_qexpr() : lval_make_sexpr();
 
     while (s[*i] != end) {
-        union lval* y = lval_read(s, i);
+        struct lval* y = lval_read(s, i);
         if (y->type == LVAL_TYPE_ERROR) {
             lval_free(x);
             return y;

@@ -51,8 +51,8 @@ lval_window_init(struct lval* val, const char* title, long width, long height)
     SDL_GL_SetSwapInterval(1);
 
     val->type = LVAL_TYPE_WINDOW;
-    AS_WINDOW(val)->window = window;
-    AS_WINDOW(val)->context = context;
+    val->as.window.window = window;
+    val->as.window.context = context;
 
     return true;
 }
@@ -64,8 +64,8 @@ lval_window_free(struct lval* val)
 
     // TODO: ref count deez boiz
     // otherwise any copy new + free old deletes the window :(
-//    SDL_GL_DeleteContext(val->context);
-//    SDL_DestroyWindow(val->window);
+//    SDL_GL_DeleteContext(val->as.window.context);
+//    SDL_DestroyWindow(val->as.window.window);
 }
 
 void
@@ -75,8 +75,8 @@ lval_window_copy(const struct lval* val, struct lval* copy)
     assert(copy != NULL);
 
     copy->type = val->type;
-    AS_WINDOW(copy)->window = AS_WINDOW(val)->window;
-    AS_WINDOW(copy)->context = AS_WINDOW(val)->context;
+    copy->as.window.window = val->as.window.window;
+    copy->as.window.context = val->as.window.context;
 }
 
 void
@@ -93,6 +93,6 @@ lval_window_equal(const struct lval* a, const struct lval* b)
     assert(a != NULL);
     assert(b != NULL);
 
-    return AS_WINDOW(a)->window == AS_WINDOW(b)->window &&
-           AS_WINODW(a)->context == AS_WINDOW(b)->context;
+    return a->as.window.window == b->as.window.window &&
+           a->as.window.context == b->as.window.context;
 }

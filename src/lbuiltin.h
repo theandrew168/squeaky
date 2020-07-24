@@ -9,31 +9,31 @@
 
 #define LASSERTF(args, cond, fmt, ...)                          \
     if (!(cond)) {                                              \
-        union lval* err = lval_make_error(fmt, ##__VA_ARGS__);  \
+        struct lval* err = lval_make_error(fmt, ##__VA_ARGS__);  \
         lval_free(args);                                        \
         return err;                                             \
     }
 
-#define LASSERT_ARITY(func, args, num)            \
-    LASSERTF(args, AS_QEXPR(args)->count == num,  \
-        "function '%s' passed too many args: "    \
-        "want %i, got %i",                        \
-        func, num, AS_QEXPR(args)->count);
+#define LASSERT_ARITY(func, args, num)          \
+    LASSERTF(args, args->count == num,          \
+        "function '%s' passed too many args: "  \
+        "want %i, got %i",                      \
+        func, num, args->count);
 
-#define LASSERT_TYPE(func, args, index, lval_type)                  \
-    LASSERTF(args, AS_QEXPR(args)->list[index]->type == lval_type,  \
-        "function '%s' passed incorrect type for arg %i: "          \
-        "want %s, got %s",                                          \
-        func, index, lval_type_name(lval_type),                     \
-        lval_type_name(AS_QEXPR(args)->list[index]->type));
+#define LASSERT_TYPE(func, args, index, lval_type)          \
+    LASSERTF(args, args->list[index]->type == lval_type,    \
+        "function '%s' passed incorrect type for arg %i: "  \
+        "want %s, got %s",                                  \
+        func, index, lval_type_name(lval_type),             \
+        lval_type_name(args->list[index]->type));
 
-#define LASSERT_NOT_EMPTY(func, args, index)                 \
-    LASSERTF(args, AS_QEXPR(args)->list[index]->count != 0,  \
-        "function '%s' passed empty list for arg %i: ",      \
+#define LASSERT_NOT_EMPTY(func, args, index)             \
+    LASSERTF(args, args->list[index]->count != 0,        \
+        "function '%s' passed empty list for arg %i: ",  \
         func, index);
 
 struct lenv;
-union lval;
-typedef union lval* (*lbuiltin)(struct lenv*, union lval*);
+struct lval;
+typedef struct lval* (*lbuiltin)(struct lenv*, struct lval*);
 
 #endif

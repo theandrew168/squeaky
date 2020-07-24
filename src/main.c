@@ -24,7 +24,7 @@ builtin_op(struct lenv* env, struct lval* val, char* op)
 
     // if no args and sub then perform unary negation
     if ((strcmp(op, "-") == 0) && val->count == 0) {
-        AS_NUMBER(x)->number = -AS_NUMBER(x)->number;
+        x->as.number = -x->as.number;
     }
 
     // mathematically condense all children into x
@@ -32,17 +32,17 @@ builtin_op(struct lenv* env, struct lval* val, char* op)
         struct lval* y = lval_list_pop(val, 0);
         // TODO: num cast?
 
-        if (strcmp(op, "+") == 0) x->number += y->number;
-        if (strcmp(op, "-") == 0) x->number -= y->number;
-        if (strcmp(op, "*") == 0) x->number *= y->number;
+        if (strcmp(op, "+") == 0) x->as.number += y->as.number;
+        if (strcmp(op, "-") == 0) x->as.number -= y->as.number;
+        if (strcmp(op, "*") == 0) x->as.number *= y->as.number;
         if (strcmp(op, "/") == 0) {
-            if (y->number == 0) {
+            if (y->as.number == 0) {
                 lval_free(x);
                 lval_free(y);
                 x = lval_make_error("division by zero");
                 break;
             }
-            x->number /= y->number;
+            x->as.number /= y->as.number;
         }
 
         lval_free(y);
@@ -85,10 +85,10 @@ builtin_ord(struct lenv* env, struct lval* val, const char* op)
     LASSERT_TYPE(op, val, 1, LVAL_TYPE_NUMBER);
     
     long res = -1;
-    if (strcmp(op, "<") == 0) res = val->list[0]->number < val->list[1]->number ? 1 : 0;
-    if (strcmp(op, "<=") == 0) res = val->list[0]->number <= val->list[1]->number ? 1 : 0;
-    if (strcmp(op, ">") == 0) res = val->list[0]->number > val->list[1]->number ? 1 : 0;
-    if (strcmp(op, ">=") == 0) res = val->list[0]->number >= val->list[1]->number ? 1 : 0;
+    if (strcmp(op, "<") == 0) res = val->list[0]->as.number < val->list[1]->as.number ? 1 : 0;
+    if (strcmp(op, "<=") == 0) res = val->list[0]->as.number <= val->list[1]->as.number ? 1 : 0;
+    if (strcmp(op, ">") == 0) res = val->list[0]->as.number > val->list[1]->as.number ? 1 : 0;
+    if (strcmp(op, ">=") == 0) res = val->list[0]->as.number >= val->list[1]->as.number ? 1 : 0;
 
     lval_free(val);
     return lval_make_number(res);
@@ -124,8 +124,8 @@ builtin_cmp(struct lenv* env, struct lval* val, const char* op)
     LASSERT_ARITY(op, val, 2);
 
     long res = -1;
-    if (strcmp(op, "==") == 0) res = lval_eq(val->list[0], val->list[1]);
-    if (strcmp(op, "!=") == 0) res = !lval_eq(val->list[0], val->list[1]);
+    if (strcmp(op, "==") == 0) res = lval_equal(val->list[0], val->list[1]);
+    if (strcmp(op, "!=") == 0) res = !lval_equal(val->list[0], val->list[1]);
 
     lval_free(val);
     return lval_make_number(res);
@@ -156,7 +156,7 @@ builtin_if(struct lenv* env, struct lval* val)
     val->list[2]->type = LVAL_TYPE_SEXPR;
 
     struct lval* res = NULL;
-    if (val->list[0]->number) {
+    if (val->list[0]->as.number) {
         // if condition is true then eval the first expression
         res = eval(env, lval_list_pop(val, 1));
     } else {
@@ -174,9 +174,9 @@ builtin_load(struct lenv* env, struct lval* val)
     LASSERT_ARITY("load", val, 1);
     LASSERT_TYPE("load", val, 0, LVAL_TYPE_STRING);
 
-    FILE* f = fopen(val->list[0]->string, "rb");
+    FILE* f = fopen(val->list[0]->as.string, "rb");
     if (f == NULL) {
-        struct lval* error = lval_make_error("load failed: %s", val->list[0]->string);
+        struct lval* error = lval_make_error("load failed: %s", val->list[0]->as.string);
         lval_free(val);
         return error;
     }
@@ -237,7 +237,7 @@ builtin_error(struct lenv* env, struct lval* val)
     LASSERT_ARITY("error", val, 1);
     LASSERT_TYPE("error", val, 0, LVAL_TYPE_STRING);
 
-    struct lval* error = lval_make_error(val->list[0]->string);
+    struct lval* error = lval_make_error(val->list[0]->as.string);
 
     lval_free(val);
     return error;
@@ -372,9 +372,9 @@ builtin_make_window(struct lenv* env, struct lval* val)
     LASSERT_TYPE("make-window", val, 1, LVAL_TYPE_NUMBER);
     LASSERT_TYPE("make-window", val, 2, LVAL_TYPE_NUMBER);
 
-    const char* title = val->list[0]->string;
-    long width = val->list[1]->number;
-    long height = val->list[2]->number;
+    const char* title = val->list[0]->as.string;
+    long width = val->list[1]->as.number;
+    long height = val->list[2]->as.number;
 
     struct lval* window = lval_make_window(title, width, height);
     lval_free(val);
@@ -385,39 +385,41 @@ struct lval*
 call(struct lenv* env, struct lval* func, struct lval* val)
 {
     // if builtin then just call it
-    if (func->builtin != NULL) {
-        return func->builtin(env, val);
+    if (func->type == LVAL_TYPE_BUILTIN) {
+        return func->as.builtin(env, val);
     }
 
+    // otherwise we have a lambda
+    // attempt partial / full evaluation
     long given = val->count;
-    long total = func->formals->count;
+    long total = func->as.lambda.formals->count;
 
     while (val->count > 0) {
-        LASSERTF(val, func->formals->count > 0,
+        LASSERTF(val, func->as.lambda.formals->count > 0,
             "function passed too many args: want %i, got %i",
             total, given);
 
         // match next symbol with next value and add to env
-        struct lval* symbol = lval_list_pop(func->formals, 0);
+        struct lval* symbol = lval_list_pop(func->as.lambda.formals, 0);
 
         // special case to deal with '&'
-        if (strcmp(symbol->symbol, "&") == 0) {
+        if (strcmp(symbol->as.symbol, "&") == 0) {
             // ensure '&' is followed by a symbol
-            if (func->formals->count != 1) {
+            if (func->as.lambda.formals->count != 1) {
                 lval_free(val);
                 return lval_make_error("invalid function format: symbol '&' not followed by single symbol");
             }
 
             // bind next formal to a list of the remaining args
-            struct lval* group = lval_list_pop(func->formals, 0);
-            lenv_put(func->env, group, builtin_list(env, val));
+            struct lval* group = lval_list_pop(func->as.lambda.formals, 0);
+            lenv_put(func->as.lambda.env, group, builtin_list(env, val));
             lval_free(symbol);
             lval_free(group);
             break;
         }
 
         struct lval* value = lval_list_pop(val, 0);
-        lenv_put(func->env, symbol, value);
+        lenv_put(func->as.lambda.env, symbol, value);
         lval_free(symbol);
         lval_free(value);
     }
@@ -426,30 +428,32 @@ call(struct lenv* env, struct lval* func, struct lval* val)
     lval_free(val);
 
     // if '&' remains in formals then bind it to an empty list
-    if (func->formals->count > 0 && strcmp(func->formals->list[0]->symbol, "&") == 0) {
+    if (func->as.lambda.formals->count > 0 && strcmp(func->as.lambda.formals->list[0]->as.symbol, "&") == 0) {
         // ensure '&' is followed by a symbol
-        if (func->formals->count != 2) {
+        if (func->as.lambda.formals->count != 2) {
             return lval_make_error("invalid function format: symbol '&' not followed by single symbol");
         }
 
         // pop and delete '&' symbol
-        lval_free(lval_list_pop(func->formals, 0));
+        lval_free(lval_list_pop(func->as.lambda.formals, 0));
 
         // pop next symbol and create empty list
-        struct lval* symbol = lval_list_pop(func->formals, 0);
+        struct lval* symbol = lval_list_pop(func->as.lambda.formals, 0);
         struct lval* value = lval_make_qexpr();
 
         // bind to env and delete
-        lenv_put(func->env, symbol, value);
+        lenv_put(func->as.lambda.env, symbol, value);
         lval_free(symbol);
         lval_free(value);
     }
 
     // eval if all args have been bound
-    if (func->formals->count == 0) {
+    if (func->as.lambda.formals->count == 0) {
         // set the parent env and eval the body
-        func->env->parent = env;
-        return builtin_eval(func->env, lval_list_append(lval_make_sexpr(), lval_copy(func->body)));
+        func->as.lambda.env->parent = env;
+        return builtin_eval(
+            func->as.lambda.env,
+            lval_list_append(lval_make_sexpr(), lval_copy(func->as.lambda.body)));
     } else {
         // otherwise return the partially evaluated function
         return lval_copy(func);
@@ -459,32 +463,31 @@ call(struct lenv* env, struct lval* func, struct lval* val)
 struct lval*
 eval_sexpr(struct lenv* env, struct lval* val)
 {
-    struct lval_sexpr* v = AS_SEXPR(val);
-
-    // eval children
-    for (long i = 0; i < v->count; i++) {
-        v->list[i] = eval(env, v->list[i]);
+    // eval children (the lead symbol will become a func here)
+    for (long i = 0; i < val->count; i++) {
+        val->list[i] = eval(env, val->list[i]);
     }
 
-    // error checking
-    for (long i = 0; i < v->count; i++) {
-        if (v->list[i]->type == LVAL_TYPE_ERROR) return lval_list_take(val, i);
+    // error checking (if any sub-eval failed, abort here)
+    for (long i = 0; i < val->count; i++) {
+        if (val->list[i]->type == LVAL_TYPE_ERROR) return lval_list_take(val, i);
     }
 
-    // empty expression
-    if (v->count == 0) return val;
+    // empty expression just identifies itself
+    if (val->count == 0) return val;
 
-    // ensure first element is a symbol
+    // ensure first element is a func (builtin or lambda)
     struct lval* func = lval_list_pop(val, 0);
-    if (func->type != LVAL_TYPE_FUNC) {
+    if (func->type != LVAL_TYPE_BUILTIN && func->type != LVAL_TYPE_LAMBDA) {
         lval_free(func);
         lval_free(val);
         return lval_make_error(
-            "s-expressions starts with invalid type: want %s, got %s",
-            lval_type_name(LVAL_TYPE_FUNC), lval_type_name(func->type)); 
+            "s-expressions starts with invalid type: want Builtin or Lambda, got %s",
+            lval_type_name(func->type)); 
     }
 
-    // call builtin with operator
+    // call the func (builtin or lambda)
+    // TODO: could separate builtin vs lambda calling here?
     struct lval* result = call(env, func, val);
     lval_free(func);
     return result;
@@ -493,16 +496,19 @@ eval_sexpr(struct lenv* env, struct lval* val)
 struct lval*
 eval(struct lenv* env, struct lval* val)
 {
+    // if a symbol, look it up in the env and return its value
     if (val->type == LVAL_TYPE_SYMBOL) {
         struct lval* v = lenv_get(env, val);
         lval_free(val);
         return v;
     }
 
+    // if a sexpr, evaluate it
     if (val->type == LVAL_TYPE_SEXPR) {
         return eval_sexpr(env, val);
     }
 
+    // else values just eval to themselves
     return val;
 }
 

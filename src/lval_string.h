@@ -5,12 +5,6 @@
 
 struct lval;
 
-struct lval_string {
-    char* string;
-};
-
-#define AS_STRING(val) ((val)->as->string)
-
 bool lval_string_init(struct lval* val, const char* string);
 void lval_string_free(struct lval* val);
 void lval_string_copy(const struct lval* val, struct lval* copy);

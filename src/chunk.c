@@ -112,6 +112,8 @@ chunk_disassemble_inst(const struct chunk* chunk, long offset)
     switch (instruction) {
         case OP_RETURN:
             return disassemble_simple_inst("OP_RETURN", offset);
+        case OP_NEGATE:
+            return disassemble_simple_inst("OP_NEGATE", offset);
         case OP_CONSTANT:
             return disassemble_constant_inst("OP_CONSTANT", chunk, offset);
         default:

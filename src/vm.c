@@ -65,6 +65,11 @@ vm_run(struct vm* vm)
                 vm_stack_push(vm, constant);
                 break;
             }
+            case OP_NEGATE: {
+                Value value = vm_stack_pop(vm);
+                vm_stack_push(vm, -value);
+                break;
+            }
             case OP_RETURN: {
                 value_println(vm_stack_pop(vm));
                 return VM_OK;

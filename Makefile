@@ -4,6 +4,7 @@
 AR      = ar
 CC      = cc
 CFLAGS  = -std=c99
+CFLAGS += -DDEBUG_TRACE_EXECUTION
 CFLAGS += -fPIC -g -Og
 CFLAGS += -Wall -Wextra -Wpedantic
 CFLAGS += -Wno-unused-parameter -Wno-unused-result
@@ -16,11 +17,13 @@ all: libsqueaky.a libsqueaky.so squeaky
 
 libsqueaky_sources =  \
   src/chunk.c         \
-  src/value.c
+  src/value.c         \
+  src/vm.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/chunk.o: src/chunk.c src/chunk.h src/value.h
 src/value.o: src/value.c src/value.h
+src/vm.o: src/vm.c src/vm.h src/chunk.h src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"

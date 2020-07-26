@@ -26,5 +26,6 @@ void chunk_write(struct chunk* chunk, uint8_t byte, long line);
 long chunk_add_constant(struct chunk* chunk, Value value);
 
 void chunk_disassemble(const struct chunk* chunk, const char* name);
+long chunk_disassemble_inst(const struct chunk* chunk, long offset);
 
 #endif

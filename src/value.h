@@ -14,5 +14,6 @@ void value_array_free(struct value_array* array);
 void value_array_append(struct value_array* array, Value value);
 
 void value_print(Value value);
+void value_println(Value value);
 
 #endif

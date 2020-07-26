@@ -54,3 +54,10 @@ value_print(Value value)
 {
     printf("%g", value);
 }
+
+void
+value_println(Value value)
+{
+    value_print(value);
+    printf("\n");
+}

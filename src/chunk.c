@@ -69,14 +69,14 @@ chunk_add_constant(struct chunk* chunk, Value value)
 }
 
 static long
-dis_simple_inst(const char* name, long offset)
+disassemble_simple_inst(const char* name, long offset)
 {
     printf("%s\n", name);
     return offset + 1;
 }
 
 static long
-dis_constant_inst(const char* name, const struct chunk* chunk, long offset)
+disassemble_constant_inst(const char* name, const struct chunk* chunk, long offset)
 {
     uint8_t constant = chunk->code[offset + 1];
     printf("%-16s %4d '", name, constant);
@@ -85,8 +85,18 @@ dis_constant_inst(const char* name, const struct chunk* chunk, long offset)
     return offset + 2;
 }
 
-static long
-dis_inst(const struct chunk* chunk, long offset)
+void
+chunk_disassemble(const struct chunk* chunk, const char* name)
+{
+    printf("== %s ==\n", name);
+
+    for (long offset = 0; offset < chunk->count;) {
+        offset = chunk_disassemble_inst(chunk, offset);
+    }
+}
+
+long
+chunk_disassemble_inst(const struct chunk* chunk, long offset)
 {
     // print the current offset
     printf("%04ld ", offset);
@@ -101,21 +111,11 @@ dis_inst(const struct chunk* chunk, long offset)
     uint8_t instruction = chunk->code[offset];
     switch (instruction) {
         case OP_RETURN:
-            return dis_simple_inst("OP_RETURN", offset);
+            return disassemble_simple_inst("OP_RETURN", offset);
         case OP_CONSTANT:
-            return dis_constant_inst("OP_CONSTANT", chunk, offset);
+            return disassemble_constant_inst("OP_CONSTANT", chunk, offset);
         default:
             printf("Unknown opcode %d\n", instruction);
             return offset + 1;
-    }
-}
-
-void
-chunk_disassemble(const struct chunk* chunk, const char* name)
-{
-    printf("== %s ==\n", name);
-
-    for (long offset = 0; offset < chunk->count;) {
-        offset = dis_inst(chunk, offset);
     }
 }

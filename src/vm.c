@@ -45,6 +45,12 @@ vm_run(struct vm* vm)
 // the tightness of this loop discourages unnecessary function calls
 #define READ_BYTE(vm) (*(vm)->ip++)
 #define READ_CONSTANT(vm) ((vm)->chunk->constants.values[READ_BYTE(vm)])
+#define BINARY_OP(vm, op)         \
+  do {                            \
+    double b = vm_stack_pop(vm);  \
+    double a = vm_stack_pop(vm);  \
+    vm_stack_push(vm, (a op b));  \
+  } while (0)
 
     for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
@@ -65,6 +71,10 @@ vm_run(struct vm* vm)
                 vm_stack_push(vm, constant);
                 break;
             }
+            case OP_ADD:      BINARY_OP(vm, +); break;
+            case OP_SUBTRACT: BINARY_OP(vm, -); break;
+            case OP_MULTIPLY: BINARY_OP(vm, *); break;
+            case OP_DIVIDE:   BINARY_OP(vm, /); break;
             case OP_NEGATE: {
                 Value value = vm_stack_pop(vm);
                 vm_stack_push(vm, -value);
@@ -79,6 +89,7 @@ vm_run(struct vm* vm)
 
     return VM_OK;
 
+#undef BINARY_OP
 #undef READ_BYTE
 #undef READ_CONSTANT
 }

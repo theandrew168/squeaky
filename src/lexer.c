@@ -5,6 +5,85 @@
 
 #include "lexer.h"
 
+// lexical structure (R5RS 7.1.1):
+// -------------------------------
+//
+// <token> : <identifier>
+//         | <boolean>
+//         | <number>
+//         | <character>
+//         | <string>
+//         | /#(/
+//         | /,@/
+//         | /[()'`,.]/
+//
+// <comment> : /;[^\n]*/
+//
+// <identifier> : <initial> <subsequent>*
+//              | <peculiar_identifier>
+// <initial>    : <letter>
+//              | <special_initial>
+// <letter>     : /[A-Za-z]/
+//
+// <special_initial>     : /[!$%&*.:<=>?^_~]/
+// <subsequent>          : <initial>
+//                       | <digit>
+//                       | <special_subsequent>
+// <digit>               : /[0-9]/
+// <special_subsequent>  : /[+-.@]/
+// <peculiar_identifier> : /([+-]|\.\.\.)/
+//
+// <syntactic_keyword>  : <expression_keyword>
+//                      | /else/
+//                      | /=>/
+//                      | /define/
+//                      | /unquote/
+//                      | /unquote-splicing/
+// <expression_keyword> : /quote/
+//                      | /lambda/
+//                      | /if/
+//                      | /set!/
+//                      | /begin/
+//                      | /cond/
+//                      | /and/
+//                      | /or/
+//                      | /case/
+//                      | /let/
+//                      | /let*/
+//                      | /letrec/
+//                      | /do/
+//                      | /delay/
+//                      | /quasiquote/
+//
+// <variable> : <identifier> NOT <syntactic_keyword>
+//
+// <boolean> : '#t'
+//           | '#f'
+//
+// <character>      : /#\<any_character>/
+//                  | /#\<character_name>/
+// <any_character>  : /[!-~]/
+// <character_name> : 'space'
+//                  | 'newline'
+//
+// <string>         : '"' <string_element>* '"'
+// <string_element> : /([^"\]|\"|\\)/
+//
+// <number> : <radix2>  <digit2>
+//          | <radix8>  <digit8>
+//          | <radix10> <digit10>
+//          | <radix16> <digit16>
+//
+// <radix2>  : /#b/
+// <radix8>  : /#o/
+// <radix10> : /(#d)?/
+// <radix16> : /#x/
+//
+// <digit2>  : /[0-1]/
+// <digit8>  : /[0-7]/
+// <digit10> : /[0-9]/
+// <digit16> : /[0-9A-Fa-f]/
+
 void
 lexer_init(struct lexer* lexer, const char* source)
 {
@@ -134,12 +213,12 @@ lexer_next_number(struct lexer* lexer)
 }
 
 static struct token
-lexer_next_identifier(struct lexer* lexer)
+lexer_next_symbol(struct lexer* lexer)
 {
     // consume valid identifier characters
     while (is_alpha(lexer_peek(lexer)) || is_digit(lexer_peek(lexer))) lexer_advance(lexer);
 
-    return make_token(lexer, TOKEN_IDENTIFIER);
+    return make_token(lexer, TOKEN_SYMBOL);
 }
 
 static struct token
@@ -157,6 +236,26 @@ lexer_next_string(struct lexer* lexer)
     return make_token(lexer, TOKEN_STRING);
 }
 
+static struct token
+lexer_next_character(struct lexer* lexer)
+{
+    if (strncmp(lexer->current, "newline", strlen("newline")) == 0) {
+        lexer->current += strlen("newline");
+        return make_token(lexer, TOKEN_CHARACTER);
+    }
+    if (strncmp(lexer->current, "space", strlen("space")) == 0) {
+        lexer->current += strlen("space");
+        return make_token(lexer, TOKEN_CHARACTER);
+    }
+
+    char c = lexer_advance(lexer);
+    if (c < '!' || c > '~') {
+        return make_error_token(lexer, "invalid character literal");
+    }
+
+    return make_token(lexer, TOKEN_CHARACTER);
+}
+
 struct token
 lexer_next_token(struct lexer* lexer)
 {
@@ -166,7 +265,7 @@ lexer_next_token(struct lexer* lexer)
     if (lexer_eof(lexer)) return make_token(lexer, TOKEN_EOF);
 
     char c = lexer_advance(lexer);
-    if (is_alpha(c)) return lexer_next_identifier(lexer);
+    if (is_alpha(c)) return lexer_next_symbol(lexer);
     if (is_digit(c)) return lexer_next_number(lexer);
 
     switch (c) {
@@ -176,6 +275,8 @@ lexer_next_token(struct lexer* lexer)
         case '#':
             if (lexer_match(lexer, 't')) return make_token(lexer, TOKEN_BOOLEAN);
             if (lexer_match(lexer, 'f')) return make_token(lexer, TOKEN_BOOLEAN);
+            if (lexer_match(lexer, '(')) return make_token(lexer, TOKEN_VECTOR);
+            if (lexer_match(lexer, '\\')) return lexer_next_character(lexer);
             break;
         case '"': return lexer_next_string(lexer);
     }
@@ -188,7 +289,7 @@ lexer_token_name(int type)
 {
     switch (type) {
         case TOKEN_ERROR: return "Error";
-        case TOKEN_IDENTIFIER: return "Identifier";
+        case TOKEN_SYMBOL: return "Symbol";
         case TOKEN_BOOLEAN: return "Boolean";
         case TOKEN_NUMBER: return "Number";
         case TOKEN_CHARACTER: return "Character";

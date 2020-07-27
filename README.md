@@ -15,8 +15,8 @@ In no particular order:
 * High-level and low-level APIs (to be simple or specific as necssary)
 
 ## Dependencies
-[SDL2](https://www.libsdl.org/index.php) (zlib) - Simple DirectMedia Layer
-[SQLite](https://www.sqlite.org/index.html) (public domain) - Small, fast, and full-featured SQL database
+[SDL2](https://www.libsdl.org/index.php) (zlib) - Simple DirectMedia Layer  
+[SQLite](https://www.sqlite.org/index.html) (public domain) - Small, fast, and full-featured SQL database  
 
 ## Building
 This project is built using POSIX-compatible [make](https://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html).

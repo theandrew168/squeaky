@@ -1,7 +1,9 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "chunk.h"
 #include "lexer.h"
 #include "parser.h"
 
@@ -31,37 +33,80 @@ parser_init(struct parser* parser, struct lexer* lexer)
     assert(parser != NULL);
     assert(lexer != NULL);
 
+    parser->chunk = NULL;
     parser->lexer = lexer;
+    parser->had_error = false;
+    parser->panic_mode = false;
 }
 
 static void
-next_token(struct parser* parser)
+error_at(struct parser* parser, struct token* token, const char* message)
 {
-    parser->current_token = lexer_next_token(parser->lexer);
-}
+    if (parser->panic_mode) return;
+    parser->panic_mode = true;
 
-static int
-match_token(struct parser* parser, int type)
-{
-    if (parser->current_token.type != type) {
-        return PARSER_ERROR;
+    fprintf(stderr, "[line %ld] Error", token->line);
+
+    if (token->type == TOKEN_EOF) {
+        fprintf(stderr, " at end");
+    } else if (token->type == TOKEN_ERROR) {
+        // no location
+    } else {
+        fprintf(stderr, " at '%.*s'", (int)token->length, token->start);
     }
 
-    next_token(parser);
-    return PARSER_OK;
+    fprintf(stderr, ": %s\n", message);
+    parser->had_error = true;
 }
 
-static int parse_datum(struct parser* parser);
-static int parse_simple_datum(struct parser* parser);
-static int parse_compound_datum(struct parser* parser);
-static int parse_list(struct parser* parser);
-static int parse_abbreviation(struct parser* parser);
-static int parse_vector(struct parser* parser);
+static void
+error_at_current(struct parser* parser, const char* message)
+{
+    error_at(parser, &parser->current, message);
+}
 
-static int
+static void
+error(struct parser* parser, const char* message)
+{
+    error_at(parser, &parser->previous, message);
+}
+
+// advance the parser to the next non-error token
+static void
+parser_advance(struct parser* parser)
+{
+    parser->previous = parser->current;
+    for (;;) {
+        parser->current = lexer_next_token(parser->lexer);
+        if (parser->current.type != TOKEN_ERROR) break;
+
+        error_at_current(parser, parser->current.start);
+    }
+}
+
+// advance the parser only if the current token type matches
+static void
+parser_consume(struct parser* parser, int type, const char* message)
+{
+    if (parser->current.type == type) {
+        parser_advance(parser);
+        return;
+    }
+
+    error_at_current(parser, message);
+}
+
+static bool parse_datum(struct parser* parser);
+static bool parse_simple_datum(struct parser* parser);
+static bool parse_compound_datum(struct parser* parser);
+static bool parse_list(struct parser* parser);
+static bool parse_abbreviation(struct parser* parser);
+static bool parse_vector(struct parser* parser);
+
+static bool
 parse_datum(struct parser* parser)
 {
-    switch (parser->current_token.type) {
+    switch (parser->current.type) {
         case TOKEN_BOOLEAN:
         case TOKEN_NUMBER:
         case TOKEN_CHARACTER:
@@ -72,152 +117,163 @@ parse_datum(struct parser* parser)
         case TOKEN_VECTOR:
             return parse_compound_datum(parser);
         default: 
-            fprintf(stderr, "invalid datum: %s\n", lexer_token_name(parser->current_token.type));
-            return PARSER_ERROR;
+            error(parser, "invalid datum");
+            return false;
     }
 }
 
-static int
+static bool
 parse_simple_datum(struct parser* parser)
 {
-    switch (parser->current_token.type) {
+    switch (parser->current.type) {
         case TOKEN_BOOLEAN:
-            printf("%s", lexer_token_name(TOKEN_BOOLEAN));
+            printf("%.*s", (int)parser->current.length, parser->current.start);
             break;
         case TOKEN_CHARACTER:
-            printf("%s", lexer_token_name(TOKEN_CHARACTER));
+            printf("%.*s", (int)parser->current.length, parser->current.start);
             break;
         case TOKEN_NUMBER:
-            printf("%s", lexer_token_name(TOKEN_NUMBER));
+            printf("%.*s", (int)parser->current.length, parser->current.start);
             break;
         case TOKEN_SYMBOL:
-            printf("%s", lexer_token_name(TOKEN_SYMBOL));
+            printf("%.*s", (int)parser->current.length, parser->current.start);
             break;
         case TOKEN_STRING:
-            printf("%s", lexer_token_name(TOKEN_STRING));
+            printf("%.*s", (int)parser->current.length, parser->current.start);
             break;
         default:
-            fprintf(stderr, "invalid simple datum: %s\n", lexer_token_name(parser->current_token.type));
-            return PARSER_ERROR;
+            error(parser, "invalid simple datum");
+            return false;
     }
 
-    next_token(parser);
-    return PARSER_OK;
+    parser_advance(parser);
+    return true;
 }
 
-static int
+static bool
 parse_compound_datum(struct parser* parser)
 {
-    switch (parser->current_token.type) {
+    switch (parser->current.type) {
         case TOKEN_LPAREN: 
         case TOKEN_QUOTE:
             return parse_list(parser);
         case TOKEN_VECTOR:
             return parse_vector(parser);
         default:
-            fprintf(stderr, "invalid compound datum: %s\n", lexer_token_name(parser->current_token.type));
-            return PARSER_ERROR;
+            error(parser, "invalid compound datum");
+            return false;
     }
 }
 
-static int
+static bool
 parse_list(struct parser* parser)
 {
     // check for quote and parse abbrev if found
-    if (parser->current_token.type == TOKEN_QUOTE) {
+    if (parser->current.type == TOKEN_QUOTE) {
         return parse_abbreviation(parser);
     }
 
-    match_token(parser, TOKEN_LPAREN);
+    // consume the open paren
+    parser_consume(parser, TOKEN_LPAREN, "expected open paren");
     printf("( ");
 
     // this loop ignores the "last dot" aspect of R5RS lists
     for (;;) {
-        switch (parser->current_token.type) {
+        switch (parser->current.type) {
             // an EOF here means we have an umatched paren
             case TOKEN_EOF:
-                fprintf(stderr, "unmatched paren at EOF\n");
-                return PARSER_ERROR;
+                error(parser, "unmatched paren at EOF");
+                return false;
             // an RPAREN ends the current list
             case TOKEN_RPAREN:
                 goto done;
             // otherwise we recursively parse the list's children
             default: {
-                int rc = parse_datum(parser);
-                if (rc != PARSER_OK) return rc;
+                bool res = parse_datum(parser);
+                if (!res) return false;
             }
         }
         printf(" ");
     }
 
 done:
-    match_token(parser, TOKEN_RPAREN);
+    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
-    return PARSER_OK;
+    return true;
 }
 
-static int
+static bool
 parse_abbreviation(struct parser* parser)
 {
     // match the quote and then just parse another datum
-    match_token(parser, TOKEN_QUOTE);
+    parser_consume(parser, TOKEN_QUOTE, "expected quote char");
     printf("'");
 
-    int rc = parse_datum(parser);
-    if (rc != PARSER_OK) return rc;
-
-    return PARSER_OK;
+    return parse_datum(parser);
 }
 
-static int
+static bool
 parse_vector(struct parser* parser)
 {
-    match_token(parser, TOKEN_VECTOR);
+    parser_consume(parser, TOKEN_VECTOR, "expected open vector");
     printf("#( ");
 
     for (;;) {
-        switch (parser->current_token.type) {
+        switch (parser->current.type) {
             // an EOF here means we have an umatched paren
             case TOKEN_EOF:
-                fprintf(stderr, "unmatched paren at EOF\n");
-                return PARSER_ERROR;
+                error(parser, "unmatched paren at EOF");
+                return false;
             // an RPAREN ends the current list
             case TOKEN_RPAREN:
                 goto done;
             // otherwise we recursively parse the vector's children
             default: {
-                int rc = parse_datum(parser);
-                if (rc != PARSER_OK) return rc;
+                bool res = parse_datum(parser);
+                if (!res) return false;
             }
         }
         printf(" ");
     }
 
 done:
-    match_token(parser, TOKEN_RPAREN);
+    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
-    return PARSER_OK;
+    return true;
 }
 
-int
+bool
+parser_compile(struct parser* parser, struct chunk* chunk)
+{
+    assert(parser != NULL);
+    assert(chunk != NULL);
+
+    parser->chunk = chunk;
+    return true;
+}
+
+bool
 parser_print_ast(struct parser* parser)
 {
     assert(parser != NULL);
 
     // init first token and start the recursive parse
-    next_token(parser);
-    while (parser->current_token.type != TOKEN_EOF) {
-        int rc = parse_datum(parser);
+    parser_advance(parser);
+    while (parser->current.type != TOKEN_EOF) {
+        bool res = parse_datum(parser);
         printf("\n");
-        if (rc != PARSER_OK) {
-            printf("syntax error!\n");
-            break;
-        } else {
+
+        if (res) {
             printf("syntax ok!\n");
+        } else {
+            // skip error token and try again
+            printf("syntax error!\n");
+            parser_advance(parser);
         }
     }
 
-    return PARSER_OK;
+    parser_consume(parser, TOKEN_EOF, "expected end of file");
+    return !parser->had_error;
 }

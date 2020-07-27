@@ -261,6 +261,7 @@ lexer_next_token(struct lexer* lexer)
 {
     lexer_skip_whitespace(lexer);
 
+    // advance start pointer to the end of the previous token
     lexer->start = lexer->current;
     if (lexer_eof(lexer)) return make_token(lexer, TOKEN_EOF);
 

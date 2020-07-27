@@ -9,7 +9,7 @@ In no particular order:
 * Utilizes a stack-based bytecode VM
 * Load and display images!
 * Load and play sounds!
-* Load and redner fonts!
+* Load and render fonts (bitmap and TTF)!
 * Builtin multimedia powered by SDL2
 * Builtin relational databases powered by SQLite
 * High-level and low-level APIs (to be simple or specific as necssary)

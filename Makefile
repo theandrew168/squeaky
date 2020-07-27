@@ -18,12 +18,14 @@ all: libsqueaky.a libsqueaky.so squeaky
 libsqueaky_sources =  \
   src/chunk.c         \
   src/lexer.c         \
+  src/parser.c        \
   src/value.c         \
   src/vm.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/chunk.o: src/chunk.c src/chunk.h src/value.h
 src/lexer.o: src/lexer.c src/lexer.h
+src/parser.o: src/parser.c src/parser.h src/chunk.h src/lexer.h
 src/value.o: src/value.c src/value.h
 src/vm.o: src/vm.c src/vm.h src/chunk.h src/lexer.h src/value.h
 

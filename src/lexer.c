@@ -197,6 +197,6 @@ lexer_token_name(int type)
         case TOKEN_RPAREN: return "RParen";
         case TOKEN_QUOTE: return "Quote";
         case TOKEN_EOF: return "EOF";
-        default: return "undefined token";
+        default: return "undefined";
     }
 }

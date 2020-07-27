@@ -4,6 +4,7 @@
 
 #include "chunk.h"
 #include "lexer.h"
+#include "parser.h"
 #include "value.h"
 #include "vm.h"
 
@@ -104,19 +105,24 @@ vm_interpret(struct vm* vm, const char* source)
     struct lexer lexer = { 0 };
     lexer_init(&lexer, source);
 
-    long line = -1;
-    for (;;) {
-        struct token token = lexer_next_token(&lexer);
-        if (token.line != line) {
-            printf("%4ld ", token.line);
-            line = token.line;
-        } else {
-            printf("   | ");
-        }
+    struct parser parser = { 0 };
+    parser_init(&parser, &lexer);
 
-        printf("%-10s '%.*s'\n", lexer_token_name(token.type), (int)token.length, token.start);
-        if (token.type == TOKEN_EOF) break;
-    }
+    parser_print_ast(&parser);
+
+//    long line = -1;
+//    for (;;) {
+//        struct token token = lexer_next_token(&lexer);
+//        if (token.line != line) {
+//            printf("%4ld ", token.line);
+//            line = token.line;
+//        } else {
+//            printf("   | ");
+//        }
+//
+//        printf("%-10s '%.*s'\n", lexer_token_name(token.type), (int)token.length, token.start);
+//        if (token.type == TOKEN_EOF) break;
+//    }
 
     return VM_OK;
 }

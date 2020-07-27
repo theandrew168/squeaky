@@ -20,7 +20,9 @@
 //                   else (closure) extend closure's env with additional arg names / values, create
 //                   a new frame and push it onto the frame stack (will get exec'd on next VM loop)
 
-// bobscheme lexical subset (R5RS 7.1.1):
+// lexical structure (R5RS 7.1.1):
+// -------------------------------
+//
 // <token> : <identifier>
 //         | <boolean>
 //         | <number>
@@ -70,16 +72,16 @@
 //
 // <variable> : <identifier> NOT <syntactic_keyword>
 //
-// <boolean> : /#t/
-//           | /#f/
+// <boolean> : '#t'
+//           | '#f'
 //
 // <character>      : /#\<any_character>/
 //                  | /#\<character_name>/
 // <any_character>  : /[!-~]/
-// <character_name> : /space/
-//                  | /newline/
+// <character_name> : 'space'
+//                  | 'newline'
 //
-// <string>         : /"<string_element>*"/
+// <string>         : '"' <string_element>* '"'
 // <string_element> : /([^"\]|\"|\\)/
 //
 // <number> : <radix2>  <digit2>
@@ -96,6 +98,26 @@
 // <digit8>  : /[0-7]/
 // <digit10> : /[0-9]/
 // <digit16> : /[0-9A-Fa-f]/
+
+// external representation (R5RS 7.1.2):
+// -------------------------------------
+//
+// <datum>          : <simple_datum>
+//                  | <compound_datum>
+// <simple_datum>   : <boolean>
+//                  | <number>
+//                  | <character>
+//                  | <string>
+//                  | <symbol>
+// <symbol> : <identifier>
+// <compound_datum> : <list>
+//                  | <vector>
+// <list>           : '(' <datum>* ')'
+//                  | '(' <datum>+ '.' <datum> ')'
+//                  | <abbreviation>
+// <abbreviation>   : <abbrev_prefix> <datum>
+// <abbrev_prefix>  : /(['`,]|,@)/
+// <vector>         : '#(' <datum>* ')'
 
 enum opcode {
     OP_UNDEFINED = 0,

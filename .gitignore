@@ -1,6 +1,7 @@
 squeaky
 squeaky_tests
 .squeaky_history
+SDL2*
 
 # Prerequisites
 *.d

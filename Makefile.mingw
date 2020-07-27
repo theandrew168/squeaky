@@ -1,19 +1,27 @@
 .POSIX:
 .SUFFIXES:
 
-AR       = ar
-CC       = cc
-CFLAGS   = -std=c99
+AR       = x86_64-w64-mingw32-ar
+CC       = x86_64-w64-mingw32-gcc
+CFLAGS   = -std=c99 -D__USE_MINGW_ANSI_STDIO
 CFLAGS  += -DDEBUG_TRACE_EXECUTION
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
 CFLAGS  += -Wno-unused-parameter -Wno-unused-result
-CFLAGS  += -Isrc/
-LDFLAGS  =
-LDLIBS   = -lGL -lSDL2
+CFLAGS  += -Isrc/ -I./SDL2/include
+LDFLAGS  = -mwindows
+LDLIBS   = -lmingw32
+LDLIBS  += ./SDL2/lib/libSDL2main.a ./SDL2/lib/libSDL2.a
+LDLIBS  += -lgdi32 -limm32 -lole32 -loleaut32
+LDLIBS  += -lopengl32 -lsetupapi -lversion -lwinmm
 
-default: squeaky
-all: libsqueaky.a libsqueaky.so squeaky
+default: squeaky.exe
+all: libsqueaky.a libsqueaky.dll squeaky.exe
+
+./SDL2/lib/libSDL2.a:
+	wget https://www.libsdl.org/release/SDL2-devel-2.0.12-mingw.tar.gz
+	tar -xf SDL2-devel-2.0.12-mingw.tar.gz
+	mv SDL2-2.0.12/x86_64-w64-mingw32/ SDL2/
 
 libsqueaky_sources =  \
   src/chunk.c         \
@@ -29,21 +37,17 @@ libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"
 	@$(AR) rcs $@ $(libsqueaky_objects)
 
-libsqueaky.so: $(libsqueaky_objects)
+libsqueaky.dll: $(libsqueaky_objects) ./SDL2/lib/libSDL2.a
 	@echo "SHARED  $@"
 	@$(CC) $(LDFLAGS) -shared -o $@ $(libsqueaky_objects) $(LDLIBS)
 
-squeaky: src/main.c libsqueaky.a
+squeaky.exe: src/main.c libsqueaky.a ./SDL2/lib/libSDL2.a
 	@echo "EXE     $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
 
-.PHONY: run
-run: squeaky
-	rlwrap ./squeaky
-
 .PHONY: clean
 clean:
-	rm -fr squeaky squeaky_tests *.a *.so src/*.o
+	rm -fr *.exe *.a *.dll src/*.o
 
 .SUFFIXES: .c .o
 .c.o:

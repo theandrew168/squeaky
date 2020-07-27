@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "chunk.h"
+#include "lexer.h"
 #include "value.h"
 #include "vm.h"
 
@@ -95,12 +96,27 @@ vm_run(struct vm* vm)
 }
 
 int
-vm_interpret(struct vm* vm, const struct chunk* chunk)
+vm_interpret(struct vm* vm, const char* source)
 {
     assert(vm != NULL);
-    assert(chunk != NULL);
+    assert(source != NULL);
 
-    vm->chunk = chunk;
-    vm->ip = vm->chunk->code;
-    return vm_run(vm);
+    struct lexer lexer = { 0 };
+    lexer_init(&lexer, source);
+
+    long line = -1;
+    for (;;) {
+        struct token token = lexer_next_token(&lexer);
+        if (token.line != line) {
+            printf("%4ld ", token.line);
+            line = token.line;
+        } else {
+            printf("   | ");
+        }
+
+        printf("%-10s '%.*s'\n", lexer_token_name(token.type), (int)token.length, token.start);
+        if (token.type == TOKEN_EOF) break;
+    }
+
+    return VM_OK;
 }

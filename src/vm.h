@@ -27,6 +27,6 @@ void vm_free(struct vm* vm);
 void vm_stack_push(struct vm* vm, Value value);
 Value vm_stack_pop(struct vm* vm);
 
-int vm_interpret(struct vm* vm, const struct chunk* chunk);
+int vm_interpret(struct vm* vm, const char* source);
 
 #endif

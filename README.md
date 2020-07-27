@@ -55,4 +55,4 @@ You will likely see references to these throughout the code.
 * [BOB](https://github.com/eliben/bobscheme) - The "bobscheme" language implementation by Eli Bendersky
 * [BYOL](http://www.buildyourownlisp.com/) - "Build Your Own Lisp" by Daniel Holden
 * [SFS](http://peter.michaux.ca/articles/scheme-from-scratch-introduction) - "Scheme from Scratch" by Peter Michaux
-* [R5RS](https://schemers.org/Documents/Standards/R5RS/r5rs.pdf) - Revised(5) spec of the Scheme language
+* [R5RS](https://schemers.org/Documents/Standards/R5RS/r5rs.pdf) - Revised(5) specification for the Scheme language

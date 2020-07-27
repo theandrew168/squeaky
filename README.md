@@ -1,15 +1,11 @@
 # squeaky
-Scheme for Games!
-
-## About
 Squeaky is a new programming languages for making games.
-It is an implementation of Scheme (R5RS subset) with a focus on writing portable, multimedia applications.
+It is an implementation of Scheme (subset of R5RS) with a focus on writing simple and portable multimedia applications.
 
 ## Details (also Goals)
 In no particular order:
-* Portable between Linux, macOS, and Windows
-* R5RS subset (for now...)
 * Written in C99
+* Portable between Linux, macOS, and Windows
 * Utilizes a stack-based bytecode VM
 * Load and display images!
 * Load and play sounds!
@@ -25,3 +21,4 @@ You will likely see references to these throughout the code.
 * [BOB](https://github.com/eliben/bobscheme) - The "bobscheme" language implementation by Eli Bendersky
 * [BYOL](http://www.buildyourownlisp.com/) - "Build Your Own Lisp" by Daniel Holden
 * [SFS](http://peter.michaux.ca/articles/scheme-from-scratch-introduction) - "Scheme from Scratch" by Peter Michaux
+* [R5RS](https://schemers.org/Documents/Standards/R5RS/r5rs.pdf) - Revised(5) spec of the Scheme language

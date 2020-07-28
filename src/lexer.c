@@ -156,19 +156,12 @@ lexer_token_name(int type)
 {
     switch (type) {
         case TOKEN_ERROR: return "Error";
-        case TOKEN_SYMBOL: return "Symbol";
-        case TOKEN_BOOLEAN: return "Boolean";
         case TOKEN_NUMBER: return "Number";
-        case TOKEN_CHARACTER: return "Character";
         case TOKEN_STRING: return "String";
+        case TOKEN_SYMBOL: return "Symbol";
         case TOKEN_LPAREN: return "LParen";
         case TOKEN_RPAREN: return "RParen";
-        case TOKEN_VECTOR: return "Vector";
         case TOKEN_QUOTE: return "Quote";
-        case TOKEN_PLUS: return "Plus";
-        case TOKEN_MINUS: return "Minus";
-        case TOKEN_STAR: return "Star";
-        case TOKEN_SLASH: return "Slash";
         case TOKEN_EOF: return "EOF";
         default: return "undefined";
     }
@@ -312,31 +305,6 @@ lexer_next_string(struct lexer* lexer)
     return make_token(lexer, TOKEN_STRING);
 }
 
-static struct token
-lexer_next_character(struct lexer* lexer)
-{
-    // check for newline char literal
-    if (strncmp(lexer->current, "newline", strlen("newline")) == 0) {
-        lexer->current += strlen("newline");
-        return make_token(lexer, TOKEN_CHARACTER);
-    }
-
-    // check for space char literal
-    if (strncmp(lexer->current, "space", strlen("space")) == 0) {
-        lexer->current += strlen("space");
-        return make_token(lexer, TOKEN_CHARACTER);
-    }
-
-    // otherwise the char must be a visible one (between exclamation and tilde)
-    char c = lexer_advance(lexer);
-    if (c >= '!' && c <= '~') {
-        return make_token(lexer, TOKEN_CHARACTER);
-    }
-
-    // anything at this point isn't valid
-    return make_error_token(lexer, "invalid character literal");
-}
-
 struct token
 lexer_next_token(struct lexer* lexer)
 {
@@ -354,17 +322,7 @@ lexer_next_token(struct lexer* lexer)
         case '(': return make_token(lexer, TOKEN_LPAREN);
         case ')': return make_token(lexer, TOKEN_RPAREN);
         case '\'': return make_token(lexer, TOKEN_QUOTE);
-        case '#':
-            if (lexer_match(lexer, 't')) return make_token(lexer, TOKEN_BOOLEAN);
-            if (lexer_match(lexer, 'f')) return make_token(lexer, TOKEN_BOOLEAN);
-            if (lexer_match(lexer, '(')) return make_token(lexer, TOKEN_VECTOR);
-            if (lexer_match(lexer, '\\')) return lexer_next_character(lexer);
-            break;
         case '"': return lexer_next_string(lexer);
-        case '+': return make_token(lexer, TOKEN_PLUS);
-        case '-': return make_token(lexer, TOKEN_MINUS);
-        case '*': return make_token(lexer, TOKEN_STAR);
-        case '/': return make_token(lexer, TOKEN_SLASH);
     }
 
     return make_error_token(lexer, "unexpected character");

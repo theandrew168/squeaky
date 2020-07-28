@@ -3,11 +3,10 @@
 
 #include <stdbool.h>
 
-#include "chunk.h"
 #include "lexer.h"
+#include "value.h"
 
 struct parser {
-    struct chunk* chunk;
     struct lexer* lexer;
     struct token current;
     struct token previous;
@@ -16,8 +15,7 @@ struct parser {
 };
 
 void parser_init(struct parser* parser, struct lexer* lexer);
-
-bool parser_compile(struct parser* parser, struct chunk* chunk);
 bool parser_print(struct parser* parser);
+struct value* parser_parse(struct parser* parser);
 
 #endif

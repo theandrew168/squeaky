@@ -7,7 +7,7 @@ CFLAGS   = -std=c99
 CFLAGS  += -DDEBUG_TRACE_EXECUTION
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
-CFLAGS  += -Wno-unused-parameter -Wno-unused-result
+CFLAGS  += -Wno-unused-parameter -Wno-unused-result -Wno-unused-function
 CFLAGS  += -Isrc/
 LDFLAGS  =
 LDLIBS   = -lGL -lSDL2
@@ -16,12 +16,10 @@ default: squeaky
 all: libsqueaky.a libsqueaky.so squeaky
 
 libsqueaky_sources =  \
-  src/chunk.c         \
   src/env.c           \
   src/lexer.c         \
   src/parser.c        \
-  src/value.c         \
-  src/vm.c
+  src/value.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/chunk.o: src/chunk.c src/chunk.h src/value.h

@@ -5,10 +5,8 @@
 
 #include <SDL2/SDL.h>
 
-#include "chunk.h"
 #include "lexer.h"
 #include "parser.h"
-#include "vm.h"
 
 static char*
 file_read(const char* path)
@@ -33,9 +31,6 @@ file_read(const char* path)
 int
 main(int argc, char* argv[])
 {
-    struct vm vm = { 0 };
-    vm_init(&vm);
-
     if (argc == 1) {
         printf("Welcome to Squeaky Scheme!\n");
         printf("Use Ctrl-c to exit.\n");
@@ -44,23 +39,26 @@ main(int argc, char* argv[])
 
         char line[512] = { 0 };
         while (fgets(line, sizeof(line), stdin) != NULL) {
-            struct chunk chunk = { 0 };
-            chunk_init(&chunk);
-
+            // throw the line to the lexer
             struct lexer lexer = { 0 };
             lexer_init(&lexer, line);
 
+            // print out each token
+            for (;;) {
+                struct token token = lexer_next_token(&lexer);
+                if (token.type == TOKEN_EOF) break;
+
+                lexer_token_println(&token);
+            }
+
+            // reinit the lexer
+            lexer_init(&lexer, line);
+
+            // parse and print the token stream
             struct parser parser = { 0 };
             parser_init(&parser, &lexer);
-
-            parser_compile(&parser, &chunk);
-
-//            for (;;) {
-//                struct token token = lexer_next_token(&lexer);
-//                if (token.type == TOKEN_EOF) break;
-//
-//                lexer_token_println(&token);
-//            }
+            struct value* ast = parser_parse(&parser);
+            value_println(ast);
 
             printf("squeaky> ");
         }
@@ -72,10 +70,8 @@ main(int argc, char* argv[])
         free(source);
     } else {
         fprintf(stderr, "usage: %s [path]\n", argv[0]);
-        vm_free(&vm);
         return EXIT_FAILURE;
     }
 
-    vm_free(&vm);
     return EXIT_SUCCESS;
 }

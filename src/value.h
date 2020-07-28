@@ -23,6 +23,12 @@ struct value {
     } as;
 };
 
+#define AS_BOOLEAN(v) ((v)->as.boolean)
+#define AS_NUMBER(v)  ((v)->as.number)
+
+#define IS_BOOLEAN(v) ((v)->type == VALUE_BOOLEAN)
+#define IS_NUMBER(v)  ((v)->type == VALUE_NUMBER)
+
 struct value* value_make_boolean(bool boolean);
 struct value* value_make_number(double number);
 struct value* value_make_character(char character);

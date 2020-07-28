@@ -5,7 +5,9 @@
 
 #include <SDL2/SDL.h>
 
+#include "chunk.h"
 #include "lexer.h"
+#include "parser.h"
 #include "vm.h"
 
 static char*
@@ -42,15 +44,23 @@ main(int argc, char* argv[])
 
         char line[512] = { 0 };
         while (fgets(line, sizeof(line), stdin) != NULL) {
+            struct chunk chunk = { 0 };
+            chunk_init(&chunk);
+
             struct lexer lexer = { 0 };
             lexer_init(&lexer, line);
 
-            for (;;) {
-                struct token token = lexer_next_token(&lexer);
-                if (token.type == TOKEN_EOF) break;
+            struct parser parser = { 0 };
+            parser_init(&parser, &lexer);
 
-                lexer_token_println(&token);
-            }
+            parser_compile(&parser, &chunk);
+
+//            for (;;) {
+//                struct token token = lexer_next_token(&lexer);
+//                if (token.type == TOKEN_EOF) break;
+//
+//                lexer_token_println(&token);
+//            }
 
             printf("squeaky> ");
         }

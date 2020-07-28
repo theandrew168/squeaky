@@ -43,36 +43,29 @@ vm_stack_pop(struct vm* vm)
 static int
 vm_run(struct vm* vm, struct chunk* chunk)
 {
+    // initialize instruction pointer to start of code
+    uint8_t* ip = chunk->code;
+
+    for (;;) {
+        uint8_t inst = *ip++;
+        switch (inst) {
+            case OP_CONSTANT: {
+                struct value* value = chunk->constants.values[*ip++];
+                vm_stack_push(vm, value);
+                break;
+            }
+            case OP_NEG: {
+                struct value* value = vm_stack_pop(vm);
+                value->as.number = -value->as.number;
+                vm_stack_push(vm, value);
+            }
+            case OP_RETURN: {
+                struct value* value = vm_stack_pop(vm);
+                value_println(value);
+                return VM_OK;
+            }
+        }
+    }
+
     return VM_OK;
 }
-
-//int
-//vm_interpret(struct vm* vm, const char* source)
-//{
-//    assert(vm != NULL);
-//    assert(source != NULL);
-//
-//    struct lexer lexer = { 0 };
-//    lexer_init(&lexer, source);
-//
-//    struct parser parser = { 0 };
-//    parser_init(&parser, &lexer);
-//
-//    parser_print(&parser);
-//
-////    long line = -1;
-////    for (;;) {
-////        struct token token = lexer_next_token(&lexer);
-////        if (token.line != line) {
-////            printf("%4ld ", token.line);
-////            line = token.line;
-////        } else {
-////            printf("   | ");
-////        }
-////
-////        printf("%-10s '%.*s'\n", lexer_token_name(token.type), (int)token.length, token.start);
-////        if (token.type == TOKEN_EOF) break;
-////    }
-//
-//    return VM_OK;
-//}

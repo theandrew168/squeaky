@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "chunk.h"
 #include "lexer.h"
@@ -33,6 +35,7 @@ parser_init(struct parser* parser, struct lexer* lexer)
     assert(parser != NULL);
     assert(lexer != NULL);
 
+    parser->chunk = NULL;
     parser->lexer = lexer;
     parser->had_error = false;
     parser->panic_mode = false;
@@ -83,9 +86,17 @@ parser_advance(struct parser* parser)
     }
 }
 
+static bool
+parser_match(struct parser* parser, int type)
+{
+    if (parser->current.type != type) return false;
+    parser_advance(parser);
+    return true;
+}
+
 // advance the parser only if the current token type matches
 static void
-parser_match(struct parser* parser, int type, const char* message)
+parser_consume(struct parser* parser, int type, const char* message)
 {
     if (parser->current.type == type) {
         parser_advance(parser);
@@ -173,7 +184,7 @@ print_list(struct parser* parser)
     }
 
     // match the open paren
-    parser_match(parser, TOKEN_LPAREN, "expected open paren");
+    parser_consume(parser, TOKEN_LPAREN, "expected open paren");
     printf("( ");
 
     // this loop ignores the "last dot" aspect of R5RS lists
@@ -196,7 +207,7 @@ print_list(struct parser* parser)
     }
 
 done:
-    parser_match(parser, TOKEN_RPAREN, "expected closing paren");
+    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
     return true;
@@ -206,7 +217,7 @@ static bool
 print_abbreviation(struct parser* parser)
 {
     // match the quote and then just parse another datum
-    parser_match(parser, TOKEN_QUOTE, "expected quote char");
+    parser_consume(parser, TOKEN_QUOTE, "expected quote char");
     printf("'");
 
     return print_datum(parser);
@@ -215,7 +226,7 @@ print_abbreviation(struct parser* parser)
 static bool
 print_vector(struct parser* parser)
 {
-    parser_match(parser, TOKEN_VECTOR, "expected open vector");
+    parser_consume(parser, TOKEN_VECTOR, "expected open vector");
     printf("#( ");
 
     for (;;) {
@@ -237,7 +248,7 @@ print_vector(struct parser* parser)
     }
 
 done:
-    parser_match(parser, TOKEN_RPAREN, "expected closing paren");
+    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
     return true;
@@ -263,14 +274,131 @@ parser_print(struct parser* parser)
         }
     }
 
-    parser_match(parser, TOKEN_EOF, "expected end of file");
+    parser_consume(parser, TOKEN_EOF, "expected end of file");
     return !parser->had_error;
 }
 
-static void
-compile_expression(struct parser* parser, struct chunk* chunk)
+static uint8_t
+make_constant(struct parser* parser, struct value* value)
 {
+    long constant = chunk_add_constant(parser->chunk, value);
+    if (constant > UINT8_MAX) {
+        error(parser, "too many constants in one chunk");
+        return 0;
+    }
 
+    return (uint8_t)constant;
+}
+
+static void
+emit_byte(struct parser* parser, uint8_t byte)
+{
+    chunk_write(parser->chunk, byte, parser->previous.line);
+}
+
+static void
+emit_bytes(struct parser* parser, uint8_t byte1, uint8_t byte2)
+{
+    emit_byte(parser, byte1);
+    emit_byte(parser, byte2);
+}
+
+static void
+emit_return(struct parser* parser)
+{
+    emit_byte(parser, OP_RETURN);
+}
+
+static void
+emit_constant(struct parser* parser, struct value* value)
+{
+    uint8_t constant = make_constant(parser, value);
+    emit_bytes(parser, OP_CONSTANT, constant);
+}
+
+static void
+compile_end(struct parser* parser)
+{
+    emit_return(parser);
+}
+
+//static bool compile_datum(struct parser* parser);
+//static bool compile_simple_datum(struct parser* parser);
+//static bool compile_compound_datum(struct parser* parser);
+//static bool compile_list(struct parser* parser);
+//static bool compile_abbreviation(struct parser* parser);
+//static bool compile_vector(struct parser* parser);
+
+static void compile_number(struct parser* parser);
+static void compile_grouping(struct parser* parser);
+static void compile_unary(struct parser* parser);
+static void compile_expression(struct parser* parser);
+
+// pratt parser table with only prefix parsing funcs (no infix or precendence)
+typedef void (*parse_func)(struct parser* parser);
+parse_func rules[] = {
+    [TOKEN_ERROR]     = NULL, 
+    [TOKEN_SYMBOL]    = NULL,
+    [TOKEN_BOOLEAN]   = NULL,
+    [TOKEN_NUMBER]    = compile_number,
+    [TOKEN_CHARACTER] = NULL,
+    [TOKEN_STRING]    = NULL,
+    [TOKEN_LPAREN]    = compile_grouping,
+    [TOKEN_RPAREN]    = NULL,
+    [TOKEN_VECTOR]    = NULL,
+    [TOKEN_QUOTE]     = NULL,
+
+    [TOKEN_PLUS]      = NULL,
+    [TOKEN_MINUS]     = compile_unary,
+    [TOKEN_STAR]      = NULL,
+    [TOKEN_SLASH]     = NULL,
+
+    [TOKEN_EOF]       = NULL,
+};
+
+static void
+compile_number(struct parser* parser)
+{
+    double value = strtod(parser->previous.start, NULL);
+    emit_constant(parser, value_make_number(value));
+}
+
+static void
+compile_grouping(struct parser* parser)
+{
+    compile_expression(parser);
+    parser_consume(parser, TOKEN_RPAREN, "expect ')' after expression");
+}
+
+static void
+compile_unary(struct parser* parser)
+{
+    int op_type = parser->previous.type;
+
+    // compile the operand
+    compile_expression(parser);
+
+    // emit the operator instruction
+    switch (op_type) {
+        case TOKEN_MINUS: emit_byte(parser, OP_NEG); break;
+        default:
+            // unreachable
+            return;
+    }
+}
+
+static void
+compile_expression(struct parser* parser)
+{
+    parser_advance(parser);
+
+    parse_func rule = rules[parser->previous.type];
+    if (rule == NULL) {
+        error(parser, "expect expression");
+        return;
+    }
+
+    rule(parser);
 }
 
 bool
@@ -279,10 +407,13 @@ parser_compile(struct parser* parser, struct chunk* chunk)
     assert(parser != NULL);
     assert(chunk != NULL);
 
+    parser->chunk = chunk;
+
     parser_advance(parser);
-    compile_expression(parser, chunk);
-    parser_match(parser, TOKEN_EOF, "expect end of file");
+    while (!parser_match(parser, TOKEN_EOF)) {
+        compile_expression(parser);
+    }
 
-    return true;
+    compile_end(parser);
+    return !parser->had_error;
 }
-

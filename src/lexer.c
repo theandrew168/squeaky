@@ -217,16 +217,6 @@ lexer_eof(const struct lexer* lexer)
     return lexer->current[0] == '\0';
 }
 
-static bool
-lexer_match(struct lexer* lexer, char expected)
-{
-    if (lexer_eof(lexer)) return false;
-    if (lexer->current[0] != expected) return false;
-
-    lexer->current++;
-    return true;
-}
-
 static char
 lexer_peek(const struct lexer* lexer)
 {
@@ -245,6 +235,16 @@ lexer_advance(struct lexer* lexer)
 {
     lexer->current++;
     return lexer->current[-1];
+}
+
+static bool
+lexer_match(struct lexer* lexer, char expected)
+{
+    if (lexer_eof(lexer)) return false;
+    if (lexer->current[0] != expected) return false;
+
+    lexer_advance(lexer);
+    return true;
 }
 
 static void

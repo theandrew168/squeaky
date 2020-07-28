@@ -84,14 +84,29 @@ value_is_variable(struct value* value)
     return value->type == VALUE_SYMBOL;
 }
 
+static bool
+is_tagged_list(struct value* value, const char* tag)
+{
+    if (value->type != VALUE_PAIR) return false;
+    if (CAR(value)->type != VALUE_SYMBOL) return false;
+
+    return strcmp(CAR(value)->as.symbol, tag) == 0;
+}
+
 bool
 value_is_definition(struct value* value)
 {
     assert(value != NULL);
 
-    return value->type == VALUE_PAIR &&
-           CAR(value)->type == VALUE_SYMBOL &&
-           strcmp(CAR(value)->as.symbol, "define") == 0;
+    return is_tagged_list(value, "define");
+}
+
+bool
+value_is_quoted(struct value* value)
+{
+    assert(value != NULL);
+
+    return is_tagged_list(value, "quote");
 }
 
 void

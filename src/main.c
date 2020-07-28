@@ -22,6 +22,9 @@ eval(struct value* exp, struct env* env)
         env_def(env, CADR(exp)->as.symbol, CADDR(exp));
         return value_make_symbol("ok", 2);
     }
+    if (value_is_quoted(exp)) {
+        return CADR(exp);
+    }
 
     fprintf(stderr, "unknown expression type\n");
     return NULL;

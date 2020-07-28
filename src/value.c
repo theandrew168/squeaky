@@ -41,12 +41,12 @@ value_make_symbol(const char* symbol, long length)
 }
 
 struct value*
-value_make_pair(struct value* left, struct value* right)
+value_make_pair(struct value* car, struct value* cdr)
 {
     struct value* value = malloc(sizeof(value));
     value->type = VALUE_PAIR;
-    value->as.pair.left = left;
-    value->as.pair.right = right;
+    value->as.pair.car = car;
+    value->as.pair.cdr = cdr;
     return value;
 }
 
@@ -60,8 +60,8 @@ value_free(struct value* value)
         case VALUE_STRING: free(value->as.string); break;
         case VALUE_SYMBOL: free(value->as.symbol); break;
         case VALUE_PAIR:
-            value_free(value->as.pair.left);
-            value_free(value->as.pair.right);
+            value_free(value->as.pair.car);
+            value_free(value->as.pair.cdr);
             break;
     }
 
@@ -90,8 +90,8 @@ value_is_definition(struct value* value)
     assert(value != NULL);
 
     return value->type == VALUE_PAIR &&
-           value->as.pair.left->type == VALUE_SYMBOL &&
-           strcmp(value->as.pair.left->as.symbol, "define") == 0;
+           CAR(value)->type == VALUE_SYMBOL &&
+           strcmp(CAR(value)->as.symbol, "define") == 0;
 }
 
 void
@@ -104,12 +104,17 @@ value_print(const struct value* value)
         case VALUE_STRING: printf("\"%s\"", value->as.string); break;
         case VALUE_SYMBOL: printf("%s", value->as.symbol); break;
         case VALUE_PAIR:
+            if (CAR(value) == NULL && CDR(value) == NULL) {
+                printf("()");
+                return;
+            }
+
             printf("( ");
-            if (value->as.pair.left == NULL) printf("()");
-            else value_print(value->as.pair.left);
+            if (value->as.pair.car == NULL) printf("()");
+            else value_print(value->as.pair.car);
             printf(" . ");
-            if (value->as.pair.right == NULL) printf("()");
-            else value_print(value->as.pair.right);
+            if (value->as.pair.cdr == NULL) printf("()");
+            else value_print(value->as.pair.cdr);
             printf(" )");
             break;
         default:

@@ -48,7 +48,7 @@ env_get(const struct env* env, const char* k)
         return env_get(env->parent, k);
     }
 
-    return NULL;
+    return value_make_pair(NULL, NULL);
 }
 
 void

@@ -19,7 +19,7 @@ eval(struct value* exp, struct env* env)
     if (value_is_self_evaluating(exp)) return exp;
     if (value_is_variable(exp)) return env_get(env, exp->as.symbol);
     if (value_is_definition(exp)) {
-        env_def(env, exp->as.pair.right->as.pair.left->as.symbol, exp->as.pair.right->as.pair.right->as.pair.left);
+        env_def(env, CADR(exp)->as.symbol, CADDR(exp));
         return value_make_symbol("ok", 2);
     }
 

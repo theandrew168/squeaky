@@ -18,16 +18,47 @@ struct value {
         char* string;
         char* symbol;
         struct {
-            struct value* left;
-            struct value* right;
+            struct value* car;
+            struct value* cdr;
         } pair;
     } as;
 };
 
+#define CAR(v)    ((v)->as.pair.car)
+#define CDR(v)    ((v)->as.pair.cdr)
+#define CAAR(v)   (CAR(CAR(v)))
+#define CADR(v)   (CAR(CDR(v)))
+#define CDAR(v)   (CDR(CAR(v)))
+#define CDDR(v)   (CDR(CDR(v)))
+#define CAAAR(v)  (CAR(CAR(CAR(v))))
+#define CAADR(v)  (CAR(CAR(CDR(v))))
+#define CADAR(v)  (CAR(CDR(CAR(v))))
+#define CADDR(v)  (CAR(CDR(CDR(v))))
+#define CDAAR(v)  (CDR(CAR(CAR(v))))
+#define CDADR(v)  (CDR(CAR(CDR(v))))
+#define CDDAR(v)  (CDR(CDR(CAR(v))))
+#define CDDDR(v)  (CDR(CDR(CDR(v))))
+#define CAAAAR(v) (CAR(CAR(CAR(CAR(v)))))
+#define CAAADR(v) (CAR(CAR(CAR(CDR(v)))))
+#define CAADAR(v) (CAR(CAR(CDR(CAR(v)))))
+#define CAADDR(v) (CAR(CAR(CDR(CDR(v)))))
+#define CADAAR(v) (CAR(CDR(CAR(CAR(v)))))
+#define CADADR(v) (CAR(CDR(CAR(CDR(v)))))
+#define CADDAR(v) (CAR(CDR(CDR(CAR(v)))))
+#define CADDDR(v) (CAR(CDR(CDR(CDR(v)))))
+#define CDAAAR(v) (CDR(CAR(CAR(CAR(v)))))
+#define CDAADR(v) (CDR(CAR(CAR(CDR(v)))))
+#define CDADAR(v) (CDR(CAR(CDR(CAR(v)))))
+#define CDADDR(v) (CDR(CAR(CDR(CDR(v)))))
+#define CDDAAR(v) (CDR(CDR(CAR(CAR(v)))))
+#define CDDADR(v) (CDR(CDR(CAR(CDR(v)))))
+#define CDDDAR(v) (CDR(CDR(CDR(CAR(v)))))
+#define CDDDDR(v) (CDR(CDR(CDR(CDR(v)))))
+
 struct value* value_make_number(double number);
 struct value* value_make_string(const char* string, long length);
 struct value* value_make_symbol(const char* symbol, long length);
-struct value* value_make_pair(struct value* left, struct value* right);
+struct value* value_make_pair(struct value* car, struct value* cdr);
 void value_free(struct value* value);
 
 bool value_is_self_evaluating(struct value* value);

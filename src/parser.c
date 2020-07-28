@@ -267,11 +267,21 @@ parser_print(struct parser* parser)
     return !parser->had_error;
 }
 
+static void
+compile_expression(struct parser* parser, struct chunk* chunk)
+{
+
+}
+
 bool
 parser_compile(struct parser* parser, struct chunk* chunk)
 {
     assert(parser != NULL);
     assert(chunk != NULL);
+
+    parser_advance(parser);
+    compile_expression(parser, chunk);
+    parser_match(parser, TOKEN_EOF, "expect end of file");
 
     return true;
 }

@@ -26,7 +26,7 @@
 //              | <special_initial>
 // <letter>     : /[A-Za-z]/
 //
-// <special_initial>     : /[!$%&*.:<=>?^_~]/
+// <special_initial>     : /[!$%&*/:<=>?^_~]/
 // <subsequent>          : <initial>
 //                       | <digit>
 //                       | <special_subsequent>
@@ -85,6 +85,55 @@
 // <digit10> : /[0-9]/
 // <digit16> : /[0-9A-Fa-f]/
 
+// TODO: should these operate on tokens?
+
+static bool
+is_letter(char c)
+{
+    return (c >= 'A' && c <= 'Z') ||
+           (c >= 'a' && c <= 'z');
+}
+
+static bool
+is_special_initial(char c)
+{
+    return strchr("!$%&*/:<=>?^_~", c) != NULL;
+}
+
+static bool
+is_special_subsequent(char c)
+{
+    return strchr("+-.@", c) != NULL;
+}
+
+static bool
+is_special_idenfitier(const char* s)
+{
+    return strcmp("+", s) == 0 ||
+           strcmp("-", s) == 0 ||
+           strcmp("...", s) == 0;
+}
+
+static bool
+is_initial(char c)
+{
+    return is_letter(c) || is_special_initial(c);
+}
+
+static bool
+is_digit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+static bool
+is_alpha(char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+            c == '_';
+}
+
 void
 lexer_token_print(const struct token* token)
 {
@@ -116,6 +165,10 @@ lexer_token_name(int type)
         case TOKEN_RPAREN: return "RParen";
         case TOKEN_VECTOR: return "Vector";
         case TOKEN_QUOTE: return "Quote";
+        case TOKEN_PLUS: return "Plus";
+        case TOKEN_MINUS: return "Minus";
+        case TOKEN_STAR: return "Star";
+        case TOKEN_SLASH: return "Slash";
         case TOKEN_EOF: return "EOF";
         default: return "undefined";
     }
@@ -156,20 +209,6 @@ make_error_token(const struct lexer* lexer, const char* message)
     };
 
     return token;
-}
-
-static bool
-is_digit(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-static bool
-is_alpha(char c)
-{
-    return (c >= 'a' && c <= 'z') ||
-           (c >= 'A' && c <= 'Z') ||
-            c == '_';
 }
 
 static bool
@@ -322,6 +361,10 @@ lexer_next_token(struct lexer* lexer)
             if (lexer_match(lexer, '\\')) return lexer_next_character(lexer);
             break;
         case '"': return lexer_next_string(lexer);
+        case '+': return make_token(lexer, TOKEN_PLUS);
+        case '-': return make_token(lexer, TOKEN_MINUS);
+        case '*': return make_token(lexer, TOKEN_STAR);
+        case '/': return make_token(lexer, TOKEN_SLASH);
     }
 
     return make_error_token(lexer, "unexpected character");

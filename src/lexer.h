@@ -12,6 +12,12 @@ enum token_type {
     TOKEN_RPAREN,
     TOKEN_VECTOR,
     TOKEN_QUOTE,
+
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_STAR,
+    TOKEN_SLASH,
+
     TOKEN_EOF,
 };
 

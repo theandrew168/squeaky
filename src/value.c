@@ -68,6 +68,32 @@ value_free(struct value* value)
     free(value);
 }
 
+bool
+value_is_self_evaluating(struct value* value)
+{
+    assert(value != NULL);
+
+    return value->type == VALUE_NUMBER || value->type == VALUE_STRING;
+}
+
+bool
+value_is_variable(struct value* value)
+{
+    assert(value != NULL);
+
+    return value->type == VALUE_SYMBOL;
+}
+
+bool
+value_is_definition(struct value* value)
+{
+    assert(value != NULL);
+
+    return value->type == VALUE_PAIR &&
+           value->as.pair.left->type == VALUE_SYMBOL &&
+           strcmp(value->as.pair.left->as.symbol, "define") == 0;
+}
+
 void
 value_print(const struct value* value)
 {

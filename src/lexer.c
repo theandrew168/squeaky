@@ -139,7 +139,7 @@ lexer_token_print(const struct token* token)
 {
     assert(token != NULL);
 
-    printf("  %-10s %.*s", lexer_token_name(token->type), (int)token->length, token->start);
+    printf("%-10s %.*s", lexer_token_name(token->type), (int)token->length, token->start);
 }
 
 void

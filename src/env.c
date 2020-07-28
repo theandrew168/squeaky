@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "env.h"
@@ -86,4 +87,16 @@ env_def(struct env* env, const char* k, struct value* v)
     // advance to the parent-most env before adding the new kv pair
     while (env->parent != NULL) env = env->parent;
     env_put(env, k, v);
+}
+
+void
+env_print(const struct env* env)
+{
+    assert(env != NULL);
+
+    for (long i = 0; i < env->count; i++) {
+        printf("%-10s -> ", env->symbols[i]);
+        value_print(env->values[i]);
+        printf("\n");
+    }
 }

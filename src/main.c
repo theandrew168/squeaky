@@ -5,8 +5,27 @@
 
 #include <SDL2/SDL.h>
 
+#include "env.h"
 #include "lexer.h"
 #include "parser.h"
+#include "value.h"
+
+static struct value* eval(struct value* exp, struct env* env);
+
+// SICP 4.1.1
+static struct value*
+eval(struct value* exp, struct env* env)
+{
+    if (value_is_self_evaluating(exp)) return exp;
+    if (value_is_variable(exp)) return env_get(env, exp->as.symbol);
+    if (value_is_definition(exp)) {
+        env_def(env, exp->as.pair.right->as.pair.left->as.symbol, exp->as.pair.right->as.pair.right->as.pair.left);
+        return value_make_symbol("ok", 2);
+    }
+
+    fprintf(stderr, "unknown expression type\n");
+    return NULL;
+}
 
 static char*
 file_read(const char* path)
@@ -31,6 +50,8 @@ file_read(const char* path)
 int
 main(int argc, char* argv[])
 {
+    struct env* env = env_make();
+
     if (argc == 1) {
         printf("Welcome to Squeaky Scheme!\n");
         printf("Use Ctrl-c to exit.\n");
@@ -44,6 +65,9 @@ main(int argc, char* argv[])
             lexer_init(&lexer, line);
 
             // print out each token
+            printf("\n");
+            printf("Lexer Output\n");
+            printf("------------\n");
             for (;;) {
                 struct token token = lexer_next_token(&lexer);
                 if (token.type == TOKEN_EOF) break;
@@ -54,11 +78,31 @@ main(int argc, char* argv[])
             // reinit the lexer
             lexer_init(&lexer, line);
 
-            // parse and print the token stream
+            // parse the token stream
             struct parser parser = { 0 };
             parser_init(&parser, &lexer);
-            struct value* ast = parser_parse(&parser);
-            value_println(ast);
+            struct value* exp = parser_parse(&parser);
+
+            // print the resulting AST
+            printf("\n");
+            printf("Parser Output\n");
+            printf("-------------\n");
+            value_println(exp);
+
+            // eval the expr
+            struct value* res = eval(exp, env);
+
+            // print the result
+            printf("\n");
+            printf("Result\n");
+            printf("------\n");
+            value_println(res);
+
+            // print out the current env
+            printf("\n");
+            printf("Environment\n");
+            printf("-----------\n");
+            env_print(env);
 
             printf("squeaky> ");
         }
@@ -73,5 +117,6 @@ main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
+    env_free(env);
     return EXIT_SUCCESS;
 }

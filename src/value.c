@@ -117,6 +117,32 @@ value_is_definition(struct value* value)
     return is_tagged_list(value, "define");
 }
 
+bool
+value_is_if(struct value* value)
+{
+    assert(value != NULL);
+
+    return is_tagged_list(value, "if");
+}
+
+bool
+value_is_application(struct value* value)
+{
+    assert(value != NULL);
+
+    return value->type == VALUE_PAIR;
+}
+
+bool
+value_is_null(struct value* value)
+{
+    assert(value != NULL);
+
+    return value->type == VALUE_PAIR &&
+           CAR(value) == NULL &&
+           CDR(value) == NULL;
+}
+
 void
 value_print(const struct value* value)
 {

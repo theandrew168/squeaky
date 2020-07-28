@@ -11,6 +11,21 @@
 #include "value.h"
 
 static struct value* eval(struct value* exp, struct env* env);
+static struct value* apply(struct value* proc, struct value* args);
+
+static struct value* list_of_values(struct value* exps, struct env* env);
+
+static struct value*
+list_of_values(struct value* exps, struct env* env)
+{
+    if (value_is_null(exps)) {
+        return value_make_pair(NULL, NULL);
+    }
+
+    return value_make_pair(
+        eval(CAR(exps), env),
+        list_of_values(CDR(exps), env));
+}
 
 // SICP 4.1.1
 static struct value*
@@ -33,8 +48,20 @@ eval(struct value* exp, struct env* env)
         env_def(env, CADR(exp)->as.symbol, CADDR(exp));
         return value_make_symbol("ok", 2);
     }
+    if (value_is_application(exp)) {
+        return apply(
+            eval(CAR(exp), env),
+            list_of_values(CDR(exp), env));
+    }
 
     fprintf(stderr, "unknown expression type\n");
+    return NULL;
+}
+
+// SICP 4.1.1
+static struct value*
+apply(struct value* proc, struct value* args)
+{
     return NULL;
 }
 

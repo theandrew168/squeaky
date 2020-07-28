@@ -18,6 +18,6 @@ struct parser {
 void parser_init(struct parser* parser, struct lexer* lexer);
 
 bool parser_compile(struct parser* parser, struct chunk* chunk);
-bool parser_print_ast(struct parser* parser);
+bool parser_print(struct parser* parser);
 
 #endif

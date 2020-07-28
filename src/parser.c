@@ -86,7 +86,7 @@ parser_advance(struct parser* parser)
 
 // advance the parser only if the current token type matches
 static void
-parser_consume(struct parser* parser, int type, const char* message)
+parser_match(struct parser* parser, int type, const char* message)
 {
     if (parser->current.type == type) {
         parser_advance(parser);
@@ -96,15 +96,15 @@ parser_consume(struct parser* parser, int type, const char* message)
     error_at_current(parser, message);
 }
 
-static bool parse_datum(struct parser* parser);
-static bool parse_simple_datum(struct parser* parser);
-static bool parse_compound_datum(struct parser* parser);
-static bool parse_list(struct parser* parser);
-static bool parse_abbreviation(struct parser* parser);
-static bool parse_vector(struct parser* parser);
+static bool print_datum(struct parser* parser);
+static bool print_simple_datum(struct parser* parser);
+static bool print_compound_datum(struct parser* parser);
+static bool print_list(struct parser* parser);
+static bool print_abbreviation(struct parser* parser);
+static bool print_vector(struct parser* parser);
 
 static bool
-parse_datum(struct parser* parser)
+print_datum(struct parser* parser)
 {
     switch (parser->current.type) {
         case TOKEN_BOOLEAN:
@@ -112,10 +112,10 @@ parse_datum(struct parser* parser)
         case TOKEN_CHARACTER:
         case TOKEN_STRING:
         case TOKEN_SYMBOL:
-            return parse_simple_datum(parser);
+            return print_simple_datum(parser);
         case TOKEN_LPAREN: 
         case TOKEN_VECTOR:
-            return parse_compound_datum(parser);
+            return print_compound_datum(parser);
         default: 
             error(parser, "invalid datum");
             return false;
@@ -123,7 +123,7 @@ parse_datum(struct parser* parser)
 }
 
 static bool
-parse_simple_datum(struct parser* parser)
+print_simple_datum(struct parser* parser)
 {
     switch (parser->current.type) {
         case TOKEN_BOOLEAN:
@@ -151,14 +151,14 @@ parse_simple_datum(struct parser* parser)
 }
 
 static bool
-parse_compound_datum(struct parser* parser)
+print_compound_datum(struct parser* parser)
 {
     switch (parser->current.type) {
         case TOKEN_LPAREN: 
         case TOKEN_QUOTE:
-            return parse_list(parser);
+            return print_list(parser);
         case TOKEN_VECTOR:
-            return parse_vector(parser);
+            return print_vector(parser);
         default:
             error(parser, "invalid compound datum");
             return false;
@@ -166,15 +166,15 @@ parse_compound_datum(struct parser* parser)
 }
 
 static bool
-parse_list(struct parser* parser)
+print_list(struct parser* parser)
 {
     // check for quote and parse abbrev if found
     if (parser->current.type == TOKEN_QUOTE) {
-        return parse_abbreviation(parser);
+        return print_abbreviation(parser);
     }
 
-    // consume the open paren
-    parser_consume(parser, TOKEN_LPAREN, "expected open paren");
+    // match the open paren
+    parser_match(parser, TOKEN_LPAREN, "expected open paren");
     printf("( ");
 
     // this loop ignores the "last dot" aspect of R5RS lists
@@ -189,7 +189,7 @@ parse_list(struct parser* parser)
                 goto done;
             // otherwise we recursively parse the list's children
             default: {
-                bool res = parse_datum(parser);
+                bool res = print_datum(parser);
                 if (!res) return false;
             }
         }
@@ -197,26 +197,26 @@ parse_list(struct parser* parser)
     }
 
 done:
-    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
+    parser_match(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
     return true;
 }
 
 static bool
-parse_abbreviation(struct parser* parser)
+print_abbreviation(struct parser* parser)
 {
     // match the quote and then just parse another datum
-    parser_consume(parser, TOKEN_QUOTE, "expected quote char");
+    parser_match(parser, TOKEN_QUOTE, "expected quote char");
     printf("'");
 
-    return parse_datum(parser);
+    return print_datum(parser);
 }
 
 static bool
-parse_vector(struct parser* parser)
+print_vector(struct parser* parser)
 {
-    parser_consume(parser, TOKEN_VECTOR, "expected open vector");
+    parser_match(parser, TOKEN_VECTOR, "expected open vector");
     printf("#( ");
 
     for (;;) {
@@ -230,7 +230,7 @@ parse_vector(struct parser* parser)
                 goto done;
             // otherwise we recursively parse the vector's children
             default: {
-                bool res = parse_datum(parser);
+                bool res = print_datum(parser);
                 if (!res) return false;
             }
         }
@@ -238,31 +238,21 @@ parse_vector(struct parser* parser)
     }
 
 done:
-    parser_consume(parser, TOKEN_RPAREN, "expected closing paren");
+    parser_match(parser, TOKEN_RPAREN, "expected closing paren");
     printf(")");
 
     return true;
 }
 
 bool
-parser_compile(struct parser* parser, struct chunk* chunk)
-{
-    assert(parser != NULL);
-    assert(chunk != NULL);
-
-    parser->chunk = chunk;
-    return true;
-}
-
-bool
-parser_print_ast(struct parser* parser)
+parser_print(struct parser* parser)
 {
     assert(parser != NULL);
 
     // init first token and start the recursive parse
     parser_advance(parser);
     while (parser->current.type != TOKEN_EOF) {
-        bool res = parse_datum(parser);
+        bool res = print_datum(parser);
         printf("\n");
 
         if (res) {
@@ -274,6 +264,24 @@ parser_print_ast(struct parser* parser)
         }
     }
 
-    parser_consume(parser, TOKEN_EOF, "expected end of file");
+    parser_match(parser, TOKEN_EOF, "expected end of file");
     return !parser->had_error;
 }
+
+static bool compile_datum(struct parser* parser);
+static bool compile_simple_datum(struct parser* parser);
+static bool compile_compound_datum(struct parser* parser);
+static bool compile_list(struct parser* parser);
+static bool compile_abbreviation(struct parser* parser);
+static bool compile_vector(struct parser* parser);
+
+bool
+parser_compile(struct parser* parser, struct chunk* chunk)
+{
+    assert(parser != NULL);
+    assert(chunk != NULL);
+
+    parser->chunk = chunk;
+    return true;
+}
+

@@ -84,6 +84,24 @@
 // <digit10> : /[0-9]/
 // <digit16> : /[0-9A-Fa-f]/
 
+const char*
+lexer_token_name(int type)
+{
+    switch (type) {
+        case TOKEN_ERROR: return "Error";
+        case TOKEN_SYMBOL: return "Symbol";
+        case TOKEN_BOOLEAN: return "Boolean";
+        case TOKEN_NUMBER: return "Number";
+        case TOKEN_CHARACTER: return "Character";
+        case TOKEN_STRING: return "String";
+        case TOKEN_LPAREN: return "LParen";
+        case TOKEN_RPAREN: return "RParen";
+        case TOKEN_QUOTE: return "Quote";
+        case TOKEN_EOF: return "EOF";
+        default: return "undefined";
+    }
+}
+
 void
 lexer_init(struct lexer* lexer, const char* source)
 {
@@ -138,14 +156,14 @@ is_alpha(char c)
 static bool
 lexer_eof(const struct lexer* lexer)
 {
-    return *lexer->current == '\0';
+    return lexer->current[0] == '\0';
 }
 
 static bool
 lexer_match(struct lexer* lexer, char expected)
 {
     if (lexer_eof(lexer)) return false;
-    if (*lexer->current != expected) return false;
+    if (lexer->current[0] != expected) return false;
 
     lexer->current++;
     return true;
@@ -154,7 +172,7 @@ lexer_match(struct lexer* lexer, char expected)
 static char
 lexer_peek(const struct lexer* lexer)
 {
-    return *lexer->current;
+    return lexer->current[0];
 }
 
 static char
@@ -239,21 +257,26 @@ lexer_next_string(struct lexer* lexer)
 static struct token
 lexer_next_character(struct lexer* lexer)
 {
+    // check for newline char literal
     if (strncmp(lexer->current, "newline", strlen("newline")) == 0) {
         lexer->current += strlen("newline");
         return make_token(lexer, TOKEN_CHARACTER);
     }
+
+    // check for space char literal
     if (strncmp(lexer->current, "space", strlen("space")) == 0) {
         lexer->current += strlen("space");
         return make_token(lexer, TOKEN_CHARACTER);
     }
 
+    // otherwise the char must be a visible one (between exclamation and tilde)
     char c = lexer_advance(lexer);
-    if (c < '!' || c > '~') {
-        return make_error_token(lexer, "invalid character literal");
+    if (c >= '!' && c <= '~') {
+        return make_token(lexer, TOKEN_CHARACTER);
     }
 
-    return make_token(lexer, TOKEN_CHARACTER);
+    // anything at this point isn't valid
+    return make_error_token(lexer, "invalid character literal");
 }
 
 struct token
@@ -283,22 +306,4 @@ lexer_next_token(struct lexer* lexer)
     }
 
     return make_error_token(lexer, "unexpected character");
-}
-
-const char*
-lexer_token_name(int type)
-{
-    switch (type) {
-        case TOKEN_ERROR: return "Error";
-        case TOKEN_SYMBOL: return "Symbol";
-        case TOKEN_BOOLEAN: return "Boolean";
-        case TOKEN_NUMBER: return "Number";
-        case TOKEN_CHARACTER: return "Character";
-        case TOKEN_STRING: return "String";
-        case TOKEN_LPAREN: return "LParen";
-        case TOKEN_RPAREN: return "RParen";
-        case TOKEN_QUOTE: return "Quote";
-        case TOKEN_EOF: return "EOF";
-        default: return "undefined";
-    }
 }

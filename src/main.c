@@ -44,17 +44,17 @@ main(int argc, char* argv[])
 
         char line[512] = { 0 };
         while (fgets(line, sizeof(line), stdin) != NULL) {
-            vm_interpret(&vm, line);
+//            vm_interpret(&vm, line);
             printf("squeaky> ");
         }
 
         printf("\n");
     } else if (argc == 2) {
         char* source = file_read(argv[1]);
-        int res = vm_interpret(&vm, source);
+//        int res = vm_interpret(&vm, source);
         free(source);
 
-        if (res != VM_OK) rc = EXIT_FAILURE;
+//        if (res != VM_OK) rc = EXIT_FAILURE;
     } else {
         fprintf(stderr, "usage: %s [path]\n", argv[0]);
         rc = EXIT_FAILURE;

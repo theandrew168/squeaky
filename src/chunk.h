@@ -23,27 +23,21 @@
 enum opcode {
     OP_UNDEFINED = 0,
     OP_CONSTANT,
-    OP_ADD,
-    OP_SUBTRACT,
-    OP_MULTIPLY,
-    OP_DIVIDE,
-    OP_NEGATE,
     OP_RETURN,
 };
 
 struct chunk {
     long count;
     long capacity;
-    uint8_t* code;
-    long* lines;
+    uint32_t* code;
     struct value_array constants;
 };
 
 void chunk_init(struct chunk* chunk);
 void chunk_free(struct chunk* chunk);
 
-void chunk_write(struct chunk* chunk, uint8_t byte, long line);
-long chunk_add_constant(struct chunk* chunk, Value value);
+void chunk_write(struct chunk* chunk, uint16_t op, uint16_t arg);
+long chunk_add_constant(struct chunk* chunk, struct value* value);
 
 void chunk_disassemble(const struct chunk* chunk, const char* name);
 long chunk_disassemble_inst(const struct chunk* chunk, long offset);

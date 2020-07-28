@@ -22,6 +22,8 @@ struct token {
     long line;
 };
 
+void lexer_token_print(const struct token* token);
+void lexer_token_println(const struct token* token);
 const char* lexer_token_name(int type);
 
 struct lexer {

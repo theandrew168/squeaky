@@ -7,7 +7,6 @@
 #include "lexer.h"
 
 struct parser {
-    struct chunk* chunk;
     struct lexer* lexer;
     struct token current;
     struct token previous;

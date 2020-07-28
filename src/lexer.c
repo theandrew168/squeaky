@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "lexer.h"
@@ -84,6 +85,23 @@
 // <digit10> : /[0-9]/
 // <digit16> : /[0-9A-Fa-f]/
 
+void
+lexer_token_print(const struct token* token)
+{
+    assert(token != NULL);
+
+    printf("  %-10s %.*s", lexer_token_name(token->type), (int)token->length, token->start);
+}
+
+void
+lexer_token_println(const struct token* token)
+{
+    assert(token != NULL);
+
+    lexer_token_print(token);
+    printf("\n");
+}
+
 const char*
 lexer_token_name(int type)
 {
@@ -96,6 +114,7 @@ lexer_token_name(int type)
         case TOKEN_STRING: return "String";
         case TOKEN_LPAREN: return "LParen";
         case TOKEN_RPAREN: return "RParen";
+        case TOKEN_VECTOR: return "Vector";
         case TOKEN_QUOTE: return "Quote";
         case TOKEN_EOF: return "EOF";
         default: return "undefined";

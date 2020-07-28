@@ -33,7 +33,6 @@ parser_init(struct parser* parser, struct lexer* lexer)
     assert(parser != NULL);
     assert(lexer != NULL);
 
-    parser->chunk = NULL;
     parser->lexer = lexer;
     parser->had_error = false;
     parser->panic_mode = false;
@@ -268,20 +267,12 @@ parser_print(struct parser* parser)
     return !parser->had_error;
 }
 
-static bool compile_datum(struct parser* parser);
-static bool compile_simple_datum(struct parser* parser);
-static bool compile_compound_datum(struct parser* parser);
-static bool compile_list(struct parser* parser);
-static bool compile_abbreviation(struct parser* parser);
-static bool compile_vector(struct parser* parser);
-
 bool
 parser_compile(struct parser* parser, struct chunk* chunk)
 {
     assert(parser != NULL);
     assert(chunk != NULL);
 
-    parser->chunk = chunk;
     return true;
 }
 

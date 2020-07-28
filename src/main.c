@@ -5,7 +5,7 @@
 
 #include <SDL2/SDL.h>
 
-#include "chunk.h"
+#include "lexer.h"
 #include "vm.h"
 
 static char*
@@ -31,8 +31,6 @@ file_read(const char* path)
 int
 main(int argc, char* argv[])
 {
-    int rc = EXIT_SUCCESS;
-
     struct vm vm = { 0 };
     vm_init(&vm);
 
@@ -44,22 +42,30 @@ main(int argc, char* argv[])
 
         char line[512] = { 0 };
         while (fgets(line, sizeof(line), stdin) != NULL) {
-//            vm_interpret(&vm, line);
+            struct lexer lexer = { 0 };
+            lexer_init(&lexer, line);
+
+            for (;;) {
+                struct token token = lexer_next_token(&lexer);
+                if (token.type == TOKEN_EOF) break;
+
+                lexer_token_println(&token);
+            }
+
             printf("squeaky> ");
         }
 
         printf("\n");
     } else if (argc == 2) {
+        // TODO: handle source files
         char* source = file_read(argv[1]);
-//        int res = vm_interpret(&vm, source);
         free(source);
-
-//        if (res != VM_OK) rc = EXIT_FAILURE;
     } else {
         fprintf(stderr, "usage: %s [path]\n", argv[0]);
-        rc = EXIT_FAILURE;
+        vm_free(&vm);
+        return EXIT_FAILURE;
     }
 
     vm_free(&vm);
-    return rc;
+    return EXIT_SUCCESS;
 }

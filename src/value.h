@@ -63,8 +63,9 @@ void value_free(struct value* value);
 
 bool value_is_self_evaluating(struct value* value);
 bool value_is_variable(struct value* value);
-bool value_is_definition(struct value* value);
 bool value_is_quoted(struct value* value);
+bool value_is_assignment(struct value* value);
+bool value_is_definition(struct value* value);
 
 void value_print(const struct value* value);
 void value_println(const struct value* value);

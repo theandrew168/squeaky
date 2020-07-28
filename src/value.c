@@ -68,6 +68,15 @@ value_free(struct value* value)
     free(value);
 }
 
+static bool
+is_tagged_list(struct value* value, const char* tag)
+{
+    if (value->type != VALUE_PAIR) return false;
+    if (CAR(value)->type != VALUE_SYMBOL) return false;
+
+    return strcmp(CAR(value)->as.symbol, tag) == 0;
+}
+
 bool
 value_is_self_evaluating(struct value* value)
 {
@@ -84,13 +93,20 @@ value_is_variable(struct value* value)
     return value->type == VALUE_SYMBOL;
 }
 
-static bool
-is_tagged_list(struct value* value, const char* tag)
+bool
+value_is_quoted(struct value* value)
 {
-    if (value->type != VALUE_PAIR) return false;
-    if (CAR(value)->type != VALUE_SYMBOL) return false;
+    assert(value != NULL);
 
-    return strcmp(CAR(value)->as.symbol, tag) == 0;
+    return is_tagged_list(value, "quote");
+}
+
+bool
+value_is_assignment(struct value* value)
+{
+    assert(value != NULL);
+
+    return is_tagged_list(value, "set!");
 }
 
 bool
@@ -99,14 +115,6 @@ value_is_definition(struct value* value)
     assert(value != NULL);
 
     return is_tagged_list(value, "define");
-}
-
-bool
-value_is_quoted(struct value* value)
-{
-    assert(value != NULL);
-
-    return is_tagged_list(value, "quote");
 }
 
 void

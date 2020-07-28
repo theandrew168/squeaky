@@ -52,7 +52,7 @@ env_get(const struct env* env, const char* k)
 }
 
 void
-env_put(struct env* env, const char* k, struct value* v)
+env_set(struct env* env, const char* k, struct value* v)
 {
     assert(env != NULL);
     assert(k != NULL);
@@ -86,7 +86,7 @@ env_def(struct env* env, const char* k, struct value* v)
 
     // advance to the parent-most env before adding the new kv pair
     while (env->parent != NULL) env = env->parent;
-    env_put(env, k, v);
+    env_set(env, k, v);
 }
 
 void

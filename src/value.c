@@ -23,7 +23,7 @@ value_make_string(const char* string, long length)
 
     struct value* value = malloc(sizeof(value));
     value->type = VALUE_STRING;
-    value->as.string = malloc(length -2 + 1);  // don't keep the two quote chars
+    value->as.string = malloc(length - 2 + 1);  // don't keep the two quote chars
     strncpy(value->as.string, string + 1, length - 2);
     return value;
 }

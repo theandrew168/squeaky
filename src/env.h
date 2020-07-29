@@ -3,20 +3,9 @@
 
 #include "value.h"
 
-struct env {
-    struct env* parent;
-    long count;
-    char** symbols;
-    struct value** values;
-};
+struct value* env_get(const struct value* env, const struct value* k);
+void env_set(struct value* env, struct value* k, struct value* v);
 
-struct env* env_make(void);
-void env_free(struct env* env);
-
-struct value* env_get(const struct env* env, const char* k);
-void env_set(struct env* env, const char* k, struct value* v);
-void env_def(struct env* env, const char* k, struct value* v);
-
-void env_print(const struct env* env);
+void env_print(const struct value* env);
 
 #endif

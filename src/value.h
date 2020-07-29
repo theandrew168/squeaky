@@ -9,8 +9,18 @@ enum value_type {
     VALUE_STRING,
     VALUE_SYMBOL,
     VALUE_PAIR,
+    VALUE_BUILTIN,
+    VALUE_LAMBDA,
 };
 
+struct value;
+struct env;
+typedef struct value* (*builtin_func)(struct value* value, struct env* env);
+
+// 16 bytes on a 32-bit system?
+// 32 bytes on a 64-bit system?
+// assuming the int will pad to 8 bytes and
+//   lambda is the biggest value (3 * 8 = 24)
 struct value {
     int type;
     union {
@@ -21,8 +31,16 @@ struct value {
             struct value* car;
             struct value* cdr;
         } pair;
+        builtin_func builtin;
+        struct {
+            struct value* params;
+            struct value* body;
+            struct env* env;
+        } lambda;
     } as;
 };
+
+#define CONS(a,b) (value_make_pair((a), (b)))
 
 #define CAR(v)    ((v)->as.pair.car)
 #define CDR(v)    ((v)->as.pair.cdr)

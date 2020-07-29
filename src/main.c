@@ -10,48 +10,43 @@
 #include "parser.h"
 #include "value.h"
 
-static struct value* eval(struct value* exp, struct env* env);
-static struct value* apply(struct value* proc, struct value* args);
+// TODO: static empty list constant?
+// TODO: some sort of list creation helper?
 
-static struct value* list_of_values(struct value* exps, struct env* env);
+static struct value* eval(struct value* exp, struct value* env);
+static struct value* apply(struct value* proc, struct value* args);
+static struct value* lookup(struct value* exp, struct value* env);
+static struct value* evlist(struct value* exps, struct value* env);
+static struct value* evcond(struct value* exps, struct value* env);
 
 static struct value*
-list_of_values(struct value* exps, struct env* env)
+evlist(struct value* exps, struct value* env)
 {
     if (value_is_null(exps)) {
         return value_make_pair(NULL, NULL);
     }
 
-    return value_make_pair(
-        eval(CAR(exps), env),
-        list_of_values(CDR(exps), env));
+    return CONS(eval(CAR(exps), env), evlist(CDR(exps), env));
 }
 
 // SICP 4.1.1
 static struct value*
-eval(struct value* exp, struct env* env)
+eval(struct value* exp, struct value* env)
 {
-    if (value_is_self_evaluating(exp)) {
+    if (exp->type == VALUE_NUMBER) {
         return exp;
-    }
-    if (value_is_variable(exp)) {
-        return env_get(env, exp->as.symbol);
-    }
-    if (value_is_quoted(exp)) {
+    } else if (exp->type == VALUE_SYMBOL) {
+        return lookup(exp, env);
+    } else if (strcmp(CAR(exp)->as.symbol, "quote") == 0) {
         return CADR(exp);
-    }
-    if (value_is_assignment(exp)) {
-        env_set(env, CADR(exp)->as.symbol, CADDR(exp));
-        return value_make_symbol("ok", 2);
-    }
-    if (value_is_definition(exp)) {
-        env_def(env, CADR(exp)->as.symbol, CADDR(exp));
-        return value_make_symbol("ok", 2);
-    }
-    if (value_is_application(exp)) {
-        return apply(
-            eval(CAR(exp), env),
-            list_of_values(CDR(exp), env));
+    } else if (strcmp(CAR(exp)->as.symbol, "lambda") == 0) {
+        return CONS(value_make_symbol("closure", 7),
+                    CONS(CDR(exp),
+                         CONS(env, value_make_pair(NULL, NULL))));
+    } else if (strcmp(CAR(exp)->as.symbol, "cond") == 0) {
+        return evcond(CDR(exp), env);
+    } else {
+
     }
 
     fprintf(stderr, "unknown expression type\n");
@@ -62,6 +57,13 @@ eval(struct value* exp, struct env* env)
 static struct value*
 apply(struct value* proc, struct value* args)
 {
+    if (proc->type == VALUE_BUILTIN) {
+
+    } else if (proc->type == VALUE_LAMBDA) {
+
+    }
+
+    fprintf(stderr, "unknown procesdure type\n");
     return NULL;
 }
 

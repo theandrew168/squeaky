@@ -84,6 +84,33 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 }
 
 void
+value_free(struct value* value)
+{
+    if (value == NULL) return;
+
+    switch (value->type) {
+        case VALUE_NUMBER:
+            break;
+        case VALUE_SYMBOL:
+            free(value->as.symbol);
+            break;
+        case VALUE_PAIR:
+            value_free(value->as.pair.car);
+            value_free(value->as.pair.cdr);
+            break;
+        case VALUE_BUILTIN:
+            break;
+        case VALUE_LAMBDA:
+            value_free(value->as.lambda.params);
+            value_free(value->as.lambda.body);
+            value_free(value->as.lambda.env);
+            break;
+    }
+
+    free(value);
+}
+
+void
 value_print(const struct value* value)
 {
     switch (value->type) {
@@ -164,6 +191,7 @@ read(const char* str, long* consumed)
         char* iter = NULL;
         long number = strtol(start, &iter, 10);
         *consumed = iter - str;
+        printf("num consumed %ld\n", iter - str);
         return value_make_number(number);
     }
 
@@ -179,8 +207,18 @@ read(const char* str, long* consumed)
     // TODO: this case is ugly, need to read hella book
     if (*start == '(') {
         const char* iter = start + 1;
+
+        // whitespace / comments (again)
+        while (strchr(space, *iter) && *iter != '\0') {
+            if (*iter == ';') {
+                while (*iter != '\n' && *iter != '\0') iter++;
+            }
+            iter++;
+        }
+
         struct value* list = NULL;
         while (*iter != ')') {
+
             // read the next value
             struct value* cell = cons(read(iter, consumed), NULL);
 
@@ -195,6 +233,14 @@ read(const char* str, long* consumed)
 
             // advance to end of read value
             iter += *consumed;
+
+            // whitespace / comments (AGAIN)
+            while (strchr(space, *iter) && *iter != '\0') {
+                if (*iter == ';') {
+                    while (*iter != '\n' && *iter != '\0') iter++;
+                }
+                iter++;
+            }
         }
 
         iter++;  // move past the closing paren
@@ -227,7 +273,7 @@ eval(struct value* exp, struct value* env)
     } else if (strcmp(car(exp)->as.symbol, "lambda") == 0) {
         return cons(value_make_symbol("closure", 7),
                     cons(cdr(exp),
-                         cons(env, value_make_pair(NULL, NULL))));
+                         cons(env, NULL)));
     } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
         return evcond(cdr(exp), env);
     } else {
@@ -288,6 +334,7 @@ main(int argc, char* argv[])
         printf("exp type: %d\n", exp->type);
         printf("consumed: %ld\n", consumed);
 
+        value_free(exp);
         printf("> ");
     }
 }

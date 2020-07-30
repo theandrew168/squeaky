@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,11 +10,14 @@
 
 enum value_type {
     VALUE_UNDEFINED = 0,
+    VALUE_BOOLEAN,
     VALUE_NUMBER,
+    VALUE_STRING,
     VALUE_SYMBOL,
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
+    VALUE_ERROR,
 };
 
 struct value;
@@ -22,7 +26,9 @@ typedef struct value* (*builtin_func)(struct value* args);
 struct value {
     int type;
     union {
+        bool boolean;
         long number;
+        char* string;
         char* symbol;
         struct {
             struct value* car;
@@ -34,8 +40,18 @@ struct value {
             struct value* body;
             struct value* env;
         } lambda;
+        char* error;
     } as;
 };
+
+struct value*
+value_make_boolean(bool boolean)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_BOOLEAN;
+    value->as.boolean = boolean;
+    return value;
+}
 
 struct value*
 value_make_number(long number)
@@ -43,6 +59,17 @@ value_make_number(long number)
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_NUMBER;
     value->as.number = number;
+    return value;
+}
+
+struct value*
+value_make_string(const char* string, long length)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_STRING;
+    value->as.string = malloc(length - 2 + 1); // leave out the quotes
+    strncpy(value->as.string, string + 1, length - 2);
+    value->as.string[length - 2] = '\0';
     return value;
 }
 
@@ -87,13 +114,28 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
     return value;
 }
 
+struct value*
+value_make_error(const char* error)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_ERROR;
+    value->as.error = malloc(strlen(error) + 1);
+    strcpy(value->as.error, error);
+    return value;
+}
+
 void
 value_free(struct value* value)
 {
     if (value == NULL) return;
 
     switch (value->type) {
+        case VALUE_BOOLEAN:
+            break;
         case VALUE_NUMBER:
+            break;
+        case VALUE_STRING:
+            free(value->as.string);
             break;
         case VALUE_SYMBOL:
             free(value->as.symbol);
@@ -109,17 +151,29 @@ value_free(struct value* value)
             value_free(value->as.lambda.body);
             value_free(value->as.lambda.env);
             break;
+        case VALUE_ERROR:
+            free(value->as.error);
+            break;
     }
 
     free(value);
 }
 
+// TODO: this is actually R5RS "write"
+// but pair would need to be simplified once all
+//   the cars / cdrs are settled
 void
 value_print(const struct value* value)
 {
     switch (value->type) {
+        case VALUE_BOOLEAN:
+            printf("%s", value->as.boolean ? "#t" : "#f");
+            break;
         case VALUE_NUMBER:
             printf("%ld", value->as.number);
+            break;
+        case VALUE_STRING:
+            printf("\"%s\"", value->as.string);
             break;
         case VALUE_SYMBOL:
             printf("%s", value->as.symbol);
@@ -143,6 +197,9 @@ value_print(const struct value* value)
         case VALUE_LAMBDA:
             printf("<lambda>");
             break;
+        case VALUE_ERROR:
+            printf("error: %s", value->as.error);
+            break;
         default:
             printf("<undefined>");
     }
@@ -164,9 +221,24 @@ value_print(const struct value* value)
 #define cddar(v)  (cdr(cdr(car(v))))
 #define cdddr(v)  (cdr(cdr(cdr(v))))
 
-struct value* env_get(struct value* k, struct value* env);
-void env_set(struct value* k, struct value* v, struct value* env);
-void env_def(struct value* k, struct value* v, struct value* env);
+// recur search all frames
+struct value*
+env_lookup(struct value* sym, struct value* env)
+{
+    return value_make_error("TODO env_lookup");
+}
+
+// recur serach and update, error if not found
+void
+env_update(struct value* sym, struct value* value, struct value* env)
+{
+}
+
+// search first frame only, update if found, add if not
+void
+env_define(struct value* sym, struct value* value, struct value* env)
+{
+}
 
 struct value*
 read(const char* str, long* consumed)
@@ -191,7 +263,23 @@ read(const char* str, long* consumed)
 
     // EOF
     if (*start == '\0') {
-        assert(0 && "unexpected EOF");
+        *consumed = start - str;
+        return value_make_error("unexpected EOF");
+    }
+
+    // boolean
+    // TODO: character
+    if (*start == '#') {
+        const char* iter = start;
+        iter++;
+        if (strchr("tf", *iter)) {
+            bool boolean = *iter == 't';
+            iter++;
+            *consumed = iter - str;
+            return value_make_boolean(boolean);
+        }
+
+        return value_make_error("invalid expression");
     }
 
     // number
@@ -200,6 +288,19 @@ read(const char* str, long* consumed)
         long number = strtol(start, &iter, 10);
         *consumed = iter - str;
         return value_make_number(number);
+    }
+
+    // string
+    if (*start == '"') {
+        const char* iter = start;
+        iter++;  // consume open quote
+
+        while (*iter != '"' && *iter != '\0') iter++;
+        if (*iter == '\0') return value_make_error("unterminated string");
+
+        iter++;  // consume close quote
+        *consumed = iter - str;
+        return value_make_string(start, iter - start);
     }
 
     // symbol
@@ -213,7 +314,8 @@ read(const char* str, long* consumed)
     // pair / list / s-expression
     // TODO: this case is ugly, need to read hella book
     if (*start == '(') {
-        const char* iter = start + 1;
+        const char* iter = start;
+        iter++;  // skip open paren
 
         // whitespace / comments (again)
         while (strchr(space, *iter) && *iter != '\0') {
@@ -259,7 +361,7 @@ read(const char* str, long* consumed)
         return list;
     }
 
-    assert(0 && "invalid expression");
+    return value_make_error("invalid expression");
 }
 
 struct value* eval(struct value* exp, struct value* env);
@@ -272,7 +374,13 @@ struct value* bind(struct value* vars, struct value* vals, struct value* env);
 struct value*
 eval(struct value* exp, struct value* env)
 {
-    if (exp->type == VALUE_NUMBER) {
+    if (exp->type == VALUE_BOOLEAN) {
+        return exp;
+    } else if (exp->type == VALUE_NUMBER) {
+        return exp;
+    } else if (exp->type == VALUE_STRING) {
+        return exp;
+    } else if (exp->type == VALUE_ERROR) {
         return exp;
     } else if (exp->type == VALUE_SYMBOL) {
         return lookup(exp, env);
@@ -302,7 +410,7 @@ apply(struct value* proc, struct value* args)
         // on top of the lambda's initial env
         return eval(proc->as.lambda.body, bind(proc->as.lambda.params, args, proc->as.lambda.env));
     } else {
-        assert(0 && "unknown procedure type");
+        return value_make_error("unknown procedure type");
     }
 }
 
@@ -347,7 +455,7 @@ struct value*
 lookup(struct value* sym, struct value* env)
 {
     if (env == NULL) {
-        assert(0 && "unbound variable");
+        return value_make_error("unbound variable");
     }
 
     struct value* vcell = assq(sym, car(env));
@@ -363,10 +471,10 @@ pair_up(struct value* vars, struct value* vals)
 {
     if (vars == NULL && vals == NULL) return NULL;
     if (vars == NULL) {
-        assert(0 && "too many arguments given to lambda");
+        return value_make_error("too many arguments given to lambda");
     }
     if (vals == NULL) {
-        assert(0 && "too few arguments given to lambda");
+        return value_make_error("too few arguments given to lambda");
     }
 
     return cons(cons(car(vars), car(vals)),

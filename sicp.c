@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,6 +166,8 @@ value_free(struct value* value)
 void
 value_print(const struct value* value)
 {
+    assert(value != NULL);
+
     switch (value->type) {
         case VALUE_BOOLEAN:
             printf("%s", value->as.boolean ? "#t" : "#f");
@@ -180,7 +183,7 @@ value_print(const struct value* value)
             break;
         case VALUE_PAIR:
             if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
-                printf("EMPTY");
+                printf("ok");
                 break;
             }
             printf("(");
@@ -205,6 +208,29 @@ value_print(const struct value* value)
     }
 }
 
+#define value_is_boolean(v) ((v)->type == VALUE_BOOLEAN)
+#define value_is_number(v)  ((v)->type == VALUE_NUMBER)
+#define value_is_string(v)  ((v)->type == VALUE_STRING)
+#define value_is_symbol(v)  ((v)->type == VALUE_SYMBOL)
+#define value_is_pair(v)    ((v)->type == VALUE_PAIR)
+#define value_is_builtin(v) ((v)->type == VALUE_BUILTIN)
+#define value_is_lambda(v)  ((v)->type == VALUE_LAMBDA)
+#define value_is_error(v)   ((v)->type == VALUE_ERROR)
+
+bool
+value_is_true(struct value* exp)
+{
+    return value_is_boolean(exp) &&
+           exp->as.boolean == true;
+}
+
+bool
+value_is_false(struct value* exp)
+{
+    return value_is_boolean(exp) &&
+           exp->as.boolean == false;
+}
+
 #define cons(a,b) (value_make_pair((a), (b)))
 #define car(v)    ((v)->as.pair.car)
 #define cdr(v)    ((v)->as.pair.cdr)
@@ -221,23 +247,112 @@ value_print(const struct value* value)
 #define cddar(v)  (cdr(cdr(car(v))))
 #define cdddr(v)  (cdr(cdr(cdr(v))))
 
+struct value*
+list(struct value* value, ...)
+{
+    va_list args;
+    va_start(args, value);
+
+    struct value* head = cons(value, NULL);
+    struct value* tail = head;
+    for (;;) {
+        struct value* v = va_arg(args, struct value*);
+        if (v == NULL) break;
+
+        cdr(tail) = cons(v, NULL);
+        tail = cdr(tail);
+    }
+
+    va_end(args);
+    return head;
+}
+
+static struct value*
+pair_up(struct value* vars, struct value* vals)
+{
+    if (vars == NULL && vals == NULL) return NULL;
+    if (vars == NULL) {
+        fprintf(stderr, "too many arguments given to lambda... crash!\n");
+        return value_make_error("too many arguments given to lambda");
+    }
+    if (vals == NULL) {
+        fprintf(stderr, "too few arguments given to lambda... crash!\n");
+        return value_make_error("too few arguments given to lambda");
+    }
+
+    return cons(cons(car(vars), car(vals)),
+                pair_up(cdr(vars), cdr(vals)));
+}
+
+// create a new env with a leading frame that binds vars to vals
+struct value*
+env_bind(struct value* vars, struct value* vals, struct value* env)
+{
+    return cons(pair_up(vars, vals), env);
+}
+
+// search a frame for a given symbol, return (sym, value) pair if found
+static struct value*
+assq(struct value* sym, struct value* frame)
+{
+    if (frame == NULL) return NULL;
+
+    // TODO: type assertion for the symbols?
+
+    if (strcmp(sym->as.symbol, caar(frame)->as.symbol) == 0) {
+        return car(frame);
+    } else {
+        return assq(sym, cdr(frame));
+    }
+}
+
 // recur search all frames
 struct value*
 env_lookup(struct value* sym, struct value* env)
 {
-    return value_make_error("TODO env_lookup");
+    if (env == NULL) {
+        return value_make_error("unbound variable");
+    }
+
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        return cdr(vcell);
+    } else {
+        return env_lookup(sym, cdr(env));
+    }
 }
 
 // recur serach and update, error if not found
-void
+struct value*
 env_update(struct value* sym, struct value* value, struct value* env)
 {
+    if (env == NULL) {
+        return value_make_error("unbound variable");
+    }
+
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        cdr(vcell) = value;
+        return value_make_pair(NULL, NULL);
+    } else {
+        return env_lookup(sym, cdr(env));
+    }
 }
 
 // search first frame only, update if found, add if not
-void
+struct value*
 env_define(struct value* sym, struct value* value, struct value* env)
 {
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        // update exiting vcell
+        cdr(vcell) = value;
+    } else {
+        // prepend a new vcell to this frame
+        car(env) = cons(cons(sym, value), car(env));
+    }
+
+    return value_make_pair(NULL, NULL);
 }
 
 struct value*
@@ -368,8 +483,6 @@ struct value* eval(struct value* exp, struct value* env);
 struct value* apply(struct value* proc, struct value* args);
 struct value* evlist(struct value* exps, struct value* env);
 struct value* evcond(struct value* exps, struct value* env);
-struct value* lookup(struct value* sym, struct value* env);
-struct value* bind(struct value* vars, struct value* vals, struct value* env);
 
 struct value*
 eval(struct value* exp, struct value* env)
@@ -383,7 +496,7 @@ eval(struct value* exp, struct value* env)
     } else if (exp->type == VALUE_ERROR) {
         return exp;
     } else if (exp->type == VALUE_SYMBOL) {
-        return lookup(exp, env);
+        return env_lookup(exp, env);
     } else if (strcmp(car(exp)->as.symbol, "quote") == 0) {
         return cadr(exp);
     } else if (strcmp(car(exp)->as.symbol, "lambda") == 0) {
@@ -393,6 +506,10 @@ eval(struct value* exp, struct value* env)
         return value_make_lambda(cadr(exp), caddr(exp), env);
     } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
         return evcond(cdr(exp), env);
+    } else if (strcmp(car(exp)->as.symbol, "define") == 0) {
+        return env_define(cadr(exp), eval(caddr(exp), env), env);
+    } else if (strcmp(car(exp)->as.symbol, "set!") == 0) {
+        return env_update(cadr(exp), eval(caddr(exp), env), env);
     } else {
         return apply(eval(car(exp), env), evlist(cdr(exp), env));
     }
@@ -408,7 +525,7 @@ apply(struct value* proc, struct value* args)
         // eval the lambda body in a new env that
         // binds the params to these args in a new frame
         // on top of the lambda's initial env
-        return eval(proc->as.lambda.body, bind(proc->as.lambda.params, args, proc->as.lambda.env));
+        return eval(proc->as.lambda.body, env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
     } else {
         return value_make_error("unknown procedure type");
     }
@@ -430,61 +547,11 @@ evcond(struct value* exps, struct value* env)
     if (caar(exps)->type == VALUE_SYMBOL &&
         strcmp(caar(exps)->as.symbol, "else") == 0) {
         return eval(cadar(exps), env);
-    } else if (eval(caar(exps), env) == NULL) {
+    } else if (value_is_false(eval(caar(exps), env))) {
         return evcond(cdr(exps), env);
     } else {
         return eval(cadar(exps), env);
     }
-}
-
-static struct value*
-assq(struct value* sym, struct value* frame)
-{
-    if (frame == NULL) return NULL;
-
-    // TODO: type assertion for the symbols?
-
-    if (strcmp(sym->as.symbol, caar(frame)->as.symbol) == 0) {
-        return car(frame);
-    } else {
-        return assq(sym, cdr(frame));
-    }
-}
-
-struct value*
-lookup(struct value* sym, struct value* env)
-{
-    if (env == NULL) {
-        return value_make_error("unbound variable");
-    }
-
-    struct value* vcell = assq(sym, car(env));
-    if (vcell != NULL) {
-        return cdr(vcell);
-    } else {
-        return lookup(sym, cdr(env));
-    }
-}
-
-static struct value*
-pair_up(struct value* vars, struct value* vals)
-{
-    if (vars == NULL && vals == NULL) return NULL;
-    if (vars == NULL) {
-        return value_make_error("too many arguments given to lambda");
-    }
-    if (vals == NULL) {
-        return value_make_error("too few arguments given to lambda");
-    }
-
-    return cons(cons(car(vars), car(vals)),
-                pair_up(cdr(vars), cdr(vals)));
-}
-
-struct value*
-bind(struct value* vars, struct value* vals, struct value* env)
-{
-    return cons(pair_up(vars, vals), env);
 }
 
 struct value*
@@ -509,30 +576,27 @@ b_multiply(struct value* args)
     return value_make_number(product);
 }
 
-// TODO: list creation helper
-// TODO: list len helper
-// TODO: env helper: get - recur search all frames
-// TODO: env helper: set - recur serach and update, error if not found
-// TODO: env helper: def - search first frame only, update if found, add if not
-
 int
 //main(int argc, char* argv[])
 main(void)
 {
-    struct value* env = bind(
-        cons(value_make_symbol("+", 1), 
-             cons(value_make_symbol("*", 1), NULL)),
-        cons(value_make_builtin(b_plus),
-             cons(value_make_builtin(b_multiply), NULL)),
+    struct value* vars = list(
+        value_make_symbol("+", 1),
+        value_make_symbol("*", 1),
         NULL);
+    struct value* vals = list(
+        value_make_builtin(b_plus),
+        value_make_builtin(b_multiply),
+        NULL);
+    struct value* env = env_bind(vars, vals, NULL);
 
     printf("> ");
     char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = read(line, &consumed);
-        value_print(exp);
-        printf("\n");
+//        value_print(exp);
+//        printf("\n");
 
         struct value* res = eval(exp, env);
         value_print(res);

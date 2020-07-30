@@ -95,14 +95,14 @@ value_print(const struct value* value)
             break;
         case VALUE_PAIR:
             if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
-                printf("()");
+                printf("EMPTY");
                 break;
             }
             printf("(");
-            if (value->as.pair.car == NULL) printf("()");
+            if (value->as.pair.car == NULL) printf("'()");
             else value_print(value->as.pair.car);
             printf(" . ");
-            if (value->as.pair.cdr == NULL) printf("()");
+            if (value->as.pair.cdr == NULL) printf("'()");
             else value_print(value->as.pair.cdr);
             printf(")");
             break;
@@ -119,7 +119,7 @@ value_print(const struct value* value)
 
 #define cons(a,b) (value_make_pair((a), (b)))
 #define car(v)    ((v)->as.pair.car)
-#define cdr(v)    ((v)->as.pair.car)
+#define cdr(v)    ((v)->as.pair.cdr)
 #define caar(v)   (car(car(v)))
 #define cadr(v)   (car(cdr(v)))
 #define cdar(v)   (cdr(car(v)))
@@ -134,12 +134,76 @@ value_print(const struct value* value)
 #define cdddr(v)  (cdr(cdr(cdr(v))))
 
 struct value*
-read(const char* str)
+read(const char* str, long* consumed)
 {
-    if (*str >= '0' && *str <= '9') {
-        char* end = NULL;
-        long number = strtol(str, &end, 10);
+    const char space[] = " \f\n\r\t\v;";
+    const char digit[] = "0123456789";
+    const char alpha[] =
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "!$%&*/:<=>?^_~";
+
+    // needed to capture how many chars this value consumes
+    const char* start = str;
+
+    // whitespace / comments
+    while (strchr(space, *start) && *start != '\0') {
+        if (*start == ';') {
+            while (*start != '\n' && *start != '\0') start++;
+        }
+        start++;
+    }
+
+    // EOF
+    if (*start == '\0') {
+        assert(0 && "TODO: better handling of unexpected EOF");
+    }
+
+    // number
+    if (strchr(digit, *start)) {
+        char* iter = NULL;
+        long number = strtol(start, &iter, 10);
+        *consumed = iter - str;
         return value_make_number(number);
+    }
+
+    // symbol
+    if (strchr(alpha, *start)) {
+        const char* iter = start;
+        while (strchr(alpha, *iter)) iter++;
+        *consumed = iter - str;
+        return value_make_symbol(start, iter - start);
+    }
+
+    // pair / list / s-expression
+    // TODO: this case is ugly, need to read hella book
+    if (*start == '(') {
+        const char* iter = start + 1;
+        struct value* list = NULL;
+        while (*iter != ')') {
+            // read the next value
+            struct value* cell = cons(read(iter, consumed), NULL);
+
+            // if first child, replace the list ptr
+            if (list == NULL) {
+                list = cell;
+            } else {  // else cons like normal
+                struct value* last = list;
+                while (cdr(last) != NULL) last = cdr(last);
+                cdr(last) = cell;
+            }
+
+            // advance to end of read value
+            iter += *consumed;
+        }
+
+        iter++;  // move past the closing paren
+        *consumed = iter - str;
+
+        // special case if list never got built
+        if (list == NULL) return cons(NULL, NULL);
+
+        return list;
     }
 
     return value_make_pair(NULL, NULL);
@@ -216,9 +280,13 @@ main(int argc, char* argv[])
 
     printf("> ");
     while (fgets(line, sizeof(line), stdin) != NULL) {
-        struct value* exp = read(line);
+        long consumed = 0;
+        struct value* exp = read(line, &consumed);
         value_print(exp);
         printf("\n");
+
+        printf("exp type: %d\n", exp->type);
+        printf("consumed: %ld\n", consumed);
 
         printf("> ");
     }

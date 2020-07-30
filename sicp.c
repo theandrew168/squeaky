@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+// 1. Define core data structure (linkable tagged union)
+// 2. Convert text to this data structure (read)
+// 3. Evaluate the data structure (eval/apply)
+
 enum value_type {
     VALUE_UNDEFINED = 0,
     VALUE_NUMBER,
@@ -13,7 +17,7 @@ enum value_type {
 };
 
 struct value;
-typedef struct value* (*builtin_func)(struct value* value, struct value* env);
+typedef struct value* (*builtin_func)(struct value* args);
 
 struct value {
     int type;
@@ -160,6 +164,10 @@ value_print(const struct value* value)
 #define cddar(v)  (cdr(cdr(car(v))))
 #define cdddr(v)  (cdr(cdr(cdr(v))))
 
+struct value* env_get(struct value* k, struct value* env);
+void env_set(struct value* k, struct value* v, struct value* env);
+void env_def(struct value* k, struct value* v, struct value* env);
+
 struct value*
 read(const char* str, long* consumed)
 {
@@ -168,7 +176,7 @@ read(const char* str, long* consumed)
     const char alpha[] =
         "abcdefghijklmnopqrstuvwxyz"
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "!$%&*/:<=>?^_~";
+        "+-!$%&*/:<=>?^_~";
 
     // needed to capture how many chars this value consumes
     const char* start = str;
@@ -183,7 +191,7 @@ read(const char* str, long* consumed)
 
     // EOF
     if (*start == '\0') {
-        assert(0 && "TODO: better handling of unexpected EOF");
+        assert(0 && "unexpected EOF");
     }
 
     // number
@@ -191,7 +199,6 @@ read(const char* str, long* consumed)
         char* iter = NULL;
         long number = strtol(start, &iter, 10);
         *consumed = iter - str;
-        printf("num consumed %ld\n", iter - str);
         return value_make_number(number);
     }
 
@@ -252,14 +259,15 @@ read(const char* str, long* consumed)
         return list;
     }
 
-    return value_make_pair(NULL, NULL);
+    assert(0 && "invalid expression");
 }
 
 struct value* eval(struct value* exp, struct value* env);
 struct value* apply(struct value* proc, struct value* args);
 struct value* evlist(struct value* exps, struct value* env);
 struct value* evcond(struct value* exps, struct value* env);
-struct value* lookup(struct value* exp, struct value* env);
+struct value* lookup(struct value* sym, struct value* env);
+struct value* bind(struct value* vars, struct value* vals, struct value* env);
 
 struct value*
 eval(struct value* exp, struct value* env)
@@ -271,38 +279,37 @@ eval(struct value* exp, struct value* env)
     } else if (strcmp(car(exp)->as.symbol, "quote") == 0) {
         return cadr(exp);
     } else if (strcmp(car(exp)->as.symbol, "lambda") == 0) {
-        return cons(value_make_symbol("closure", 7),
-                    cons(cdr(exp),
-                         cons(env, NULL)));
+        // this differs from SICP:
+        // the lecture returns: ('closure (params body) env)
+        // (lambda (x) (* x x))
+        return value_make_lambda(cadr(exp), caddr(exp), env);
     } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
         return evcond(cdr(exp), env);
     } else {
-
+        return apply(eval(car(exp), env), evlist(cdr(exp), env));
     }
-
-    fprintf(stderr, "unknown expression type\n");
-    return NULL;
 }
 
 struct value*
 apply(struct value* proc, struct value* args)
 {
     if (proc->type == VALUE_BUILTIN) {
-
+        // simply call the builtin
+        return proc->as.builtin(args);
     } else if (proc->type == VALUE_LAMBDA) {
-
+        // eval the lambda body in a new env that
+        // binds the params to these args in a new frame
+        // on top of the lambda's initial env
+        return eval(proc->as.lambda.body, bind(proc->as.lambda.params, args, proc->as.lambda.env));
+    } else {
+        assert(0 && "unknown procedure type");
     }
-
-    fprintf(stderr, "unknown procesdure type\n");
-    return NULL;
 }
 
 struct value*
 evlist(struct value* exps, struct value* env)
 {
-    if (car(exps) == NULL && cdr(exps) == NULL) {
-        return exps;
-    }
+    if (exps == NULL) return NULL;
 
     return cons(eval(car(exps), env), evlist(cdr(exps), env));
 }
@@ -310,31 +317,107 @@ evlist(struct value* exps, struct value* env)
 struct value*
 evcond(struct value* exps, struct value* env)
 {
-    return NULL;
+    if (exps == NULL) return NULL;
+
+    if (strcmp(caar(exps)->as.symbol, "else") == 0) {
+        return eval(cadar(exps), env);
+    } else if (eval(caar(exps), env) == NULL) {
+        return evcond(cdr(exps), env);
+    } else {
+        return eval(cadar(exps), env);
+    }
+}
+
+static struct value*
+assq(struct value* sym, struct value* frame)
+{
+    if (frame == NULL) return NULL;
+
+    // TODO: type assertion for the symbols?
+
+    if (strcmp(sym->as.symbol, caar(frame)->as.symbol) == 0) {
+        return car(frame);
+    } else {
+        return assq(sym, cdr(frame));
+    }
 }
 
 struct value*
-lookup(struct value* exp, struct value* env)
+lookup(struct value* sym, struct value* env)
 {
-    return NULL;
+    if (env == NULL) {
+        assert(0 && "unbound variable");
+    }
+
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        return cdr(vcell);
+    } else {
+        return lookup(sym, cdr(env));
+    }
 }
 
-int
-main(int argc, char* argv[])
+static struct value*
+pair_up(struct value* vars, struct value* vals)
 {
-    char line[512] = { 0 };
+    if (vars == NULL && vals == NULL) return NULL;
+    if (vars == NULL) {
+        assert(0 && "too many arguments given to lambda");
+    }
+    if (vals == NULL) {
+        assert(0 && "too few arguments given to lambda");
+    }
+
+    return cons(cons(car(vars), car(vals)),
+                pair_up(cdr(vars), cdr(vals)));
+}
+
+struct value*
+bind(struct value* vars, struct value* vals, struct value* env)
+{
+    return cons(pair_up(vars, vals), env);
+}
+
+struct value*
+b_plus(struct value* args)
+{
+    long sum = 0;
+    for (; args != NULL; args = cdr(args)) {
+        sum += car(args)->as.number;
+    }
+
+    return value_make_number(sum);
+}
+
+// TODO: list creation helper
+// TODO: list len helper
+
+int
+//main(int argc, char* argv[])
+main(void)
+{
+    struct value* env = bind(
+        cons(value_make_symbol("+", 1), NULL),
+        cons(value_make_builtin(b_plus), NULL),
+        NULL);
 
     printf("> ");
+    char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = read(line, &consumed);
-        value_print(exp);
+//        value_print(exp);
+//        printf("\n");
+//
+//        printf("exp type: %d\n", exp->type);
+//        printf("consumed: %ld\n", consumed);
+
+        struct value* res = eval(exp, env);
+        value_print(res);
         printf("\n");
 
-        printf("exp type: %d\n", exp->type);
-        printf("consumed: %ld\n", consumed);
-
-        value_free(exp);
         printf("> ");
     }
+
+    value_free(env);
 }

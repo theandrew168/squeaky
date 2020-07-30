@@ -389,16 +389,32 @@ b_plus(struct value* args)
     return value_make_number(sum);
 }
 
+struct value*
+b_multiply(struct value* args)
+{
+    long product = 1;
+    for (; args != NULL; args = cdr(args)) {
+        product *= car(args)->as.number;
+    }
+
+    return value_make_number(product);
+}
+
 // TODO: list creation helper
 // TODO: list len helper
+// TODO: env helper: get - recur search all frames
+// TODO: env helper: set - recur serach and update, error if not found
+// TODO: env helper: def - search first frame only, update if found, add if not
 
 int
 //main(int argc, char* argv[])
 main(void)
 {
     struct value* env = bind(
-        cons(value_make_symbol("+", 1), NULL),
-        cons(value_make_builtin(b_plus), NULL),
+        cons(value_make_symbol("+", 1), 
+             cons(value_make_symbol("*", 1), NULL)),
+        cons(value_make_builtin(b_plus),
+             cons(value_make_builtin(b_multiply), NULL)),
         NULL);
 
     printf("> ");

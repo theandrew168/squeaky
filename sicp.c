@@ -319,7 +319,8 @@ evcond(struct value* exps, struct value* env)
 {
     if (exps == NULL) return NULL;
 
-    if (strcmp(caar(exps)->as.symbol, "else") == 0) {
+    if (caar(exps)->type == VALUE_SYMBOL &&
+        strcmp(caar(exps)->as.symbol, "else") == 0) {
         return eval(cadar(exps), env);
     } else if (eval(caar(exps), env) == NULL) {
         return evcond(cdr(exps), env);
@@ -422,11 +423,8 @@ main(void)
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = read(line, &consumed);
-//        value_print(exp);
-//        printf("\n");
-//
-//        printf("exp type: %d\n", exp->type);
-//        printf("consumed: %ld\n", consumed);
+        value_print(exp);
+        printf("\n");
 
         struct value* res = eval(exp, env);
         value_print(res);

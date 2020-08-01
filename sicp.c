@@ -9,6 +9,52 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
+// BUG: Calling nested lambda reads invalid memory
+//  (define square (lambda (x) (* x x)))
+//  (define quad (lambda (x) (* square(x) square(x))))
+//  (quad 5)  ; gives unpredictable results
+
+// TODO: Add env_print helper (show frames and all KVs)
+// TODO: Add env creation helper (list of [sym, func] structs?)
+// TODO: Add read_list helper to read func
+// TODO: Add special form "if"
+// TODO: Add list len helper
+// TODO: Add assert helpers for builtins (arity and types)
+// TODO: Add a simple ref counted GC / memory management
+
+// value.c/.h
+// ----------
+// value_type enum
+// value tagged union
+// value_is_foo macros
+// value_make_foo constructors
+// value_free destructor
+//
+// list.c/.h
+// ---------
+// cons / car / cdr macros
+// list creation helper
+// list length helper
+//
+// env.c/.h
+// --------
+// env creation helper
+// env print helper
+// env_bind
+// env_lookup
+// env_define
+// env_update
+//
+// builtin.c/.h
+// ------------
+// builtin_func typedef
+// builtin helper assertions (arity and type)
+// builtin functions (plus, multiply, etc)
+//
+// main.c (for now)
+// ------
+// read / write / eval / apply
+
 enum value_type {
     VALUE_UNDEFINED = 0,
     VALUE_BOOLEAN,
@@ -383,7 +429,8 @@ read(const char* str, long* consumed)
     }
 
     // boolean
-    // TODO: character
+    // TODO: character "#\"
+    // TODO: vector    "#("
     if (*start == '#') {
         const char* iter = start;
         iter++;
@@ -555,7 +602,7 @@ evcond(struct value* exps, struct value* env)
 }
 
 struct value*
-b_plus(struct value* args)
+builtin_plus(struct value* args)
 {
     long sum = 0;
     for (; args != NULL; args = cdr(args)) {
@@ -566,7 +613,7 @@ b_plus(struct value* args)
 }
 
 struct value*
-b_multiply(struct value* args)
+builtin_multiply(struct value* args)
 {
     long product = 1;
     for (; args != NULL; args = cdr(args)) {
@@ -585,8 +632,8 @@ main(void)
         value_make_symbol("*", 1),
         NULL);
     struct value* vals = list(
-        value_make_builtin(b_plus),
-        value_make_builtin(b_multiply),
+        value_make_builtin(builtin_plus),
+        value_make_builtin(builtin_multiply),
         NULL);
     struct value* env = env_bind(vars, vals, NULL);
 

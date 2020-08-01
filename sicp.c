@@ -14,21 +14,21 @@
 //  (define quad (lambda (x) (* square(x) square(x))))
 //  (quad 5)  ; gives unpredictable results
 
-// TODO: Add env_print helper (show frames and all KVs)
 // TODO: Add env creation helper (list of [sym, func] structs?)
 // TODO: Add read_list helper to read func
 // TODO: Add special form "if"
-// TODO: Add list len helper
 // TODO: Add assert helpers for builtins (arity and types)
 // TODO: Add a simple ref counted GC / memory management
 
 // value.c/.h
 // ----------
 // value_type enum
+// builtin_func typedef
 // value tagged union
 // value_is_foo macros
 // value_make_foo constructors
 // value_free destructor
+// value_read / value_write
 //
 // list.c/.h
 // ---------
@@ -47,7 +47,6 @@
 //
 // builtin.c/.h
 // ------------
-// builtin_func typedef
 // builtin helper assertions (arity and type)
 // builtin functions (plus, multiply, etc)
 //
@@ -90,6 +89,18 @@ struct value {
         char* error;
     } as;
 };
+
+struct value* value_make_boolean(bool boolean);
+struct value* value_make_number(long number);
+struct value* value_make_string(const char* string, long length);
+struct value* value_make_symbol(const char* symbol, long length);
+struct value* value_make_pair(struct value* car, struct value* cdr);
+struct value* value_make_builtin(builtin_func builtin);
+struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
+struct value* value_make_error(const char* error);
+void value_free(struct value* value);
+struct value* value_read(const char* str, long* consumed);
+void value_write(const struct value* value);
 
 struct value*
 value_make_boolean(bool boolean)
@@ -206,54 +217,6 @@ value_free(struct value* value)
     free(value);
 }
 
-// TODO: this is actually R5RS "write"
-// but pair would need to be simplified once all
-//   the cars / cdrs are settled
-void
-value_print(const struct value* value)
-{
-    assert(value != NULL);
-
-    switch (value->type) {
-        case VALUE_BOOLEAN:
-            printf("%s", value->as.boolean ? "#t" : "#f");
-            break;
-        case VALUE_NUMBER:
-            printf("%ld", value->as.number);
-            break;
-        case VALUE_STRING:
-            printf("\"%s\"", value->as.string);
-            break;
-        case VALUE_SYMBOL:
-            printf("%s", value->as.symbol);
-            break;
-        case VALUE_PAIR:
-            if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
-                printf("ok");
-                break;
-            }
-            printf("(");
-            if (value->as.pair.car == NULL) printf("'()");
-            else value_print(value->as.pair.car);
-            printf(" . ");
-            if (value->as.pair.cdr == NULL) printf("'()");
-            else value_print(value->as.pair.cdr);
-            printf(")");
-            break;
-        case VALUE_BUILTIN:
-            printf("<builtin>");
-            break;
-        case VALUE_LAMBDA:
-            printf("<lambda>");
-            break;
-        case VALUE_ERROR:
-            printf("error: %s", value->as.error);
-            break;
-        default:
-            printf("<undefined>");
-    }
-}
-
 #define value_is_boolean(v) ((v)->type == VALUE_BOOLEAN)
 #define value_is_number(v)  ((v)->type == VALUE_NUMBER)
 #define value_is_string(v)  ((v)->type == VALUE_STRING)
@@ -293,8 +256,11 @@ value_is_false(struct value* exp)
 #define cddar(v)  (cdr(cdr(car(v))))
 #define cdddr(v)  (cdr(cdr(cdr(v))))
 
+struct value* list_make(struct value* value, ...);
+long list_length(const struct value* list);
+
 struct value*
-list(struct value* value, ...)
+list_make(struct value* value, ...)
 {
     va_list args;
     va_start(args, value);
@@ -312,6 +278,26 @@ list(struct value* value, ...)
     va_end(args);
     return head;
 }
+
+long
+list_length(const struct value* list)
+{
+    long count = 0;
+
+    const struct value* iter = list;
+    while (iter != NULL) {
+        count++;
+        iter = cdr(iter);
+    }
+
+    return count;
+}
+
+struct value* env_bind(struct value* vars, struct value* vals, struct value* env);
+struct value* env_lookup(struct value* sym, struct value* env);
+struct value* env_update(struct value* sym, struct value* value, struct value* env);
+struct value* env_define(struct value* sym, struct value* value, struct value* env);
+void env_print(const struct value* env);
 
 static struct value*
 pair_up(struct value* vars, struct value* vals)
@@ -401,8 +387,55 @@ env_define(struct value* sym, struct value* value, struct value* env)
     return value_make_pair(NULL, NULL);
 }
 
+void
+env_print(const struct value* env)
+{
+    if (env == NULL) return;
+    env_print(cdr(env));
+
+    struct value* frame = car(env);
+    while (frame != NULL) {
+        struct value* vcell = car(frame);
+        printf("env| %s: ", car(vcell)->as.symbol);
+        value_write(cdr(vcell));
+        printf("\n");
+
+        frame = cdr(frame);
+    }
+
+    printf("env| == frame == \n");
+}
+
+struct value* builtin_plus(struct value* args);
+struct value* builtin_multiply(struct value* args);
+
 struct value*
-read(const char* str, long* consumed)
+builtin_plus(struct value* args)
+{
+    long sum = 0;
+    for (; args != NULL; args = cdr(args)) {
+        sum += car(args)->as.number;
+    }
+
+    return value_make_number(sum);
+}
+
+struct value*
+builtin_multiply(struct value* args)
+{
+    long product = 1;
+    for (; args != NULL; args = cdr(args)) {
+        product *= car(args)->as.number;
+    }
+
+    return value_make_number(product);
+}
+
+struct value* eval(struct value* exp, struct value* env);
+struct value* apply(struct value* proc, struct value* args);
+
+struct value*
+value_read(const char* str, long* consumed)
 {
     const char space[] = " \f\n\r\t\v;";
     const char digit[] = "0123456789";
@@ -491,7 +524,7 @@ read(const char* str, long* consumed)
         while (*iter != ')') {
 
             // read the next value
-            struct value* cell = cons(read(iter, consumed), NULL);
+            struct value* cell = cons(value_read(iter, consumed), NULL);
 
             // if first child, replace the list ptr
             if (list == NULL) {
@@ -526,6 +559,53 @@ read(const char* str, long* consumed)
     return value_make_error("invalid expression");
 }
 
+// but pair would need to be simplified once all
+//   the cars / cdrs are settled
+void
+value_write(const struct value* value)
+{
+    assert(value != NULL);
+
+    switch (value->type) {
+        case VALUE_BOOLEAN:
+            printf("%s", value->as.boolean ? "#t" : "#f");
+            break;
+        case VALUE_NUMBER:
+            printf("%ld", value->as.number);
+            break;
+        case VALUE_STRING:
+            printf("\"%s\"", value->as.string);
+            break;
+        case VALUE_SYMBOL:
+            printf("%s", value->as.symbol);
+            break;
+        case VALUE_PAIR:
+            if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
+                printf("ok");
+                break;
+            }
+            printf("(");
+            if (value->as.pair.car == NULL) printf("'()");
+            else value_write(value->as.pair.car);
+            printf(" . ");
+            if (value->as.pair.cdr == NULL) printf("'()");
+            else value_write(value->as.pair.cdr);
+            printf(")");
+            break;
+        case VALUE_BUILTIN:
+            printf("<builtin>");
+            break;
+        case VALUE_LAMBDA:
+            printf("<lambda>");
+            break;
+        case VALUE_ERROR:
+            printf("error: %s", value->as.error);
+            break;
+        default:
+            printf("<undefined>");
+    }
+}
+
 struct value* eval(struct value* exp, struct value* env);
 struct value* apply(struct value* proc, struct value* args);
 struct value* evlist(struct value* exps, struct value* env);
@@ -550,6 +630,13 @@ eval(struct value* exp, struct value* env)
         // this differs from SICP:
         // the lecture returns: ('closure (params body) env)
         // (lambda (x) (* x x))
+//        struct value* lamb = value_make_lambda(cadr(exp), caddr(exp), env);
+//        value_write(lamb->as.lambda.params);
+//        printf("\n");
+//        value_write(lamb->as.lambda.body);
+//        printf("\n");
+//        env_print(lamb->as.lambda.env);
+//        return lamb;
         return value_make_lambda(cadr(exp), caddr(exp), env);
     } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
         return evcond(cdr(exp), env);
@@ -572,6 +659,9 @@ apply(struct value* proc, struct value* args)
         // eval the lambda body in a new env that
         // binds the params to these args in a new frame
         // on top of the lambda's initial env
+//        struct value* bound_env = env_bind(proc->as.lambda.params, args, proc->as.lambda.env);
+//        env_print(bound_env);
+//        return eval(proc->as.lambda.body, bound_env);
         return eval(proc->as.lambda.body, env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
     } else {
         return value_make_error("unknown procedure type");
@@ -601,56 +691,34 @@ evcond(struct value* exps, struct value* env)
     }
 }
 
-struct value*
-builtin_plus(struct value* args)
-{
-    long sum = 0;
-    for (; args != NULL; args = cdr(args)) {
-        sum += car(args)->as.number;
-    }
-
-    return value_make_number(sum);
-}
-
-struct value*
-builtin_multiply(struct value* args)
-{
-    long product = 1;
-    for (; args != NULL; args = cdr(args)) {
-        product *= car(args)->as.number;
-    }
-
-    return value_make_number(product);
-}
-
 int
 //main(int argc, char* argv[])
 main(void)
 {
-    struct value* vars = list(
+    struct value* vars = list_make(
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),
         NULL);
-    struct value* vals = list(
+    struct value* vals = list_make(
         value_make_builtin(builtin_plus),
         value_make_builtin(builtin_multiply),
         NULL);
     struct value* env = env_bind(vars, vals, NULL);
 
+//    env_print(env);
+
     printf("> ");
     char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
-        struct value* exp = read(line, &consumed);
-//        value_print(exp);
+        struct value* exp = value_read(line, &consumed);
+//        write(exp);
 //        printf("\n");
 
         struct value* res = eval(exp, env);
-        value_print(res);
+        value_write(res);
         printf("\n");
 
         printf("> ");
     }
-
-    value_free(env);
 }

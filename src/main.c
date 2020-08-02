@@ -115,8 +115,8 @@ main(void)
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = value_read(line, &consumed);
-//        write(exp);
-//        printf("\n");
+        value_write(exp);
+        printf("\n");
 
         struct value* res = eval(exp, env);
         value_write(res);

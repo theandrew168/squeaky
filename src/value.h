@@ -64,9 +64,15 @@ void value_free(struct value* value);
 struct value* value_read(const char* str, long* consumed);
 void value_write(const struct value* value);
 
+struct value* list_make(struct value* value, ...);
+long list_length(const struct value* list);
+bool list_is_null(const struct value* list);
+struct value* list_car(const struct value* list);
+struct value* list_cdr(const struct value* list);
+
 #define cons(a,b) (value_make_pair((a), (b)))
-#define car(v)    ((v)->as.pair.car)
-#define cdr(v)    ((v)->as.pair.cdr)
+#define car(v)    (list_car(v))
+#define cdr(v)    (list_cdr(v))
 #define caar(v)   (car(car(v)))
 #define cadr(v)   (car(cdr(v)))
 #define cdar(v)   (cdr(car(v)))
@@ -79,8 +85,5 @@ void value_write(const struct value* value);
 #define cdadr(v)  (cdr(car(cdr(v))))
 #define cddar(v)  (cdr(cdr(car(v))))
 #define cdddr(v)  (cdr(cdr(cdr(v))))
-
-struct value* list_make(struct value* value, ...);
-long list_length(const struct value* list);
 
 #endif

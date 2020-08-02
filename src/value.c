@@ -169,6 +169,17 @@ value_read(const char* str, long* consumed)
         return value_make_error("unexpected EOF");
     }
 
+    // quote
+    if (*start == '\'') {
+        const char* iter = start;
+        iter++;  // consume quote char
+
+        struct value* target = value_read(iter, consumed);
+        iter += *consumed;
+        *consumed = iter - str;  // consumed includes initial quote and sub read
+        return list_make(value_make_symbol("quote", 5), target, NULL);
+    }
+
     // boolean
     // TODO: character "#\"
     // TODO: vector    "#("
@@ -240,7 +251,7 @@ value_read(const char* str, long* consumed)
             } else {  // else cons like normal
                 struct value* last = list;
                 while (cdr(last) != NULL) last = cdr(last);
-                cdr(last) = cell;
+                last->as.pair.cdr = cell;
             }
 
             // advance to end of read value
@@ -328,7 +339,7 @@ list_make(struct value* value, ...)
         struct value* v = va_arg(args, struct value*);
         if (v == NULL) break;
 
-        cdr(tail) = cons(v, NULL);
+        tail->as.pair.cdr = cons(v, NULL);
         tail = cdr(tail);
     }
 
@@ -348,4 +359,31 @@ list_length(const struct value* list)
     }
 
     return count;
+}
+
+bool
+list_is_null(const struct value* list)
+{
+    assert(list != NULL);
+
+    if (!value_is_pair(list)) return false;
+    return list->as.pair.car == NULL && list->as.pair.cdr == NULL;
+}
+
+struct value*
+list_car(const struct value* list)
+{
+    assert(list != NULL);
+
+    if (list_is_null(list)) return value_make_error("the primitive 'car' is defined only for non-empty lists");
+    return list->as.pair.car;
+}
+
+struct value*
+list_cdr(const struct value* list)
+{
+    assert(list != NULL);
+
+    if (list_is_null(list)) return value_make_error("the primitive 'cdr' is defined only for non-empty lists");
+    return list->as.pair.cdr;
 }

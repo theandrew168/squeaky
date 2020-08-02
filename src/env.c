@@ -6,6 +6,9 @@
 #include "env.h"
 #include "value.h"
 
+// TODO: this impl violates "The Law of Cons"
+// rewrite as two lists per frame: one for vars and one for vals
+
 static struct value*
 pair_up(struct value* vars, struct value* vals)
 {
@@ -71,7 +74,7 @@ env_update(struct value* sym, struct value* value, struct value* env)
 
     struct value* vcell = assq(sym, car(env));
     if (vcell != NULL) {
-        cdr(vcell) = value;
+        vcell->as.pair.cdr = value;
         return value_make_pair(NULL, NULL);
     } else {
         return env_lookup(sym, cdr(env));
@@ -85,10 +88,10 @@ env_define(struct value* sym, struct value* value, struct value* env)
     struct value* vcell = assq(sym, car(env));
     if (vcell != NULL) {
         // update exiting vcell
-        cdr(vcell) = value;
+        vcell->as.pair.cdr = value;
     } else {
         // prepend a new vcell to this frame
-        car(env) = cons(cons(sym, value), car(env));
+        env->as.pair.car = cons(cons(sym, value), car(env));
     }
 
     return value_make_pair(NULL, NULL);

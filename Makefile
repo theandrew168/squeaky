@@ -13,7 +13,7 @@ LDFLAGS  =
 LDLIBS   = -lGL -lSDL2
 
 default: squeaky
-all: libsqueaky.a libsqueaky.so squeaky
+all: libsqueaky.a libsqueaky.so squeaky squeaky_tests
 
 libsqueaky_sources =  \
   src/builtin.c       \
@@ -36,6 +36,18 @@ libsqueaky.so: $(libsqueaky_objects)
 squeaky: src/main.c libsqueaky.a
 	@echo "EXE     $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
+
+squeaky_tests_sources =  \
+  src/env_test.c         \
+  src/value_test.c
+
+squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
+	@echo "EXE     $@"
+	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
+
+.PHONY: check
+check: squeaky_tests
+	./squeaky_tests
 
 .PHONY: run
 run: squeaky

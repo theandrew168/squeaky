@@ -13,11 +13,6 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// BUG: Calling nested lambda reads invalid memory
-//  (define square (lambda (x) (* x x)))
-//  (define quad (lambda (x) (* square(x) square(x))))
-//  (quad 5)  ; gives unpredictable results
-
 // TODO: Add env creation helper (list of [sym, func] structs?)
 // TODO: Add read_list helper to read func
 // TODO: Add special form "if"
@@ -48,13 +43,6 @@ eval(struct value* exp, struct value* env)
         // this differs from SICP:
         // the lecture returns: ('closure (params body) env)
         // (lambda (x) (* x x))
-//        struct value* lamb = value_make_lambda(cadr(exp), caddr(exp), env);
-//        value_write(lamb->as.lambda.params);
-//        printf("\n");
-//        value_write(lamb->as.lambda.body);
-//        printf("\n");
-//        env_print(lamb->as.lambda.env);
-//        return lamb;
         return value_make_lambda(cadr(exp), caddr(exp), env);
     } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
         return evcond(cdr(exp), env);
@@ -77,9 +65,6 @@ apply(struct value* proc, struct value* args)
         // eval the lambda body in a new env that
         // binds the params to these args in a new frame
         // on top of the lambda's initial env
-//        struct value* bound_env = env_bind(proc->as.lambda.params, args, proc->as.lambda.env);
-//        env_print(bound_env);
-//        return eval(proc->as.lambda.body, bound_env);
         return eval(proc->as.lambda.body, env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
     } else {
         return value_make_error("unknown procedure type");
@@ -113,8 +98,6 @@ int
 //main(int argc, char* argv[])
 main(void)
 {
-    printf("sizeof value: %ld\n", sizeof(struct value));
-
     struct value* vars = list_make(
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),

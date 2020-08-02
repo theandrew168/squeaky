@@ -6,23 +6,109 @@
 #include "env.h"
 #include "value.h"
 
-struct value*
-env_get(const struct value* env, const struct value* k)
+static struct value*
+pair_up(struct value* vars, struct value* vals)
 {
-    assert(env != NULL);
-    assert(k != NULL);
+    if (vars == NULL && vals == NULL) return NULL;
+    if (vars == NULL) {
+        fprintf(stderr, "too many arguments given to lambda... crash!\n");
+        return value_make_error("too many arguments given to lambda");
+    }
+    if (vals == NULL) {
+        fprintf(stderr, "too few arguments given to lambda... crash!\n");
+        return value_make_error("too few arguments given to lambda");
+    }
+
+    return cons(cons(car(vars), car(vals)),
+                pair_up(cdr(vars), cdr(vals)));
 }
 
-void
-env_set(struct value* env, struct value* k, struct value* v)
+// create a new env with a leading frame that binds vars to vals
+struct value*
+env_bind(struct value* vars, struct value* vals, struct value* env)
 {
-    assert(env != NULL);
-    assert(k != NULL);
-    assert(v != NULL);
+    return cons(pair_up(vars, vals), env);
+}
+
+// search a frame for a given symbol, return (sym, value) pair if found
+static struct value*
+assq(struct value* sym, struct value* frame)
+{
+    if (frame == NULL) return NULL;
+
+    // TODO: type assertion for the symbols?
+
+    if (strcmp(sym->as.symbol, caar(frame)->as.symbol) == 0) {
+        return car(frame);
+    } else {
+        return assq(sym, cdr(frame));
+    }
+}
+
+// recur search all frames
+struct value*
+env_lookup(struct value* sym, struct value* env)
+{
+    if (env == NULL) {
+        return value_make_error("unbound variable");
+    }
+
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        return cdr(vcell);
+    } else {
+        return env_lookup(sym, cdr(env));
+    }
+}
+
+// recur serach and update, error if not found
+struct value*
+env_update(struct value* sym, struct value* value, struct value* env)
+{
+    if (env == NULL) {
+        return value_make_error("unbound variable");
+    }
+
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        cdr(vcell) = value;
+        return value_make_pair(NULL, NULL);
+    } else {
+        return env_lookup(sym, cdr(env));
+    }
+}
+
+// search first frame only, update if found, add if not
+struct value*
+env_define(struct value* sym, struct value* value, struct value* env)
+{
+    struct value* vcell = assq(sym, car(env));
+    if (vcell != NULL) {
+        // update exiting vcell
+        cdr(vcell) = value;
+    } else {
+        // prepend a new vcell to this frame
+        car(env) = cons(cons(sym, value), car(env));
+    }
+
+    return value_make_pair(NULL, NULL);
 }
 
 void
 env_print(const struct value* env)
 {
-    assert(env != NULL);
+    if (env == NULL) return;
+    env_print(cdr(env));
+
+    struct value* frame = car(env);
+    while (frame != NULL) {
+        struct value* vcell = car(frame);
+        printf("env| %s: ", car(vcell)->as.symbol);
+        value_write(cdr(vcell));
+        printf("\n");
+
+        frame = cdr(frame);
+    }
+
+    printf("env| == frame == \n");
 }

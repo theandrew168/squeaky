@@ -1,16 +1,39 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "value.h"
 
-struct value*
-value_make_number(double number)
+bool
+value_is_true(struct value* exp)
 {
-    struct value* value = malloc(sizeof(value));
+    return value_is_boolean(exp) &&
+           exp->as.boolean == true;
+}
+
+bool
+value_is_false(struct value* exp)
+{
+    return value_is_boolean(exp) &&
+           exp->as.boolean == false;
+}
+
+struct value*
+value_make_boolean(bool boolean)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_BOOLEAN;
+    value->as.boolean = boolean;
+    return value;
+}
+
+struct value*
+value_make_number(long number)
+{
+    struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_NUMBER;
     value->as.number = number;
     return value;
@@ -19,163 +42,302 @@ value_make_number(double number)
 struct value*
 value_make_string(const char* string, long length)
 {
-    assert(string != NULL);
-
-    struct value* value = malloc(sizeof(value));
+    struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_STRING;
-    value->as.string = malloc(length - 2 + 1);  // don't keep the two quote chars
-    strncpy(value->as.string, string + 1, length - 2);
+    value->as.string = malloc(length - 2 + 1); // leave out the quotes
+    snprintf(value->as.string, length - 2 + 1, "%s", string + 1);
     return value;
 }
 
 struct value*
 value_make_symbol(const char* symbol, long length)
 {
-    assert(symbol != NULL);
-
-    struct value* value = malloc(sizeof(value));
+    struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_SYMBOL;
     value->as.symbol = malloc(length + 1);
-    strncpy(value->as.symbol, symbol, length);
+    snprintf(value->as.symbol, length + 1, "%s", symbol);
     return value;
 }
 
 struct value*
 value_make_pair(struct value* car, struct value* cdr)
 {
-    struct value* value = malloc(sizeof(value));
+    struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_PAIR;
     value->as.pair.car = car;
     value->as.pair.cdr = cdr;
     return value;
 }
 
+struct value*
+value_make_builtin(builtin_func builtin)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_BUILTIN;
+    value->as.builtin = builtin;
+    return value;
+}
+
+struct value*
+value_make_lambda(struct value* params, struct value* body, struct value* env)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_LAMBDA;
+    value->as.lambda.params = params;
+    value->as.lambda.body = body;
+    value->as.lambda.env = env;
+    return value;
+}
+
+struct value*
+value_make_error(const char* error)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_ERROR;
+    value->as.error = malloc(strlen(error) + 1);
+    strcpy(value->as.error, error);
+    return value;
+}
+
 void
 value_free(struct value* value)
 {
-    assert(value != NULL);
+    if (value == NULL) return;
 
     switch (value->type) {
-        case VALUE_NUMBER: break;
-        case VALUE_STRING: free(value->as.string); break;
-        case VALUE_SYMBOL: free(value->as.symbol); break;
+        case VALUE_BOOLEAN:
+            break;
+        case VALUE_NUMBER:
+            break;
+        case VALUE_STRING:
+            free(value->as.string);
+            break;
+        case VALUE_SYMBOL:
+            free(value->as.symbol);
+            break;
         case VALUE_PAIR:
             value_free(value->as.pair.car);
             value_free(value->as.pair.cdr);
+            break;
+        case VALUE_BUILTIN:
+            break;
+        case VALUE_LAMBDA:
+            value_free(value->as.lambda.params);
+            value_free(value->as.lambda.body);
+            value_free(value->as.lambda.env);
+            break;
+        case VALUE_ERROR:
+            free(value->as.error);
             break;
     }
 
     free(value);
 }
 
-static bool
-is_tagged_list(struct value* value, const char* tag)
+struct value*
+value_read(const char* str, long* consumed)
 {
-    if (value->type != VALUE_PAIR) return false;
-    if (CAR(value)->type != VALUE_SYMBOL) return false;
+    const char space[] = " \f\n\r\t\v;";
+    const char digit[] = "0123456789";
+    const char alpha[] =
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "+-!$%&*/:<=>?^_~";
 
-    return strcmp(CAR(value)->as.symbol, tag) == 0;
+    // needed to capture how many chars this value consumes
+    const char* start = str;
+
+    // whitespace / comments
+    while (strchr(space, *start) && *start != '\0') {
+        if (*start == ';') {
+            while (*start != '\n' && *start != '\0') start++;
+        }
+        start++;
+    }
+
+    // EOF
+    if (*start == '\0') {
+        *consumed = start - str;
+        return value_make_error("unexpected EOF");
+    }
+
+    // boolean
+    // TODO: character "#\"
+    // TODO: vector    "#("
+    if (*start == '#') {
+        const char* iter = start;
+        iter++;
+        if (strchr("tf", *iter)) {
+            bool boolean = *iter == 't';
+            iter++;
+            *consumed = iter - str;
+            return value_make_boolean(boolean);
+        }
+
+        return value_make_error("invalid expression");
+    }
+
+    // number
+    if (strchr(digit, *start)) {
+        char* iter = NULL;
+        long number = strtol(start, &iter, 10);
+        *consumed = iter - str;
+        return value_make_number(number);
+    }
+
+    // string
+    if (*start == '"') {
+        const char* iter = start;
+        iter++;  // consume open quote
+
+        while (*iter != '"' && *iter != '\0') iter++;
+        if (*iter == '\0') return value_make_error("unterminated string");
+
+        iter++;  // consume close quote
+        *consumed = iter - str;
+        return value_make_string(start, iter - start);
+    }
+
+    // symbol
+    if (strchr(alpha, *start)) {
+        const char* iter = start;
+        while (strchr(alpha, *iter)) iter++;
+        *consumed = iter - str;
+        return value_make_symbol(start, iter - start);
+    }
+
+    // pair / list / s-expression
+    // TODO: this case is ugly, need to read hella book
+    if (*start == '(') {
+        const char* iter = start;
+        iter++;  // skip open paren
+
+        // whitespace / comments (again)
+        while (strchr(space, *iter) && *iter != '\0') {
+            if (*iter == ';') {
+                while (*iter != '\n' && *iter != '\0') iter++;
+            }
+            iter++;
+        }
+
+        struct value* list = NULL;
+        while (*iter != ')') {
+
+            // read the next value
+            struct value* cell = cons(value_read(iter, consumed), NULL);
+
+            // if first child, replace the list ptr
+            if (list == NULL) {
+                list = cell;
+            } else {  // else cons like normal
+                struct value* last = list;
+                while (cdr(last) != NULL) last = cdr(last);
+                cdr(last) = cell;
+            }
+
+            // advance to end of read value
+            iter += *consumed;
+
+            // whitespace / comments (AGAIN)
+            while (strchr(space, *iter) && *iter != '\0') {
+                if (*iter == ';') {
+                    while (*iter != '\n' && *iter != '\0') iter++;
+                }
+                iter++;
+            }
+        }
+
+        iter++;  // move past the closing paren
+        *consumed = iter - str;
+
+        // special case if list never got built
+        if (list == NULL) return cons(NULL, NULL);
+
+        return list;
+    }
+
+    return value_make_error("invalid expression");
 }
 
-bool
-value_is_self_evaluating(struct value* value)
-{
-    assert(value != NULL);
-
-    return value->type == VALUE_NUMBER || value->type == VALUE_STRING;
-}
-
-bool
-value_is_variable(struct value* value)
-{
-    assert(value != NULL);
-
-    return value->type == VALUE_SYMBOL;
-}
-
-bool
-value_is_quoted(struct value* value)
-{
-    assert(value != NULL);
-
-    return is_tagged_list(value, "quote");
-}
-
-bool
-value_is_assignment(struct value* value)
-{
-    assert(value != NULL);
-
-    return is_tagged_list(value, "set!");
-}
-
-bool
-value_is_definition(struct value* value)
-{
-    assert(value != NULL);
-
-    return is_tagged_list(value, "define");
-}
-
-bool
-value_is_if(struct value* value)
-{
-    assert(value != NULL);
-
-    return is_tagged_list(value, "if");
-}
-
-bool
-value_is_application(struct value* value)
-{
-    assert(value != NULL);
-
-    return value->type == VALUE_PAIR;
-}
-
-bool
-value_is_null(struct value* value)
-{
-    assert(value != NULL);
-
-    return value->type == VALUE_PAIR &&
-           CAR(value) == NULL &&
-           CDR(value) == NULL;
-}
-
+// TODO: condense pair printing
+// but pair would need to be simplified once all
+//   the cars / cdrs are settled
 void
-value_print(const struct value* value)
+value_write(const struct value* value)
 {
     assert(value != NULL);
 
     switch (value->type) {
-        case VALUE_NUMBER: printf("%lf", value->as.number); break;
-        case VALUE_STRING: printf("\"%s\"", value->as.string); break;
-        case VALUE_SYMBOL: printf("%s", value->as.symbol); break;
+        case VALUE_BOOLEAN:
+            printf("%s", value->as.boolean ? "#t" : "#f");
+            break;
+        case VALUE_NUMBER:
+            printf("%ld", value->as.number);
+            break;
+        case VALUE_STRING:
+            printf("\"%s\"", value->as.string);
+            break;
+        case VALUE_SYMBOL:
+            printf("%s", value->as.symbol);
+            break;
         case VALUE_PAIR:
-            if (CAR(value) == NULL && CDR(value) == NULL) {
-                printf("()");
-                return;
+            if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
+                printf("ok");
+                break;
             }
-
-            printf("( ");
-            if (value->as.pair.car == NULL) printf("()");
-            else value_print(value->as.pair.car);
+            printf("(");
+            if (value->as.pair.car == NULL) printf("'()");
+            else value_write(value->as.pair.car);
             printf(" . ");
-            if (value->as.pair.cdr == NULL) printf("()");
-            else value_print(value->as.pair.cdr);
-            printf(" )");
+            if (value->as.pair.cdr == NULL) printf("'()");
+            else value_write(value->as.pair.cdr);
+            printf(")");
+            break;
+        case VALUE_BUILTIN:
+            printf("<builtin>");
+            break;
+        case VALUE_LAMBDA:
+            printf("<lambda>");
+            break;
+        case VALUE_ERROR:
+            printf("error: %s", value->as.error);
             break;
         default:
             printf("<undefined>");
     }
 }
 
-void
-value_println(const struct value* value)
+struct value*
+list_make(struct value* value, ...)
 {
-    assert(value != NULL);
+    va_list args;
+    va_start(args, value);
 
-    value_print(value);
-    printf("\n");
+    struct value* head = cons(value, NULL);
+    struct value* tail = head;
+
+    for (;;) {
+        struct value* v = va_arg(args, struct value*);
+        if (v == NULL) break;
+
+        cdr(tail) = cons(v, NULL);
+        tail = cdr(tail);
+    }
+
+    va_end(args);
+    return head;
+}
+
+long
+list_length(const struct value* list)
+{
+    long count = 0;
+
+    const struct value* iter = list;
+    while (iter != NULL) {
+        count++;
+        iter = cdr(iter);
+    }
+
+    return count;
 }

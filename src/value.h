@@ -20,6 +20,7 @@ typedef struct value* (*builtin_func)(struct value* args);
 
 struct value {
     int type;
+    int ref_count;
     union {
         bool boolean;
         long number;

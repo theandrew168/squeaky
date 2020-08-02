@@ -113,6 +113,8 @@ int
 //main(int argc, char* argv[])
 main(void)
 {
+    printf("sizeof value: %ld\n", sizeof(struct value));
+
     struct value* vars = list_make(
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),

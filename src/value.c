@@ -26,6 +26,7 @@ value_make_boolean(bool boolean)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_BOOLEAN;
+    value->ref_count = 1;
     value->as.boolean = boolean;
     return value;
 }
@@ -35,6 +36,7 @@ value_make_number(long number)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_NUMBER;
+    value->ref_count = 1;
     value->as.number = number;
     return value;
 }
@@ -44,6 +46,7 @@ value_make_string(const char* string, long length)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_STRING;
+    value->ref_count = 1;
     value->as.string = malloc(length - 2 + 1); // leave out the quotes
     snprintf(value->as.string, length - 2 + 1, "%s", string + 1);
     return value;
@@ -54,6 +57,7 @@ value_make_symbol(const char* symbol, long length)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_SYMBOL;
+    value->ref_count = 1;
     value->as.symbol = malloc(length + 1);
     snprintf(value->as.symbol, length + 1, "%s", symbol);
     return value;
@@ -64,6 +68,7 @@ value_make_pair(struct value* car, struct value* cdr)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_PAIR;
+    value->ref_count = 1;
     value->as.pair.car = car;
     value->as.pair.cdr = cdr;
     return value;
@@ -74,6 +79,7 @@ value_make_builtin(builtin_func builtin)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_BUILTIN;
+    value->ref_count = 1;
     value->as.builtin = builtin;
     return value;
 }
@@ -83,6 +89,7 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_LAMBDA;
+    value->ref_count = 1;
     value->as.lambda.params = params;
     value->as.lambda.body = body;
     value->as.lambda.env = env;
@@ -94,6 +101,7 @@ value_make_error(const char* error)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_ERROR;
+    value->ref_count = 1;
     value->as.error = malloc(strlen(error) + 1);
     strcpy(value->as.error, error);
     return value;

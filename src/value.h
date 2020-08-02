@@ -48,8 +48,9 @@ struct value {
 #define value_is_builtin(v) ((v)->type == VALUE_BUILTIN)
 #define value_is_lambda(v)  ((v)->type == VALUE_LAMBDA)
 #define value_is_error(v)   ((v)->type == VALUE_ERROR)
-bool value_is_true(struct value* exp);
-bool value_is_false(struct value* exp);
+bool value_is_true(const struct value* exp);
+bool value_is_false(const struct value* exp);
+bool value_is_procedure(const struct value* exp);
 
 struct value* value_make_boolean(bool boolean);
 struct value* value_make_number(long number);

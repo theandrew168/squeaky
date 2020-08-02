@@ -13,7 +13,7 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// TODO: Add env creation helper (list of [sym, func] structs?)
+// TODO: Impl alt define form for easier lambdas
 // TODO: Add read_list helper to read func
 // TODO: Add special form "if"
 // TODO: Add assert helpers for builtins (arity and types)
@@ -99,10 +99,22 @@ int
 main(void)
 {
     struct value* vars = list_make(
+        value_make_symbol("boolean?", 8),
+        value_make_symbol("symbol?", 7),
+        value_make_symbol("procedure?", 10),
+        value_make_symbol("pair?", 5),
+        value_make_symbol("number?", 7),
+        value_make_symbol("string?", 7),
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),
         NULL);
     struct value* vals = list_make(
+        value_make_builtin(builtin_is_boolean),
+        value_make_builtin(builtin_is_symbol),
+        value_make_builtin(builtin_is_procedure),
+        value_make_builtin(builtin_is_pair),
+        value_make_builtin(builtin_is_number),
+        value_make_builtin(builtin_is_string),
         value_make_builtin(builtin_plus),
         value_make_builtin(builtin_multiply),
         NULL);

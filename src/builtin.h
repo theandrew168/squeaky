@@ -3,6 +3,13 @@
 
 #include "value.h"
 
+struct value* builtin_is_boolean(struct value* args);
+struct value* builtin_is_symbol(struct value* args);
+struct value* builtin_is_procedure(struct value* args);
+struct value* builtin_is_pair(struct value* args);
+struct value* builtin_is_number(struct value* args);
+struct value* builtin_is_string(struct value* args);
+
 struct value* builtin_plus(struct value* args);
 struct value* builtin_multiply(struct value* args);
 

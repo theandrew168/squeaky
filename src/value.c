@@ -8,17 +8,28 @@
 #include "value.h"
 
 bool
-value_is_true(struct value* exp)
+value_is_true(const struct value* exp)
 {
+    assert(exp != NULL);
+
     return value_is_boolean(exp) &&
            exp->as.boolean == true;
 }
 
 bool
-value_is_false(struct value* exp)
+value_is_false(const struct value* exp)
 {
+    assert(exp != NULL);
+
     return value_is_boolean(exp) &&
            exp->as.boolean == false;
+}
+
+bool
+value_is_procedure(const struct value* exp)
+{
+    assert(exp != NULL);
+    return value_is_builtin(exp) || value_is_lambda(exp);
 }
 
 struct value*

@@ -18,11 +18,13 @@ all: libsqueaky.a libsqueaky.so squeaky squeaky_tests
 libsqueaky_sources =  \
   src/builtin.c       \
   src/env.c           \
+  src/mce.c           \
   src/value.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/builtin.o: src/builtin.c src/builtin.h src/value.h
 src/env.o: src/env.c src/env.h src/value.h
+src/mce.o: src/mce.c src/mce.h src/value.h src/env.h
 src/value.o: src/value.c src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)

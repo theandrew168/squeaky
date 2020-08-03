@@ -7,6 +7,7 @@
 
 #include "builtin.h"
 #include "env.h"
+#include "mce.h"
 #include "value.h"
 
 // 1. Define core data structure (linkable tagged union)
@@ -19,84 +20,8 @@
 // TODO: Add assert helpers for builtins (arity and types)
 // TODO: Add a simple ref counted GC / memory management
 
-struct value* eval(struct value* exp, struct value* env);
-struct value* apply(struct value* proc, struct value* args);
-struct value* evlist(struct value* exps, struct value* env);
-struct value* evcond(struct value* exps, struct value* env);
-
-struct value*
-eval(struct value* exp, struct value* env)
-{
-    if (exp->type == VALUE_BOOLEAN) {
-        return exp;
-    } else if (exp->type == VALUE_NUMBER) {
-        return exp;
-    } else if (exp->type == VALUE_STRING) {
-        return exp;
-    } else if (exp->type == VALUE_ERROR) {
-        return exp;
-    } else if (exp->type == VALUE_SYMBOL) {
-        return env_lookup(exp, env);
-    } else if (strcmp(car(exp)->as.symbol, "quote") == 0) {
-        return cadr(exp);
-    } else if (strcmp(car(exp)->as.symbol, "lambda") == 0) {
-        // this differs from SICP:
-        // the lecture returns: ('closure (params body) env)
-        // (lambda (x) (* x x))
-        return value_make_lambda(cadr(exp), caddr(exp), env);
-    } else if (strcmp(car(exp)->as.symbol, "cond") == 0) {
-        return evcond(cdr(exp), env);
-    } else if (strcmp(car(exp)->as.symbol, "define") == 0) {
-        return env_define(cadr(exp), eval(caddr(exp), env), env);
-    } else if (strcmp(car(exp)->as.symbol, "set!") == 0) {
-        return env_update(cadr(exp), eval(caddr(exp), env), env);
-    } else {
-        return apply(eval(car(exp), env), evlist(cdr(exp), env));
-    }
-}
-
-struct value*
-apply(struct value* proc, struct value* args)
-{
-    if (proc->type == VALUE_BUILTIN) {
-        // simply call the builtin
-        return proc->as.builtin(args);
-    } else if (proc->type == VALUE_LAMBDA) {
-        // eval the lambda body in a new env that
-        // binds the params to these args in a new frame
-        // on top of the lambda's initial env
-        return eval(proc->as.lambda.body, env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
-    } else {
-        return value_make_error("unknown procedure type");
-    }
-}
-
-struct value*
-evlist(struct value* exps, struct value* env)
-{
-    if (exps == NULL) return NULL;
-
-    return cons(eval(car(exps), env), evlist(cdr(exps), env));
-}
-
-struct value*
-evcond(struct value* exps, struct value* env)
-{
-    if (exps == NULL) return NULL;
-
-    if (caar(exps)->type == VALUE_SYMBOL &&
-        strcmp(caar(exps)->as.symbol, "else") == 0) {
-        return eval(cadar(exps), env);
-    } else if (value_is_false(eval(caar(exps), env))) {
-        return evcond(cdr(exps), env);
-    } else {
-        return eval(cadar(exps), env);
-    }
-}
-
 int
-//main(int argc, char* argv[])
-main(void)
+main(int argc, char* argv[])
 {
     struct value* vars = list_make(
         value_make_symbol("boolean?", 8),
@@ -120,17 +45,15 @@ main(void)
         NULL);
     struct value* env = env_bind(vars, vals, NULL);
 
-//    env_print(env);
-
     printf("> ");
     char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = value_read(line, &consumed);
-        value_write(exp);
-        printf("\n");
+//        value_write(exp);
+//        printf("\n");
 
-        struct value* res = eval(exp, env);
+        struct value* res = mce_eval(exp, env);
         value_write(res);
         printf("\n");
 

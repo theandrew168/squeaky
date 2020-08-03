@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
 enum value_type {
     VALUE_UNDEFINED = 0,
     VALUE_BOOLEAN,
@@ -12,6 +15,7 @@ enum value_type {
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
+    VALUE_WINDOW,
     VALUE_ERROR,
 };
 
@@ -36,6 +40,10 @@ struct value {
             struct value* body;
             struct value* env;
         } lambda;
+        struct {
+            SDL_Window* window;
+            SDL_Renderer* renderer;
+        } window;
         char* error;
     } as;
 };
@@ -47,6 +55,7 @@ struct value {
 #define value_is_pair(v)    ((v)->type == VALUE_PAIR)
 #define value_is_builtin(v) ((v)->type == VALUE_BUILTIN)
 #define value_is_lambda(v)  ((v)->type == VALUE_LAMBDA)
+#define value_is_window(v)  ((v)->type == VALUE_WINDOW)
 #define value_is_error(v)   ((v)->type == VALUE_ERROR)
 bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
@@ -59,6 +68,7 @@ struct value* value_make_symbol(const char* symbol, long length);
 struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
+struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_error(const char* error);
 void value_free(struct value* value);
 

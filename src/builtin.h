@@ -9,6 +9,9 @@ struct value* builtin_is_procedure(struct value* args);
 struct value* builtin_is_pair(struct value* args);
 struct value* builtin_is_number(struct value* args);
 struct value* builtin_is_string(struct value* args);
+struct value* builtin_is_window(struct value* args);
+
+struct value* builtin_make_window(struct value* args);
 
 struct value* builtin_plus(struct value* args);
 struct value* builtin_multiply(struct value* args);

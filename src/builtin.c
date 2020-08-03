@@ -53,6 +53,27 @@ builtin_is_string(struct value* args)
 }
 
 struct value*
+builtin_is_window(struct value* args)
+{
+    assert(args != NULL);
+
+    return value_is_window(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_make_window(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 3 args (string, number, number)
+
+    struct value* title = car(args);
+    struct value* width = cadr(args);
+    struct value* height = caddr(args);
+
+    return value_make_window(title->as.string, width->as.number, height->as.number);
+}
+
+struct value*
 builtin_plus(struct value* args)
 {
     assert(args != NULL);

@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
 #include "value.h"
 
 bool
@@ -108,6 +111,35 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 }
 
 struct value*
+value_make_window(const char* title, long width, long height)
+{
+    SDL_Window* window = SDL_CreateWindow(
+        title,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        width,
+        height,
+        0);
+    if (window == NULL) {
+        fprintf(stderr, "failed to create SDL2 window: %s", SDL_GetError());
+        return value_make_error("failed to create SDL2 window");
+    }
+
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == NULL) {
+        fprintf(stderr, "failed to create SDL2 renderer: %s", SDL_GetError());
+        return value_make_error("failed to create SDL2 renderer");
+    }
+
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_WINDOW;
+    value->ref_count = 1;
+    value->as.window.window = window;
+    value->as.window.renderer = renderer;
+    return value;
+}
+
+struct value*
 value_make_error(const char* error)
 {
     struct value* value = malloc(sizeof(struct value));
@@ -144,6 +176,10 @@ value_free(struct value* value)
             value_free(value->as.lambda.params);
             value_free(value->as.lambda.body);
             value_free(value->as.lambda.env);
+            break;
+        case VALUE_WINDOW:
+            SDL_DestroyRenderer(value->as.window.renderer);
+            SDL_DestroyWindow(value->as.window.window);
             break;
         case VALUE_ERROR:
             free(value->as.error);

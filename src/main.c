@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
 #include "builtin.h"
 #include "env.h"
 #include "mce.h"
@@ -23,6 +26,11 @@
 int
 main(int argc, char* argv[])
 {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
+        return EXIT_FAILURE;
+    }
+
     struct value* vars = list_make(
         value_make_symbol("boolean?", 8),
         value_make_symbol("symbol?", 7),
@@ -30,6 +38,8 @@ main(int argc, char* argv[])
         value_make_symbol("pair?", 5),
         value_make_symbol("number?", 7),
         value_make_symbol("string?", 7),
+        value_make_symbol("window?", 7),
+        value_make_symbol("make-window", 11),
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),
         NULL);
@@ -40,6 +50,8 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_is_pair),
         value_make_builtin(builtin_is_number),
         value_make_builtin(builtin_is_string),
+        value_make_builtin(builtin_is_window),
+        value_make_builtin(builtin_make_window),
         value_make_builtin(builtin_plus),
         value_make_builtin(builtin_multiply),
         NULL);
@@ -59,4 +71,7 @@ main(int argc, char* argv[])
 
         printf("> ");
     }
+
+    SDL_Quit();
+    return EXIT_SUCCESS;
 }

@@ -6,4 +6,6 @@
 struct value* mce_eval(struct value* exp, struct value* env);
 struct value* mce_apply(struct value* proc, struct value* args);
 
+struct value* mce_load(struct value* args, struct value* env);
+
 #endif

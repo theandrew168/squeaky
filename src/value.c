@@ -56,18 +56,40 @@ value_make_number(long number)
 }
 
 struct value*
-value_make_string(const char* string, long length)
+value_make_string(const char* string)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_STRING;
     value->ref_count = 1;
-    value->as.string = malloc(length - 2 + 1); // leave out the quotes
-    snprintf(value->as.string, length - 2 + 1, "%s", string + 1);
+    value->as.string = malloc(strlen(string) + 1);
+    strcpy(value->as.string, string);
     return value;
 }
 
 struct value*
-value_make_symbol(const char* symbol, long length)
+value_make_stringn(const char* string, long length)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_STRING;
+    value->ref_count = 1;
+    value->as.string = malloc(length + 1);
+    snprintf(value->as.string, length + 1, "%s", string);
+    return value;
+}
+
+struct value*
+value_make_symbol(const char* symbol)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_SYMBOL;
+    value->ref_count = 1;
+    value->as.symbol = malloc(strlen(symbol) + 1);
+    strcpy(value->as.symbol, symbol);
+    return value;
+}
+
+struct value*
+value_make_symboln(const char* symbol, long length)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_SYMBOL;
@@ -213,6 +235,7 @@ value_read(const char* str, long* consumed)
     // EOF
     if (*start == '\0') {
         *consumed = start - str;
+        return value_make_pair(NULL, NULL);
         return value_make_error("unexpected EOF");
     }
 
@@ -224,7 +247,7 @@ value_read(const char* str, long* consumed)
         struct value* target = value_read(iter, consumed);
         iter += *consumed;
         *consumed = iter - str;  // consumed includes initial quote and sub read
-        return list_make(value_make_symbol("quote", 5), target, NULL);
+        return list_make(value_make_symbol("quote"), target, NULL);
     }
 
     // boolean
@@ -259,9 +282,13 @@ value_read(const char* str, long* consumed)
         while (*iter != '"' && *iter != '\0') iter++;
         if (*iter == '\0') return value_make_error("unterminated string");
 
-        iter++;  // consume close quote
+        // consume close quote
+        iter++;
+
         *consumed = iter - str;
-        return value_make_string(start, iter - start);
+
+        // exclude quotes from the string's value
+        return value_make_stringn(start + 1, iter - start - 2);
     }
 
     // symbol
@@ -269,7 +296,7 @@ value_read(const char* str, long* consumed)
         const char* iter = start;
         while (strchr(alpha, *iter)) iter++;
         *consumed = iter - str;
-        return value_make_symbol(start, iter - start);
+        return value_make_symboln(start, iter - start);
     }
 
     // pair / list / s-expression
@@ -364,6 +391,9 @@ value_write(const struct value* value)
             break;
         case VALUE_LAMBDA:
             printf("<lambda>");
+            break;
+        case VALUE_WINDOW:
+            printf("<window>");
             break;
         case VALUE_ERROR:
             printf("error: %s", value->as.error);

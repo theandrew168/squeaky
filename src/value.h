@@ -63,8 +63,10 @@ bool value_is_procedure(const struct value* exp);
 
 struct value* value_make_boolean(bool boolean);
 struct value* value_make_number(long number);
-struct value* value_make_string(const char* string, long length);
-struct value* value_make_symbol(const char* symbol, long length);
+struct value* value_make_string(const char* string);
+struct value* value_make_stringn(const char* string, long length);
+struct value* value_make_symbol(const char* symbol);
+struct value* value_make_symboln(const char* symbol, long length);
 struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);

@@ -100,9 +100,12 @@ env_define(struct value* sym, struct value* value, struct value* env)
 void
 env_print(const struct value* env)
 {
-    if (env == NULL) return;
-    env_print(cdr(env));
+    if (env == NULL) {
+        printf("env| == done ==\n");
+        return;
+    }
 
+    printf("env| == frame == \n");
     struct value* frame = car(env);
     while (frame != NULL) {
         struct value* vcell = car(frame);
@@ -113,5 +116,5 @@ env_print(const struct value* env)
         frame = cdr(frame);
     }
 
-    printf("env| == frame == \n");
+    env_print(cdr(env));
 }

@@ -54,6 +54,8 @@ mce_eval(struct value* exp, struct value* env)
         return env_define(cadr(exp), mce_eval(caddr(exp), env), env);
     } else if (strcmp(car(exp)->as.symbol, "set!") == 0) {
         return env_update(cadr(exp), mce_eval(caddr(exp), env), env);
+    } else if (strcmp(car(exp)->as.symbol, "load") == 0) {
+        return mce_load(cadr(exp), env);
     } else {
         return mce_apply(mce_eval(car(exp), env), evlist(cdr(exp), env));
     }
@@ -73,4 +75,53 @@ mce_apply(struct value* proc, struct value* args)
     } else {
         return value_make_error("unknown procedure type");
     }
+}
+
+// TODO: is there cleaner way to impl this?
+// as a lambda or something with ports?
+// or wrap the sexprs in a "begin" expr or something?
+// read file -> wrap begin -> eval
+struct value*
+mce_load(struct value* args, struct value* env)
+{
+    assert(args != NULL);
+    assert(env != NULL);
+    // TODO assert 1 arg (string)
+
+    const char* path = args->as.string;
+
+    FILE* file = fopen(path, "rb");
+    if (file == NULL) {
+        fprintf(stderr, "failed to open file: %s\n", path);
+        return value_make_error("failed to open file");
+    }
+
+    fseek(file, 0, SEEK_END);
+    long size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char* source = malloc(size + 1);
+    fread(source, 1, size, file);
+    source[size] = '\0';
+    fclose(file);
+
+    long consumed = 0;
+    while (consumed != size) {
+        puts(source + consumed);
+        // trailing newlines on unix text files might finish with an empty expr
+        struct value* exp = value_read(source + consumed, &consumed);
+        if (list_is_null(exp)) break;
+
+        // if not empty, then eval the expr and check for errors
+        struct value* res = mce_eval(exp, env);
+        if (value_is_error(res)) {
+            value_write(res);
+//            return res;
+        }
+    }
+
+    env_print(env);
+
+    free(source);
+    return value_make_pair(NULL, NULL);
 }

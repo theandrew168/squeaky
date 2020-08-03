@@ -39,7 +39,10 @@ main(int argc, char* argv[])
         value_make_symbol("number?", 7),
         value_make_symbol("string?", 7),
         value_make_symbol("window?", 7),
+        value_make_symbol("delay!", 6),
         value_make_symbol("make-window", 11),
+        value_make_symbol("window-clear!", 13),
+        value_make_symbol("window-draw-line!", 17),
         value_make_symbol("+", 1),
         value_make_symbol("*", 1),
         NULL);
@@ -51,7 +54,10 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_is_number),
         value_make_builtin(builtin_is_string),
         value_make_builtin(builtin_is_window),
+        value_make_builtin(builtin_delay),
         value_make_builtin(builtin_make_window),
+        value_make_builtin(builtin_window_clear),
+        value_make_builtin(builtin_window_draw_line),
         value_make_builtin(builtin_plus),
         value_make_builtin(builtin_multiply),
         NULL);

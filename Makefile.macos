@@ -57,7 +57,7 @@ run: squeaky
 
 .PHONY: clean
 clean:
-	rm -fr squeaky squeaky_tests *.a *.so src/*.o
+	rm -fr squeaky squeaky_tests *.a *.so *.exe *.dll src/*.o
 
 .SUFFIXES: .c .o
 .c.o:

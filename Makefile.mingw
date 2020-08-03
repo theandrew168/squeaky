@@ -57,7 +57,7 @@ squeaky_tests.exe: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
 
 .PHONY: clean
 clean:
-	rm -fr *.exe *.a *.dll src/*.o
+	rm -fr squeaky squeaky_tests *.a *.so *.exe *.dll src/*.o
 
 .SUFFIXES: .c .o
 .c.o:

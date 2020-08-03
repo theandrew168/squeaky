@@ -16,7 +16,7 @@ LDLIBS  += -lgdi32 -limm32 -lole32 -loleaut32
 LDLIBS  += -lopengl32 -lsetupapi -lversion -lwinmm
 
 default: squeaky.exe
-all: libsqueaky.a libsqueaky.dll squeaky.exe
+all: libsqueaky.a libsqueaky.dll squeaky.exe squeaky_tests.exe
 
 ./SDL2/lib/libSDL2.a:
 	wget https://www.libsdl.org/release/SDL2-devel-2.0.12-mingw.tar.gz
@@ -24,14 +24,16 @@ all: libsqueaky.a libsqueaky.dll squeaky.exe
 	mv SDL2-2.0.12/x86_64-w64-mingw32/ SDL2/
 
 libsqueaky_sources =  \
-  src/chunk.c         \
-  src/value.c         \
-  src/vm.c
+  src/builtin.c       \
+  src/env.c           \
+  src/mce.c           \
+  src/value.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
-src/chunk.o: src/chunk.c src/chunk.h src/value.h
+src/builtin.o: src/builtin.c src/builtin.h src/value.h
+src/env.o: src/env.c src/env.h src/value.h
+src/mce.o: src/mce.c src/mce.h src/value.h src/env.h
 src/value.o: src/value.c src/value.h
-src/vm.o: src/vm.c src/vm.h src/chunk.h src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"
@@ -44,6 +46,14 @@ libsqueaky.dll: $(libsqueaky_objects) ./SDL2/lib/libSDL2.a
 squeaky.exe: src/main.c libsqueaky.a ./SDL2/lib/libSDL2.a
 	@echo "EXE     $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
+
+squeaky_tests_sources =  \
+  src/env_test.c         \
+  src/value_test.c
+
+squeaky_tests.exe: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
+	@echo "EXE     $@"
+	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
 
 .PHONY: clean
 clean:

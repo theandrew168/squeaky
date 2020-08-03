@@ -7,23 +7,25 @@ CFLAGS   = -std=c99
 CFLAGS  += -DDEBUG_TRACE_EXECUTION
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
-CFLAGS  += -Wno-unused-parameter -Wno-unused-result
+CFLAGS  += -Wno-unused-parameter -Wno-unused-result -Wno-unused-function
 CFLAGS  += -Isrc/
 LDFLAGS  =
 LDLIBS   = -lGL -lSDL2
 
 default: squeaky
-all: libsqueaky.a libsqueaky.so squeaky
+all: libsqueaky.a libsqueaky.so squeaky squeaky_tests
 
 libsqueaky_sources =  \
-  src/chunk.c         \
-  src/value.c         \
-  src/vm.c
+  src/builtin.c       \
+  src/env.c           \
+  src/mce.c           \
+  src/value.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
-src/chunk.o: src/chunk.c src/chunk.h src/value.h
+src/builtin.o: src/builtin.c src/builtin.h src/value.h
+src/env.o: src/env.c src/env.h src/value.h
+src/mce.o: src/mce.c src/mce.h src/value.h src/env.h
 src/value.o: src/value.c src/value.h
-src/vm.o: src/vm.c src/vm.h src/chunk.h src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"
@@ -36,6 +38,18 @@ libsqueaky.so: $(libsqueaky_objects)
 squeaky: src/main.c libsqueaky.a
 	@echo "EXE     $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
+
+squeaky_tests_sources =  \
+  src/env_test.c         \
+  src/value_test.c
+
+squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
+	@echo "EXE     $@"
+	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
+
+.PHONY: check
+check: squeaky_tests
+	./squeaky_tests
 
 .PHONY: run
 run: squeaky

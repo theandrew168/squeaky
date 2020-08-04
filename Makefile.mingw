@@ -51,9 +51,9 @@ squeaky_tests_sources =  \
   src/env_test.c         \
   src/value_test.c
 
-squeaky_tests.exe: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
+squeaky_tests.exe: $(squeaky_tests_sources) src/main_test.c libsqueaky.a ./SDL2/lib/libSDL2.a
 	@echo "EXE     $@"
-	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main_test.c libsqueaky.a $(LDLIBS)
 
 .PHONY: clean
 clean:

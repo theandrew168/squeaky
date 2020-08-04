@@ -11,8 +11,10 @@ struct value* builtin_is_number(struct value* args);
 struct value* builtin_is_string(struct value* args);
 struct value* builtin_is_window(struct value* args);
 
-struct value* builtin_plus(struct value* args);
-struct value* builtin_multiply(struct value* args);
+struct value* builtin_add(struct value* args);
+struct value* builtin_sub(struct value* args);
+struct value* builtin_mul(struct value* args);
+struct value* builtin_div(struct value* args);
 
 struct value* builtin_delay(struct value* args);
 struct value* builtin_make_window(struct value* args);

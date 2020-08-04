@@ -45,7 +45,7 @@ squeaky_tests_sources =  \
 
 squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
 	@echo "EXE     $@"
-	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main_test.c libsqueaky.a $(LDLIBS)
 
 .PHONY: check
 check: squeaky_tests

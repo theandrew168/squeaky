@@ -61,6 +61,7 @@ bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
 bool value_is_procedure(const struct value* exp);
 
+// constructors
 struct value* value_make_boolean(bool boolean);
 struct value* value_make_number(long number);
 struct value* value_make_string(const char* string);
@@ -74,9 +75,16 @@ struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_error(const char* error);
 void value_free(struct value* value);
 
+// ref count functions
+
+// extra goodies
+bool value_equal(const struct value* a, const struct value* b);
+
+// read / write
 struct value* value_read(const char* str, long* consumed);
 void value_write(const struct value* value);
 
+// list functions
 struct value* list_make(struct value* value, ...);
 long list_length(const struct value* list);
 bool list_is_null(const struct value* list);

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -94,7 +95,7 @@ eval_definition(struct value* exp, struct value* env)
 #define lambda_params(exp)  \
   cadr(exp)
 #define lambda_body(exp)  \
-  caddr(exp)
+  cddr(exp)
 
 #define is_if(exp)  \
   is_tagged_list(exp, "if")
@@ -178,17 +179,25 @@ mce_eval(struct value* exp, struct value* env)
     return value_make_error("unknown expression type!");
 }
 
+#define is_primitive_proc(exp)  \
+  (exp)->type == VALUE_BUILTIN
+
+#define is_compound_proc(exp)  \
+  (exp)->type == VALUE_LAMBDA
+
 struct value*
 mce_apply(struct value* proc, struct value* args)
 {
-    if (proc->type == VALUE_BUILTIN) {
+    if (is_primitive_proc(proc)) {
         // simply call the builtin
         return proc->as.builtin(args);
-    } else if (proc->type == VALUE_LAMBDA) {
+    } else if (is_compound_proc(proc)) {
         // eval the lambda body in a new env that
         // binds the params to these args in a new frame
         // on top of the lambda's initial env
-        return mce_eval(proc->as.lambda.body, env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
+        return eval_sequence(
+            proc->as.lambda.body,
+            env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
     } else {
         return value_make_error("unknown procedure type");
     }

@@ -211,6 +211,44 @@ value_free(struct value* value)
     free(value);
 }
 
+bool
+value_equal(const struct value* a, const struct value* b)
+{
+    assert(a != NULL);
+    assert(b != NULL);
+
+    if (a->type != b->type) return false;
+
+    switch (a->type) {
+        case VALUE_BOOLEAN:
+            return a->as.boolean == b->as.boolean;
+        case VALUE_NUMBER:
+            return a->as.number == b->as.number;
+        case VALUE_STRING:
+            return strcmp(a->as.string, b->as.string) == 0;
+        case VALUE_SYMBOL:
+            return strcmp(a->as.symbol, b->as.symbol) == 0;
+        case VALUE_PAIR:
+            return value_equal(a->as.pair.car, b->as.pair.car) &&
+                   value_equal(a->as.pair.cdr, b->as.pair.cdr);
+        case VALUE_BUILTIN:
+            // direct pointer compare
+            return a->as.builtin == b->as.builtin;
+        case VALUE_LAMBDA:
+            return value_equal(a->as.lambda.params, b->as.lambda.params) &&
+                   value_equal(a->as.lambda.body, b->as.lambda.body) &&
+                   value_equal(a->as.lambda.env, b->as.lambda.env);
+        case VALUE_WINDOW:
+            // direct pointer compare
+            return a->as.window.window == b->as.window.window &&
+                   a->as.window.renderer == b->as.window.renderer;
+        case VALUE_ERROR:
+            return strcmp(a->as.error, b->as.error) == 0;
+    }
+
+    return false;
+}
+
 struct value*
 value_read(const char* str, long* consumed)
 {

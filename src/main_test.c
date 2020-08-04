@@ -12,10 +12,11 @@ static const test_func TESTS[] = {
     test_env_update,
     test_env_define,
     test_value_make_number,
+    test_list_make,
 };
 
 int
-main(void)
+main(int argc, char* argv[])
 {
     long num_tests = sizeof(TESTS) / sizeof(*TESTS);
 

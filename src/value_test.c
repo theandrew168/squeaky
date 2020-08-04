@@ -18,3 +18,30 @@ test_value_make_number(void)
 
     return true;
 }
+
+bool
+test_list_make(void)
+{
+    struct value* a = value_make_symbol("a");
+    struct value* b = value_make_symbol("b");
+    struct value* c = value_make_symbol("c");
+
+    struct value* list = list_make(a, b, c, NULL);
+
+    if (!value_equal(car(list), a)) {
+        fprintf(stderr, "list_make first element is wrong\n");
+        return false;
+    }
+
+    if (!value_equal(cadr(list), b)) {
+        fprintf(stderr, "list_make second element is wrong\n");
+        return false;
+    }
+
+    if (!value_equal(caddr(list), c)) {
+        fprintf(stderr, "list_make third element is wrong\n");
+        return false;
+    }
+
+    return true;
+}

@@ -10,7 +10,7 @@ CFLAGS  += -Wall -Wextra -Wpedantic
 CFLAGS  += -Wno-unused-parameter -Wno-unused-result -Wno-unused-function
 CFLAGS  += -Isrc/ -I/usr/local/include
 LDFLAGS  = -L/usr/local/lib
-LDLIBS   = -lSDL2
+LDLIBS   = -framework OpenGL -lSDL2
 
 default: squeaky
 all: libsqueaky.a libsqueaky.so squeaky squeaky_tests
@@ -45,7 +45,7 @@ squeaky_tests_sources =  \
 
 squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
 	@echo "EXE     $@"
-	@$(CC) $(CFLAGS) -o $@ src/main_test.c libsqueaky.a
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main_test.c libsqueaky.a $(LDLIBS)
 
 .PHONY: check
 check: squeaky_tests

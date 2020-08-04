@@ -71,29 +71,60 @@ builtin_is_window(struct value* args)
 }
 
 struct value*
-builtin_plus(struct value* args)
+builtin_add(struct value* args)
 {
     assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
 
-    long sum = 0;
+    long res = 0;
     for (; args != NULL; args = cdr(args)) {
-        sum += car(args)->as.number;
+        res += car(args)->as.number;
     }
 
-    return value_make_number(sum);
+    return value_make_number(res);
 }
 
 struct value*
-builtin_multiply(struct value* args)
+builtin_sub(struct value* args)
 {
     assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
 
-    long product = 1;
-    for (; args != NULL; args = cdr(args)) {
-        product *= car(args)->as.number;
+    long res = car(args)->as.number;
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        res -= car(args)->as.number;
     }
 
-    return value_make_number(product);
+    return value_make_number(res);
+}
+
+struct value*
+builtin_mul(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    long res = 1;
+    for (; args != NULL; args = cdr(args)) {
+        res *= car(args)->as.number;
+    }
+
+    return value_make_number(res);
+}
+
+struct value*
+builtin_div(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+    // TODO: assert non-zero args (except first as special case ret zero?)
+
+    long res = car(args)->as.number;
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        res /= car(args)->as.number;
+    }
+
+    return value_make_number(res);
 }
 
 struct value*

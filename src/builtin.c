@@ -133,7 +133,6 @@ builtin_window_clear(struct value* args)
 
     SDL_SetRenderDrawColor(window->as.window.renderer, 0, 0, 0, 255);
     SDL_RenderClear(window->as.window.renderer);
-    SDL_RenderPresent(window->as.window.renderer);
 
     return value_make_pair(NULL, NULL);
 }
@@ -154,6 +153,18 @@ builtin_window_draw_line(struct value* args)
     SDL_RenderDrawLine(window->as.window.renderer,
         x1->as.number, y1->as.number,
         x2->as.number, y2->as.number);
+
+    return value_make_pair(NULL, NULL);
+}
+
+struct value*
+builtin_window_present(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg (window)
+
+    struct value* window = car(args);
+
     SDL_RenderPresent(window->as.window.renderer);
 
     return value_make_pair(NULL, NULL);

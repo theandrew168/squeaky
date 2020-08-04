@@ -18,5 +18,6 @@ struct value* builtin_delay(struct value* args);
 struct value* builtin_make_window(struct value* args);
 struct value* builtin_window_clear(struct value* args);
 struct value* builtin_window_draw_line(struct value* args);
+struct value* builtin_window_present(struct value* args);
 
 #endif

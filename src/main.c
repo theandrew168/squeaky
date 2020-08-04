@@ -47,6 +47,7 @@ main(int argc, char* argv[])
         value_make_symbol("make-window"),
         value_make_symbol("window-clear!"),
         value_make_symbol("window-draw-line!"),
+        value_make_symbol("window-present!"),
 
         NULL);
     struct value* vals = list_make(
@@ -65,6 +66,7 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_make_window),
         value_make_builtin(builtin_window_clear),
         value_make_builtin(builtin_window_draw_line),
+        value_make_builtin(builtin_window_present),
 
         NULL);
     struct value* env = env_bind(vars, vals, NULL);

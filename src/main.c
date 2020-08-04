@@ -17,9 +17,12 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// TODO: Impl alt define form for easier lambdas
+// TODO: Add eq? builtin
+// TODO: Add inequality builtins
+// TODO: Add type for SDL_Event and corresponding builtins
+// TODO: Harden behavior for empty / incomplete / invalid expressions
+
 // TODO: Add read_list helper to read func
-// TODO: Add special form "if"
 // TODO: Add assert helpers for builtins (arity and types)
 // TODO: Add a simple ref counted GC / memory management
 
@@ -45,6 +48,9 @@ main(int argc, char* argv[])
         value_make_symbol("*"),
         value_make_symbol("/"),
 
+        value_make_symbol("display"),
+        value_make_symbol("newline"),
+
         value_make_symbol("delay!"),
         value_make_symbol("make-window"),
         value_make_symbol("window-clear!"),
@@ -66,6 +72,9 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_mul),
         value_make_builtin(builtin_div),
 
+        value_make_builtin(builtin_display),
+        value_make_builtin(builtin_newline),
+
         value_make_builtin(builtin_delay),
         value_make_builtin(builtin_make_window),
         value_make_builtin(builtin_window_clear),
@@ -80,6 +89,8 @@ main(int argc, char* argv[])
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
         struct value* exp = value_read(line, &consumed);
+
+        // uncomment to see what the reader gives
 //        value_write(exp);
 //        printf("\n");
 

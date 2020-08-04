@@ -128,6 +128,29 @@ builtin_div(struct value* args)
 }
 
 struct value*
+builtin_display(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1-2 args (any[, port])
+
+    struct value* obj = car(args);
+    value_write(obj);
+
+    return value_make_pair(NULL, NULL);
+}
+
+struct value*
+builtin_newline(struct value* args)
+{
+    // might actually be NULL if zero args!
+//    assert(args != NULL);
+    // TODO: assert 0-1 args ([port])
+
+    printf("\n");
+    return value_make_pair(NULL, NULL);
+}
+
+struct value*
 builtin_delay(struct value* args)
 {
     assert(args != NULL);

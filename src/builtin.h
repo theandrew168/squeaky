@@ -16,6 +16,9 @@ struct value* builtin_sub(struct value* args);
 struct value* builtin_mul(struct value* args);
 struct value* builtin_div(struct value* args);
 
+struct value* builtin_display(struct value* args);
+struct value* builtin_newline(struct value* args);
+
 struct value* builtin_delay(struct value* args);
 struct value* builtin_make_window(struct value* args);
 struct value* builtin_window_clear(struct value* args);

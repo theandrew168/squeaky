@@ -9,6 +9,13 @@
 // TODO: this impl violates "The Law of Cons"
 // rewrite as two lists per frame: one for vars and one for vals
 
+// create a new, empty frame on top of the given env
+struct value*
+env_frame(struct value* env)
+{
+    return cons(NULL, env);
+}
+
 static struct value*
 pair_up(struct value* vars, struct value* vals)
 {

@@ -120,7 +120,7 @@ eval_if(struct value* exp, struct value* env)
 #define begin_actions(exp)  \
   cdr(exp)
 #define is_last_exp(exp)  \
-  list_is_null(cdr(exp))
+  cdr(exp) == NULL
 #define first_exp(exp)  \
   car(exp)
 #define rest_exps(exp)  \

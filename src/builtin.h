@@ -15,6 +15,11 @@ struct value* builtin_add(struct value* args);
 struct value* builtin_sub(struct value* args);
 struct value* builtin_mul(struct value* args);
 struct value* builtin_div(struct value* args);
+struct value* builtin_equal(struct value* args);
+struct value* builtin_less(struct value* args);
+struct value* builtin_less_equal(struct value* args);
+struct value* builtin_greater(struct value* args);
+struct value* builtin_greater_equal(struct value* args);
 
 struct value* builtin_is_eq(struct value* args);
 struct value* builtin_not(struct value* args);

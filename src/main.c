@@ -17,10 +17,9 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// TODO: Impl TCO for more exprs
-// TODO: Add inequality builtins
 // TODO: Add type for SDL_Event and corresponding builtins
 // TODO: Harden behavior for empty / incomplete / invalid expressions
+// TODO: Harden behavior for nil / empty list (pair of NULLS or just NULL?)
 
 // TODO: Add read_list helper to read func
 // TODO: Add assert helpers for builtins (arity and types)
@@ -72,6 +71,11 @@ main(int argc, char* argv[])
         value_make_symbol("-"),
         value_make_symbol("*"),
         value_make_symbol("/"),
+        value_make_symbol("="),
+        value_make_symbol("<"),
+        value_make_symbol("<="),
+        value_make_symbol(">"),
+        value_make_symbol(">="),
 
         value_make_symbol("eq?"),
         value_make_symbol("not"),
@@ -99,6 +103,11 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_sub),
         value_make_builtin(builtin_mul),
         value_make_builtin(builtin_div),
+        value_make_builtin(builtin_equal),
+        value_make_builtin(builtin_less),
+        value_make_builtin(builtin_less_equal),
+        value_make_builtin(builtin_greater),
+        value_make_builtin(builtin_greater_equal),
 
         value_make_builtin(builtin_is_eq),
         value_make_builtin(builtin_not),

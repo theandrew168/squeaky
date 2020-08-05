@@ -128,6 +128,81 @@ builtin_div(struct value* args)
 }
 
 struct value*
+builtin_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!value_equal(item, car(args))) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_less(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number < car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_less_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number <= car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_greater(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number > car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_greater_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number >= car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
 builtin_is_eq(struct value* args)
 {
     assert(args != NULL);

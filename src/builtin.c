@@ -321,3 +321,36 @@ builtin_window_present(struct value* args)
 
     return value_make_pair(NULL, NULL);
 }
+
+struct value*
+builtin_event_poll(struct value* args)
+{
+//    assert(args != NULL);
+    // TODO: assert 0 args
+
+    SDL_Event event = { 0 };
+    int rc = SDL_PollEvent(&event);
+    if (rc == 0) {
+        return value_make_boolean(false);
+    } else {
+        return value_make_event(event);
+    }
+}
+
+struct value*
+builtin_event_type(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg (event)
+
+    struct value* event = car(args);
+    switch (event->as.event.type) {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+            return value_make_symbol("event-keyboard");
+        case SDL_QUIT:
+            return value_make_symbol("event-quit");
+        default:
+            return value_make_symbol("event-undefined");
+    }
+}

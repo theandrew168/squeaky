@@ -6,6 +6,12 @@
   (window-draw-line! w x (+ y 20) (+ x 10) (+ y 30))
   (window-draw-line! w x (+ y 20) (- x 10) (+ y 30)))
 
-(window-clear! w)
-(draw-ship! 200 200)
-(window-present! w)
+; test expr is bugged if not present
+(do ((e 'event-undefined (event-poll)))
+    ((eq? (event-type e) 'event-quit) 123)
+  (window-clear! w)
+  (draw-ship! 200 200)
+  (window-present! w))
+
+(display "done")
+(newline)

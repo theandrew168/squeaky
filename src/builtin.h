@@ -32,5 +32,7 @@ struct value* builtin_make_window(struct value* args);
 struct value* builtin_window_clear(struct value* args);
 struct value* builtin_window_draw_line(struct value* args);
 struct value* builtin_window_present(struct value* args);
+struct value* builtin_event_poll(struct value* args);
+struct value* builtin_event_type(struct value* args);
 
 #endif

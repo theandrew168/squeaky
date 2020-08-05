@@ -162,6 +162,16 @@ value_make_window(const char* title, long width, long height)
 }
 
 struct value*
+value_make_event(SDL_Event event)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_EVENT;
+    value->ref_count = 1;
+    value->as.event = event;
+    return value;
+}
+
+struct value*
 value_make_error(const char* error)
 {
     struct value* value = malloc(sizeof(struct value));
@@ -203,6 +213,8 @@ value_free(struct value* value)
             SDL_DestroyRenderer(value->as.window.renderer);
             SDL_DestroyWindow(value->as.window.window);
             break;
+        case VALUE_EVENT:
+            break;
         case VALUE_ERROR:
             free(value->as.error);
             break;
@@ -242,6 +254,9 @@ value_equal(const struct value* a, const struct value* b)
             // direct pointer compare
             return a->as.window.window == b->as.window.window &&
                    a->as.window.renderer == b->as.window.renderer;
+        case VALUE_EVENT:
+            // two events are never equal?
+            return false;
         case VALUE_ERROR:
             return strcmp(a->as.error, b->as.error) == 0;
     }
@@ -434,6 +449,9 @@ value_write(const struct value* value)
             break;
         case VALUE_WINDOW:
             printf("<window>");
+            break;
+        case VALUE_EVENT:
+            printf("<event:%d>", value->as.event.type);
             break;
         case VALUE_ERROR:
             printf("error: %s", value->as.error);

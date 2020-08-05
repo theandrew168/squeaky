@@ -16,6 +16,7 @@ enum value_type {
     VALUE_BUILTIN,
     VALUE_LAMBDA,
     VALUE_WINDOW,
+    VALUE_EVENT,
     VALUE_ERROR,
 };
 
@@ -44,6 +45,7 @@ struct value {
             SDL_Window* window;
             SDL_Renderer* renderer;
         } window;
+        SDL_Event event;
         char* error;
     } as;
 };
@@ -56,6 +58,7 @@ struct value {
 #define value_is_builtin(v) ((v)->type == VALUE_BUILTIN)
 #define value_is_lambda(v)  ((v)->type == VALUE_LAMBDA)
 #define value_is_window(v)  ((v)->type == VALUE_WINDOW)
+#define value_is_event(v)   ((v)->type == VALUE_EVENT)
 #define value_is_error(v)   ((v)->type == VALUE_ERROR)
 bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
@@ -72,10 +75,13 @@ struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
 struct value* value_make_window(const char* title, long width, long height);
+struct value* value_make_event(SDL_Event event);
 struct value* value_make_error(const char* error);
 void value_free(struct value* value);
 
 // ref count functions
+void value_ref_inc(struct value* value);
+void value_ref_dec(struct value* value);
 
 // extra goodies
 bool value_equal(const struct value* a, const struct value* b);

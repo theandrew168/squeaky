@@ -88,6 +88,8 @@ main(int argc, char* argv[])
         value_make_symbol("window-clear!"),
         value_make_symbol("window-draw-line!"),
         value_make_symbol("window-present!"),
+        value_make_symbol("event-poll"),
+        value_make_symbol("event-type"),
 
         NULL);
     struct value* vals = list_make(
@@ -120,6 +122,8 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_window_clear),
         value_make_builtin(builtin_window_draw_line),
         value_make_builtin(builtin_window_present),
+        value_make_builtin(builtin_event_poll),
+        value_make_builtin(builtin_event_type),
 
         NULL);
     struct value* env = env_bind(vars, vals, NULL);

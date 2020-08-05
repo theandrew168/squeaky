@@ -411,19 +411,21 @@ value_write(const struct value* value)
         case VALUE_SYMBOL:
             printf("%s", value->as.symbol);
             break;
-        case VALUE_PAIR:
+        case VALUE_PAIR: {
             if (value->as.pair.car == NULL && value->as.pair.cdr == NULL) {
                 printf("ok");
                 break;
             }
+
             printf("(");
-            if (value->as.pair.car == NULL) printf("'()");
-            else value_write(value->as.pair.car);
-            printf(" . ");
-            if (value->as.pair.cdr == NULL) printf("'()");
-            else value_write(value->as.pair.cdr);
+            for (const struct value* iter = value; iter != NULL; iter = cdr(iter)) {
+                value_write(car(iter));
+                if (cdr(iter) != NULL) printf(" ");
+            }
             printf(")");
+
             break;
+        }
         case VALUE_BUILTIN:
             printf("<builtin>");
             break;

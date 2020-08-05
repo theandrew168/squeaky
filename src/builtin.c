@@ -128,6 +128,61 @@ builtin_div(struct value* args)
 }
 
 struct value*
+builtin_eq(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_and(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    if (value_is_true(a) && value_is_true(b)) {
+        return value_make_boolean(true);
+    } else {
+        return value_make_boolean(false);
+    }
+}
+
+struct value*
+builtin_or(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    if (value_is_true(a) || value_is_true(b)) {
+        return value_make_boolean(true);
+    } else {
+        return value_make_boolean(false);
+    }
+}
+
+struct value*
+builtin_not(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg (any)
+
+    struct value* a = car(args);
+
+    return value_is_false(a) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
 builtin_display(struct value* args)
 {
     assert(args != NULL);

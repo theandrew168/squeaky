@@ -141,6 +141,21 @@ eval_sequence(struct value* exp, struct value* env)
 #define is_cond(exp)  \
   is_tagged_list(exp, "cond")
 
+#define is_let(exp)  \
+  is_tagged_list(exp, "let")
+#define let_bindings(exp)  \
+  cadr(exp)
+#define let_body(exp)  \
+  cddr(exp)
+#define first_binding(exp)  \
+  car(exp)
+#define rest_bindings(exp)  \
+  cdr(exp)
+#define binding_var(exp)  \
+  car(exp)
+#define binding_val(exp)  \
+  cadr(exp)
+
 #define is_application(exp)  \
   value_is_pair(exp)
 
@@ -170,6 +185,15 @@ mce_eval(struct value* exp, struct value* env)
         return eval_sequence(begin_actions(exp), env);
     } else if (is_cond(exp)) {
         return eval_cond(cdr(exp), env);
+    } else if (is_let(exp)) {
+        struct value* let_env = env_frame(env);
+        for (struct value* bindings = let_bindings(exp);
+             bindings != NULL;
+             bindings = rest_bindings(bindings)) {
+            struct value* binding = first_binding(bindings);
+            env_define(binding_var(binding), mce_eval(binding_val(binding), env), let_env);
+        }
+        return eval_sequence(let_body(exp), let_env);
     } else if (is_load(exp)) {
         return mce_load(load_path(exp), env);
     } else if (is_application(exp)) {

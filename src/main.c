@@ -48,6 +48,11 @@ main(int argc, char* argv[])
         value_make_symbol("*"),
         value_make_symbol("/"),
 
+        value_make_symbol("eq?"),
+        value_make_symbol("and"),
+        value_make_symbol("or"),
+        value_make_symbol("not"),
+
         value_make_symbol("display"),
         value_make_symbol("newline"),
 
@@ -71,6 +76,11 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_sub),
         value_make_builtin(builtin_mul),
         value_make_builtin(builtin_div),
+
+        value_make_builtin(builtin_eq),
+        value_make_builtin(builtin_and),
+        value_make_builtin(builtin_or),
+        value_make_builtin(builtin_not),
 
         value_make_builtin(builtin_display),
         value_make_builtin(builtin_newline),

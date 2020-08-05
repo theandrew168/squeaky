@@ -143,6 +143,8 @@ eval_sequence(struct value* exp, struct value* env)
 
 #define is_let(exp)  \
   is_tagged_list(exp, "let")
+#define is_let_star(exp)  \
+  is_tagged_list(exp, "let*")
 #define let_bindings(exp)  \
   cadr(exp)
 #define let_body(exp)  \
@@ -155,6 +157,64 @@ eval_sequence(struct value* exp, struct value* env)
   car(exp)
 #define binding_val(exp)  \
   cadr(exp)
+
+struct value*
+eval_let(struct value* exp, struct value* env)
+{
+    struct value* let_env = env_frame(env);
+    for (struct value* bindings = let_bindings(exp);
+         bindings != NULL;
+         bindings = rest_bindings(bindings)) {
+        struct value* binding = first_binding(bindings);
+        env_define(binding_var(binding), mce_eval(binding_val(binding), env), let_env);
+    }
+    return eval_sequence(let_body(exp), let_env);
+}
+
+struct value*
+eval_let_star(struct value* exp, struct value* env)
+{
+    struct value* let_env = env_frame(env);
+    for (struct value* bindings = let_bindings(exp);
+         bindings != NULL;
+         bindings = rest_bindings(bindings)) {
+        struct value* binding = first_binding(bindings);
+        env_define(binding_var(binding), mce_eval(binding_val(binding), let_env), let_env);
+    }
+    return eval_sequence(let_body(exp), let_env);
+}
+
+#define is_and(exp)  \
+  is_tagged_list(exp, "and")
+
+struct value*
+eval_and(struct value* exp, struct value* env)
+{
+    struct value* a = cadr(exp);
+    struct value* b = caddr(exp);
+
+    if (value_is_true(a) && value_is_true(b)) {
+        return value_make_boolean(true);
+    } else {
+        return value_make_boolean(false);
+    }
+}
+
+#define is_or(exp)  \
+  is_tagged_list(exp, "or")
+
+struct value*
+eval_or(struct value* exp, struct value* env)
+{
+    struct value* a = cadr(exp);
+    struct value* b = caddr(exp);
+
+    if (value_is_true(a) || value_is_true(b)) {
+        return value_make_boolean(true);
+    } else {
+        return value_make_boolean(false);
+    }
+}
 
 #define is_application(exp)  \
   value_is_pair(exp)
@@ -195,14 +255,16 @@ tailcall:
         exp = eval_cond(cdr(exp), env);
         goto tailcall;
     } else if (is_let(exp)) {
-        struct value* let_env = env_frame(env);
-        for (struct value* bindings = let_bindings(exp);
-             bindings != NULL;
-             bindings = rest_bindings(bindings)) {
-            struct value* binding = first_binding(bindings);
-            env_define(binding_var(binding), mce_eval(binding_val(binding), env), let_env);
-        }
-        exp = eval_sequence(let_body(exp), let_env);
+        exp = eval_let(exp, env);
+        goto tailcall;
+    } else if (is_let_star(exp)) {
+        exp = eval_let_star(exp, env);
+        goto tailcall;
+    } else if (is_and(exp)) {
+        exp = eval_and(exp, env);
+        goto tailcall;
+    } else if (is_or(exp)) {
+        exp = eval_or(exp, env);
         goto tailcall;
     } else if (is_load(exp)) {
         return mce_load(load_path(exp), env);

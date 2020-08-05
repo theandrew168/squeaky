@@ -16,7 +16,7 @@ struct value* builtin_sub(struct value* args);
 struct value* builtin_mul(struct value* args);
 struct value* builtin_div(struct value* args);
 
-struct value* builtin_eq(struct value* args);
+struct value* builtin_is_eq(struct value* args);
 struct value* builtin_not(struct value* args);
 
 struct value* builtin_display(struct value* args);

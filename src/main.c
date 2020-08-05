@@ -26,6 +26,9 @@
 // TODO: Add assert helpers for builtins (arity and types)
 // TODO: Add a simple ref counted GC / memory management
 
+#define add_to_env(sym, func, env)  \
+  env_define(value_make_symbol(sym), value_make_builtin(func), env);
+
 int
 main(int argc, char* argv[])
 {
@@ -33,6 +36,28 @@ main(int argc, char* argv[])
         fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
         return EXIT_FAILURE;
     }
+
+//    struct value* env = env_frame(NULL);
+//    add_to_env("boolean?", builtin_is_boolean, env);
+//    add_to_env("symbol?", builtin_is_symbol, env);
+//    add_to_env("procedure?", builtin_is_procedure, env);
+//    add_to_env("pair?", builtin_is_pair, env);
+//    add_to_env("number?", builtin_is_number, env);
+//    add_to_env("string?", builtin_is_string, env);
+//    add_to_env("window?", builtin_is_window, env);
+//    add_to_env("+", builtin_add, env);
+//    add_to_env("-", builtin_sub, env);
+//    add_to_env("*", builtin_mul, env);
+//    add_to_env("/", builtin_div, env);
+//    add_to_env("eq?", builtin_is_eq, env);
+//    add_to_env("not", builtin_not, env);
+//    add_to_env("display", builtin_display, env);
+//    add_to_env("newline", builtin_newline, env);
+//    add_to_env("delay!", builtin_delay, env);
+//    add_to_env("make-window", builtin_make_window, env);
+//    add_to_env("window-clear!", builtin_window_clear, env);
+//    add_to_env("window-draw-line!", builtin_window_draw_line, env);
+//    add_to_env("window-present!", builtin_window_present, env);
 
     struct value* vars = list_make(
         value_make_symbol("boolean?"),
@@ -75,7 +100,7 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_mul),
         value_make_builtin(builtin_div),
 
-        value_make_builtin(builtin_eq),
+        value_make_builtin(builtin_is_eq),
         value_make_builtin(builtin_not),
 
         value_make_builtin(builtin_display),

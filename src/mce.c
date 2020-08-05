@@ -130,6 +130,8 @@ eval_if(struct value* exp, struct value* env)
 static struct value*
 eval_sequence(struct value* exp, struct value* env)
 {
+    if (exp == NULL) return value_make_pair(NULL, NULL);
+
     if (is_last_exp(exp)) {
         return mce_eval(first_exp(exp), env);
     } else {
@@ -141,6 +143,71 @@ eval_sequence(struct value* exp, struct value* env)
 #define is_cond(exp)  \
   is_tagged_list(exp, "cond")
 
+#define is_do(exp)  \
+  is_tagged_list(exp, "do")
+#define do_bindings(exp)  \
+  cadr(exp)
+#define do_cond(exp)  \
+  caddr(exp)
+#define do_command(exp)  \
+  cdddr(exp)
+#define do_cond_test(exp)  \
+  car(exp)
+#define do_cond_expr(exp)  \
+  cdr(exp)
+#define do_first_binding(exp)  \
+  car(exp)
+#define do_rest_bindings(exp)  \
+  cdr(exp)
+#define do_binding_var(exp)  \
+  car(exp)
+#define do_binding_init(exp)  \
+  cadr(exp)
+#define do_binding_step(exp)  \
+  caddr(exp)
+#define do_binding_has_step(exp)  \
+  cddr(exp) != NULL
+
+struct value*
+eval_do(struct value* exp, struct value* env)
+{
+    // create a new frame
+    struct value* do_env = env_frame(env);
+
+    // init vars to their initial value
+    for (struct value* bindings = do_bindings(exp);
+         bindings != NULL;
+         bindings = do_rest_bindings(bindings)) {
+        struct value* binding = do_first_binding(bindings);
+        env_define(do_binding_var(binding), do_binding_init(binding), do_env);
+    }
+
+    // loop until test condition is true
+    struct value* cond = do_cond(exp);
+    while (value_is_false(mce_eval(do_cond_test(cond), do_env))) {
+        // eval the commands (could be none)
+        eval_sequence(do_command(exp), do_env);
+
+        // update vars based on their step expr (if present)
+        for (struct value* bindings = do_bindings(exp);
+             bindings != NULL;
+             bindings = do_rest_bindings(bindings)) {
+
+            // if step is present, eval it and update the value of the var
+            struct value* binding = do_first_binding(bindings);
+            if (do_binding_has_step(binding)) {
+                env_update(
+                    do_binding_var(binding),
+                    mce_eval(do_binding_step(binding), do_env),
+                    do_env);
+            }
+        }
+    }
+
+    // eval cond expressions (could be none) and return last
+    return eval_sequence(do_cond_expr(cond), do_env);
+}
+
 #define is_let(exp)  \
   is_tagged_list(exp, "let")
 #define is_let_star(exp)  \
@@ -149,13 +216,13 @@ eval_sequence(struct value* exp, struct value* env)
   cadr(exp)
 #define let_body(exp)  \
   cddr(exp)
-#define first_binding(exp)  \
+#define let_first_binding(exp)  \
   car(exp)
-#define rest_bindings(exp)  \
+#define let_rest_bindings(exp)  \
   cdr(exp)
-#define binding_var(exp)  \
+#define let_binding_var(exp)  \
   car(exp)
-#define binding_val(exp)  \
+#define let_binding_val(exp)  \
   cadr(exp)
 
 struct value*
@@ -164,9 +231,9 @@ eval_let(struct value* exp, struct value* env)
     struct value* let_env = env_frame(env);
     for (struct value* bindings = let_bindings(exp);
          bindings != NULL;
-         bindings = rest_bindings(bindings)) {
-        struct value* binding = first_binding(bindings);
-        env_define(binding_var(binding), mce_eval(binding_val(binding), env), let_env);
+         bindings = let_rest_bindings(bindings)) {
+        struct value* binding = let_first_binding(bindings);
+        env_define(let_binding_var(binding), mce_eval(let_binding_val(binding), env), let_env);
     }
     return eval_sequence(let_body(exp), let_env);
 }
@@ -177,9 +244,9 @@ eval_let_star(struct value* exp, struct value* env)
     struct value* let_env = env_frame(env);
     for (struct value* bindings = let_bindings(exp);
          bindings != NULL;
-         bindings = rest_bindings(bindings)) {
-        struct value* binding = first_binding(bindings);
-        env_define(binding_var(binding), mce_eval(binding_val(binding), let_env), let_env);
+         bindings = let_rest_bindings(bindings)) {
+        struct value* binding = let_first_binding(bindings);
+        env_define(let_binding_var(binding), mce_eval(let_binding_val(binding), let_env), let_env);
     }
     return eval_sequence(let_body(exp), let_env);
 }
@@ -227,8 +294,6 @@ eval_or(struct value* exp, struct value* env)
 struct value*
 mce_eval(struct value* exp, struct value* env)
 {
-// TODO: Change 'and' / 'or' to special forms for TCO
-
 // R5RS mandates TCO on the following expressions:
 // if, cond, case, and, or, let, let*, letrec,
 // let-syntax, letrec-syntax, begin, do
@@ -253,6 +318,9 @@ tailcall:
         goto tailcall;
     } else if (is_cond(exp)) {
         exp = eval_cond(cdr(exp), env);
+        goto tailcall;
+    } else if (is_do(exp)) {
+        exp = eval_do(exp, env);
         goto tailcall;
     } else if (is_let(exp)) {
         exp = eval_let(exp, env);

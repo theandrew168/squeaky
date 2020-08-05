@@ -128,7 +128,7 @@ builtin_div(struct value* args)
 }
 
 struct value*
-builtin_eq(struct value* args)
+builtin_is_eq(struct value* args)
 {
     assert(args != NULL);
     // TODO: assert 2 args (any, any)

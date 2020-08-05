@@ -92,9 +92,9 @@ env_update(struct value* sym, struct value* value, struct value* env)
 struct value*
 env_define(struct value* sym, struct value* value, struct value* env)
 {
-    struct value* vcell = assq(sym, car(env));
+    struct value* vcell = assq(sym, env->as.pair.car);
     if (vcell != NULL) {
-        // update exiting vcell
+        // update existing vcell
         vcell->as.pair.cdr = value;
     } else {
         // prepend a new vcell to this frame

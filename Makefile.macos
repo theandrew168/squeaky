@@ -4,7 +4,6 @@
 AR       = ar
 CC       = cc
 CFLAGS   = -std=c99
-CFLAGS  += -DDEBUG_TRACE_EXECUTION
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
 CFLAGS  += -Wno-unused-parameter -Wno-unused-result -Wno-unused-function

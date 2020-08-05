@@ -4,7 +4,6 @@
 AR       = x86_64-w64-mingw32-ar
 CC       = x86_64-w64-mingw32-gcc
 CFLAGS   = -std=c99 -D__USE_MINGW_ANSI_STDIO
-CFLAGS  += -DDEBUG_TRACE_EXECUTION
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
 CFLAGS  += -Wno-unused-parameter -Wno-unused-result

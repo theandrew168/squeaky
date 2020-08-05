@@ -121,7 +121,7 @@ eval_if(struct value* exp, struct value* env)
 #define begin_actions(exp)  \
   cdr(exp)
 #define is_last_exp(exp)  \
-  cdr(exp) == NULL
+  (cdr(exp) == NULL)
 #define first_exp(exp)  \
   car(exp)
 #define rest_exps(exp)  \
@@ -166,7 +166,7 @@ eval_sequence(struct value* exp, struct value* env)
 #define do_binding_step(exp)  \
   caddr(exp)
 #define do_binding_has_step(exp)  \
-  cddr(exp) != NULL
+  (cddr(exp) != NULL)
 
 struct value*
 eval_do(struct value* exp, struct value* env)
@@ -253,35 +253,13 @@ eval_let_star(struct value* exp, struct value* env)
 
 #define is_and(exp)  \
   is_tagged_list(exp, "and")
-
-struct value*
-eval_and(struct value* exp, struct value* env)
-{
-    struct value* a = cadr(exp);
-    struct value* b = caddr(exp);
-
-    if (value_is_true(a) && value_is_true(b)) {
-        return value_make_boolean(true);
-    } else {
-        return value_make_boolean(false);
-    }
-}
+#define and_tests(exp)  \
+  cdr(exp)
 
 #define is_or(exp)  \
   is_tagged_list(exp, "or")
-
-struct value*
-eval_or(struct value* exp, struct value* env)
-{
-    struct value* a = cadr(exp);
-    struct value* b = caddr(exp);
-
-    if (value_is_true(a) || value_is_true(b)) {
-        return value_make_boolean(true);
-    } else {
-        return value_make_boolean(false);
-    }
-}
+#define or_tests(exp)  \
+  cdr(exp)
 
 #define is_application(exp)  \
   value_is_pair(exp)
@@ -291,10 +269,16 @@ eval_or(struct value* exp, struct value* env)
 #define load_path(exp)  \
   cadr(exp)
 
+#define is_primitive_proc(exp)  \
+  ((exp)->type == VALUE_BUILTIN)
+
+#define is_compound_proc(exp)  \
+  ((exp)->type == VALUE_LAMBDA)
+
 struct value*
 mce_eval(struct value* exp, struct value* env)
 {
-// R5RS mandates TCO on the following expressions:
+// R5RS mandates TCO on lambdas and the following exprs:
 // if, cond, case, and, or, let, let*, letrec,
 // let-syntax, letrec-syntax, begin, do
 tailcall:
@@ -314,7 +298,12 @@ tailcall:
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_begin(exp)) {
-        exp = eval_sequence(begin_actions(exp), env);
+        exp = begin_actions(exp);
+        while (!is_last_exp(exp)) {
+            mce_eval(first_exp(exp), env);
+            exp = rest_exps(exp);
+        }
+        exp = first_exp(exp);
         goto tailcall;
     } else if (is_cond(exp)) {
         exp = eval_cond(cdr(exp), env);
@@ -329,43 +318,49 @@ tailcall:
         exp = eval_let_star(exp, env);
         goto tailcall;
     } else if (is_and(exp)) {
-        exp = eval_and(exp, env);
+        exp = and_tests(exp);
+        if (exp == NULL) return value_make_boolean(true);
+        while (!is_last_exp(exp)) {
+            struct value* res = mce_eval(first_exp(exp), env);
+            if (value_is_false(res)) return res;
+            exp = rest_exps(exp);
+        }
+        exp = first_exp(exp);
         goto tailcall;
     } else if (is_or(exp)) {
-        exp = eval_or(exp, env);
+        exp = or_tests(exp);
+        if (exp == NULL) return value_make_boolean(false);
+        while (!is_last_exp(exp)) {
+            struct value* res = mce_eval(first_exp(exp), env);
+            if (value_is_true(res)) return res;
+            exp = rest_exps(exp);
+        }
+        exp = first_exp(exp);
         goto tailcall;
     } else if (is_load(exp)) {
         return mce_load(load_path(exp), env);
     } else if (is_application(exp)) {
-        // TODO: inline apply logic for TCO
-        return mce_apply(mce_eval(car(exp), env), eval_list(cdr(exp), env));
+        struct value* proc = mce_eval(car(exp), env);
+        struct value* args = eval_list(cdr(exp), env);
+
+        // TODO: handle 'eval' builtin specifically
+        // TODO: handle 'apply' builtin specifically
+
+        if (is_primitive_proc(proc)) {
+            // simply call the builtin
+            return proc->as.builtin(args);
+        } else if (is_compound_proc(proc)) {
+            // update the env to includes bound args and the lambda's closured env
+            // update the exp to be the lambda's body wrapped in a 'begin'
+            env = env_bind(proc->as.lambda.params, args, proc->as.lambda.env);
+            exp = cons(value_make_symbol("begin"), proc->as.lambda.body);
+            goto tailcall;
+        } else {
+            return value_make_error("unknown procedure type");
+        }
     }
 
     return value_make_error("unknown expression type!");
-}
-
-#define is_primitive_proc(exp)  \
-  (exp)->type == VALUE_BUILTIN
-
-#define is_compound_proc(exp)  \
-  (exp)->type == VALUE_LAMBDA
-
-struct value*
-mce_apply(struct value* proc, struct value* args)
-{
-    if (is_primitive_proc(proc)) {
-        // simply call the builtin
-        return proc->as.builtin(args);
-    } else if (is_compound_proc(proc)) {
-        // eval the lambda body in a new env that
-        // binds the params to these args in a new frame
-        // on top of the lambda's initial env
-        return eval_sequence(
-            proc->as.lambda.body,
-            env_bind(proc->as.lambda.params, args, proc->as.lambda.env));
-    } else {
-        return value_make_error("unknown procedure type");
-    }
 }
 
 struct value*

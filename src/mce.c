@@ -167,6 +167,12 @@ eval_sequence(struct value* exp, struct value* env)
 struct value*
 mce_eval(struct value* exp, struct value* env)
 {
+// TODO: Change 'and' / 'or' to special forms for TCO
+
+// R5RS mandates TCO on the following expressions:
+// if, cond, case, and, or, let, let*, letrec,
+// let-syntax, letrec-syntax, begin, do
+tailcall:
     if (is_self_evaluating(exp)) {
         return exp;
     } else if (is_variable(exp)) {
@@ -178,13 +184,16 @@ mce_eval(struct value* exp, struct value* env)
     } else if (is_definition(exp)) {
         return eval_definition(exp, env);
     } else if (is_if(exp)) {
-        return eval_if(exp, env);
+        exp = eval_if(exp, env);
+        goto tailcall;
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_begin(exp)) {
-        return eval_sequence(begin_actions(exp), env);
+        exp = eval_sequence(begin_actions(exp), env);
+        goto tailcall;
     } else if (is_cond(exp)) {
-        return eval_cond(cdr(exp), env);
+        exp = eval_cond(cdr(exp), env);
+        goto tailcall;
     } else if (is_let(exp)) {
         struct value* let_env = env_frame(env);
         for (struct value* bindings = let_bindings(exp);
@@ -193,10 +202,12 @@ mce_eval(struct value* exp, struct value* env)
             struct value* binding = first_binding(bindings);
             env_define(binding_var(binding), mce_eval(binding_val(binding), env), let_env);
         }
-        return eval_sequence(let_body(exp), let_env);
+        exp = eval_sequence(let_body(exp), let_env);
+        goto tailcall;
     } else if (is_load(exp)) {
         return mce_load(load_path(exp), env);
     } else if (is_application(exp)) {
+        // TODO: inline apply logic for TCO
         return mce_apply(mce_eval(car(exp), env), eval_list(cdr(exp), env));
     }
 

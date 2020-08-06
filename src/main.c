@@ -39,13 +39,14 @@ main(int argc, char* argv[])
 
     struct value* env = env_extend(NULL, NULL, NULL);
     add_to_env("boolean?", builtin_is_boolean, env);
-    add_to_env("symbol?", builtin_is_symbol, env);
-    add_to_env("procedure?", builtin_is_procedure, env);
-    add_to_env("pair?", builtin_is_pair, env);
     add_to_env("number?", builtin_is_number, env);
     add_to_env("string?", builtin_is_string, env);
+    add_to_env("symbol?", builtin_is_symbol, env);
+    add_to_env("pair?", builtin_is_pair, env);
+    add_to_env("procedure?", builtin_is_procedure, env);
     add_to_env("window?", builtin_is_window, env);
     add_to_env("event?", builtin_is_event, env);
+    add_to_env("error?", builtin_is_error, env);
 
     add_to_env("+", builtin_add, env);
     add_to_env("-", builtin_sub, env);

@@ -18,7 +18,7 @@ make_test_env(void)
         2,
         value_make_number(123),
         value_make_number(42));
-    struct value* env = env_bind(vars, vals, NULL);
+    struct value* env = env_extend(vars, vals, NULL);
 
     return env;
 }
@@ -31,7 +31,7 @@ test_env_bind(void)
     // bind a new value for "foo"
     struct value* vars = list_make(1, value_make_symbol("foo"));
     struct value* vals = list_make(1, value_make_number(321));
-    struct value* env = env_bind(vars, vals, base_env);
+    struct value* env = env_extend(vars, vals, base_env);
 
     // make sure to get the new foo
     struct value* foo = env_lookup(value_make_symbol("foo"), env);
@@ -56,7 +56,7 @@ test_env_bind(void)
         2,
         value_make_number(111),
         value_make_number(222));
-    struct value* new_env = env_bind(new_vars, new_vals, env);
+    struct value* new_env = env_extend(new_vars, new_vals, env);
 
     // make sure to get the new foo
     foo = env_lookup(value_make_symbol("foo"), new_env);
@@ -162,7 +162,7 @@ test_env_define(void)
     // create a new frame with a new value for 'foo'
     struct value* vars = list_make(1, value_make_symbol("foo"));
     struct value* vals = list_make(1, value_make_number(321));
-    struct value* new_env = env_bind(vars, vals, env);
+    struct value* new_env = env_extend(vars, vals, env);
 
     // ensure to get the new frame's value for foo
     foo = env_lookup(value_make_symbol("foo"), new_env);

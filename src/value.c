@@ -11,10 +11,86 @@
 #include "value.h"
 
 bool
+value_is_boolean(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_BOOLEAN;
+}
+
+bool
+value_is_number(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_NUMBER;
+}
+
+bool
+value_is_string(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_STRING;
+}
+
+bool
+value_is_symbol(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_SYMBOL;
+}
+
+bool
+value_is_pair(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_PAIR;
+}
+
+bool
+value_is_builtin(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_BUILTIN;
+}
+
+bool
+value_is_lambda(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_LAMBDA;
+}
+
+bool
+value_is_window(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_WINDOW;
+}
+
+bool
+value_is_event(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_EVENT;
+}
+
+bool
+value_is_error(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_ERROR;
+}
+
+bool
+value_is_procedure(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return value_is_builtin(exp) || value_is_lambda(exp);
+}
+
+bool
 value_is_true(const struct value* exp)
 {
-    assert(exp != NULL);
-
+    if (exp == EMPTY_LIST) return false;
     return value_is_boolean(exp) &&
            exp->as.boolean == true;
 }
@@ -22,17 +98,9 @@ value_is_true(const struct value* exp)
 bool
 value_is_false(const struct value* exp)
 {
-    assert(exp != NULL);
-
+    if (exp == EMPTY_LIST) return false;
     return value_is_boolean(exp) &&
            exp->as.boolean == false;
-}
-
-bool
-value_is_procedure(const struct value* exp)
-{
-    assert(exp != NULL);
-    return value_is_builtin(exp) || value_is_lambda(exp);
 }
 
 struct value*

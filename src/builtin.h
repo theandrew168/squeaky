@@ -10,6 +10,7 @@ struct value* builtin_is_pair(struct value* args);
 struct value* builtin_is_number(struct value* args);
 struct value* builtin_is_string(struct value* args);
 struct value* builtin_is_window(struct value* args);
+struct value* builtin_is_event(struct value* args);
 
 struct value* builtin_add(struct value* args);
 struct value* builtin_sub(struct value* args);

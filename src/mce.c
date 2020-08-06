@@ -178,7 +178,7 @@ struct value*
 eval_do(struct value* exp, struct value* env)
 {
     // create a new frame
-    struct value* do_env = env_frame(env);
+    struct value* do_env = env_extend(NULL, NULL, env);
 
     // init vars to their initial value
     for (struct value* bindings = do_bindings(exp);
@@ -234,7 +234,7 @@ eval_do(struct value* exp, struct value* env)
 struct value*
 eval_let(struct value* exp, struct value* env)
 {
-    struct value* let_env = env_frame(env);
+    struct value* let_env = env_extend(NULL, NULL, env);
     for (struct value* bindings = let_bindings(exp);
          bindings != NULL;
          bindings = let_rest_bindings(bindings)) {
@@ -247,7 +247,7 @@ eval_let(struct value* exp, struct value* env)
 struct value*
 eval_let_star(struct value* exp, struct value* env)
 {
-    struct value* let_env = env_frame(env);
+    struct value* let_env = env_extend(NULL, NULL, env);
     for (struct value* bindings = let_bindings(exp);
          bindings != NULL;
          bindings = let_rest_bindings(bindings)) {
@@ -360,7 +360,7 @@ tailcall:
         } else if (is_compound_proc(proc)) {
             // update the env to includes bound args and the lambda's closured env
             // update the exp to be the lambda's body wrapped in a 'begin'
-            env = env_bind(proc->as.lambda.params, args, proc->as.lambda.env);
+            env = env_extend(proc->as.lambda.params, args, proc->as.lambda.env);
             exp = cons(value_make_symbol("begin"), proc->as.lambda.body);
             goto tailcall;
         } else {

@@ -53,17 +53,18 @@ struct value {
 
 #define EMPTY_LIST NULL
 
-#define value_is_boolean(v) ((v)->type == VALUE_BOOLEAN)
-#define value_is_number(v)  ((v)->type == VALUE_NUMBER)
-#define value_is_string(v)  ((v)->type == VALUE_STRING)
-#define value_is_symbol(v)  ((v)->type == VALUE_SYMBOL)
-#define value_is_pair(v)    ((v)->type == VALUE_PAIR)
-#define value_is_builtin(v) ((v)->type == VALUE_BUILTIN)
-#define value_is_lambda(v)  ((v)->type == VALUE_LAMBDA)
-#define value_is_window(v)  ((v)->type == VALUE_WINDOW)
-#define value_is_event(v)   ((v)->type == VALUE_EVENT)
-#define value_is_error(v)   ((v)->type == VALUE_ERROR)
+bool value_is_boolean(const struct value* exp);
+bool value_is_number(const struct value* exp);
+bool value_is_string(const struct value* exp);
+bool value_is_symbol(const struct value* exp);
+bool value_is_pair(const struct value* exp);
+bool value_is_builtin(const struct value* exp);
+bool value_is_lambda(const struct value* exp);
+bool value_is_window(const struct value* exp);
+bool value_is_event(const struct value* exp);
+bool value_is_error(const struct value* exp);
 bool value_is_procedure(const struct value* exp);
+
 bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
 

@@ -8,122 +8,99 @@
 #include "list.h"
 #include "value.h"
 
-// TODO: this impl violates "The Law of Cons"
-// rewrite as two lists per frame: one for vars and one for vals
+#define make_frame(vars, vals) (cons(vars, vals))
+#define frame_vars(frame) (car(frame))
+#define frame_vals(frame) (cdr(frame))
 
-// create a new, empty frame on top of the given env
-struct value*
-env_frame(struct value* env)
+static struct value*
+frame_lookup(struct value* var, struct value* vars, struct value* vals)
 {
-    return cons(NULL, env);
+    if (vars == NULL && vals == NULL) return EMPTY_LIST;
+    assert(vars != NULL && "env frame has mismatched vars and vals");
+    assert(vals != NULL && "env frame has mismatched vars and vals");
+
+    if (value_equal(var, car(vars))) return car(vals);
+    return frame_lookup(var, cdr(vars), cdr(vals));
 }
 
 static struct value*
-pair_up(struct value* vars, struct value* vals)
+frame_update(struct value* var, struct value* val, struct value* vars, struct value* vals)
 {
-    if (vars == NULL && vals == NULL) return NULL;
-    if (vars == NULL) {
-        fprintf(stderr, "too many arguments given to lambda... crash!\n");
-        return value_make_error("too many arguments given to lambda");
-    }
-    if (vals == NULL) {
-        fprintf(stderr, "too few arguments given to lambda... crash!\n");
-        return value_make_error("too few arguments given to lambda");
+    if (vars == NULL && vals == NULL) return EMPTY_LIST;
+    assert(vars != NULL && "env frame has mismatched vars and vals");
+    assert(vals != NULL && "env frame has mismatched vars and vals");
+
+    if (value_equal(var, car(vars))) {
+        vals->as.pair.car = val;
+        return EMPTY_LIST;
     }
 
-    return cons(cons(car(vars), car(vals)),
-                pair_up(cdr(vars), cdr(vals)));
+    return frame_update(var, val, cdr(vars), cdr(vals));
 }
 
-// create a new env with a leading frame that binds vars to vals
-struct value*
-env_bind(struct value* vars, struct value* vals, struct value* env)
-{
-    return cons(pair_up(vars, vals), env);
-}
-
-// search a frame for a given symbol, return (sym, value) pair if found
 static struct value*
-assq(struct value* sym, struct value* frame)
+frame_add_binding(struct value* var, struct value* val, struct value* frame)
 {
-    if (frame == NULL) return NULL;
+    assert(frame != NULL);
 
-    // TODO: type assertion for the symbols?
-
-    if (strcmp(sym->as.symbol, caar(frame)->as.symbol) == 0) {
-        return car(frame);
-    } else {
-        return assq(sym, cdr(frame));
-    }
+    frame->as.pair.car = cons(var, car(frame));
+    frame->as.pair.cdr = cons(val, cdr(frame));
+    return EMPTY_LIST;
 }
 
-// recur search all frames
+#define first_frame(env) (car(env))
+#define rest_frames(env) (cdr(env))
+
 struct value*
-env_lookup(struct value* sym, struct value* env)
+env_extend(struct value* vars, struct value* vals, struct value* env)
 {
-    if (env == NULL) {
-        return value_make_error("unbound variable");
+    long vars_len = list_length(vars);
+    long vals_len = list_length(vals);
+    if (vars_len < vals_len) {
+        return value_make_error("too many args supplied");
+    }
+    if (vars_len > vals_len) {
+        return value_make_error("too few args supplied");
     }
 
-    struct value* vcell = assq(sym, car(env));
-    if (vcell != NULL) {
-        return cdr(vcell);
-    } else {
-        return env_lookup(sym, cdr(env));
-    }
+    return cons(make_frame(vars, vals), env);
 }
 
-// recur serach and update, error if not found
 struct value*
-env_update(struct value* sym, struct value* value, struct value* env)
+env_lookup(struct value* var, struct value* env)
 {
-    if (env == NULL) {
-        return value_make_error("unbound variable");
-    }
+    if (env == EMPTY_LIST) return value_make_error("unbound variable");
 
-    struct value* vcell = assq(sym, car(env));
-    if (vcell != NULL) {
-        vcell->as.pair.cdr = value;
-        return value_make_pair(NULL, NULL);
-    } else {
-        return env_lookup(sym, cdr(env));
-    }
+    struct value* frame = first_frame(env);
+    struct value* val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
+    if (val != EMPTY_LIST) return val;
+    return env_lookup(var, rest_frames(env));
 }
 
-// search first frame only, update if found, add if not
 struct value*
-env_define(struct value* sym, struct value* value, struct value* env)
+env_update(struct value* var, struct value* val, struct value* env)
 {
-    struct value* vcell = assq(sym, env->as.pair.car);
-    if (vcell != NULL) {
-        // update existing vcell
-        vcell->as.pair.cdr = value;
-    } else {
-        // prepend a new vcell to this frame
-        env->as.pair.car = cons(cons(sym, value), car(env));
-    }
+    if (env == EMPTY_LIST) return value_make_error("unbound variable");
 
-    return value_make_pair(NULL, NULL);
+    struct value* frame = first_frame(env);
+    struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
+    if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
+    return env_update(var, val, rest_frames(env));
+}
+
+struct value*
+env_define(struct value* var, struct value* val, struct value* env)
+{
+    struct value* frame = first_frame(env);
+    struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
+    if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
+    return frame_add_binding(var, val, frame);
 }
 
 void
 env_print(const struct value* env)
 {
-    if (env == NULL) {
-        printf("env| == done ==\n");
-        return;
-    }
-
-    printf("env| == frame == \n");
-    struct value* frame = car(env);
-    while (frame != NULL) {
-        struct value* vcell = car(frame);
-        printf("env| %s: ", car(vcell)->as.symbol);
-        io_write(cdr(vcell));
-        printf("\n");
-
-        frame = cdr(frame);
-    }
-
-    env_print(cdr(env));
+    printf("TODO: env_print\n");
+    io_write(env);
+    printf("\n");
 }

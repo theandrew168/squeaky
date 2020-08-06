@@ -73,6 +73,15 @@ builtin_is_window(struct value* args)
 }
 
 struct value*
+builtin_is_event(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg
+
+    return value_is_event(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
 builtin_add(struct value* args)
 {
     assert(args != NULL);

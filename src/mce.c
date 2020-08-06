@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "env.h"
+#include "io.h"
+#include "list.h"
 #include "mce.h"
 
 // Meta-Circular Evaluator is based on SICP Chapter 4
@@ -51,8 +53,12 @@ is_tagged_list(struct value* exp, const char* tag)
 
 #define is_quoted(exp)  \
   is_tagged_list(exp, "quote")
-#define text_of_quotation(exp)  \
-  cadr(exp)
+static struct value*
+text_of_quotation(struct value* exp)
+{
+    if (exp == EMPTY_LIST) return EMPTY_LIST;
+    return cadr(exp);
+}
 
 #define is_assignment(exp)  \
   is_tagged_list(exp, "set!")
@@ -282,6 +288,8 @@ mce_eval(struct value* exp, struct value* env)
 // if, cond, case, and, or, let, let*, letrec,
 // let-syntax, letrec-syntax, begin, do
 tailcall:
+    if (exp == EMPTY_LIST) return value_make_error("unknown expression type!");
+
     if (is_self_evaluating(exp)) {
         return exp;
     } else if (is_variable(exp)) {
@@ -397,7 +405,7 @@ mce_load(struct value* args, struct value* env)
     while (total != size) {
         // keep track of how many bytes have been read / evaluated
         long consumed = 0;
-        struct value* exp = value_read(source + total, &consumed);
+        struct value* exp = io_read(source + total, &consumed);
         total += consumed;
 
         // trailing newlines on unix text files might finish with an empty expr

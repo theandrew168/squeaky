@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include "env.h"
+#include "io.h"
+#include "list.h"
 #include "value.h"
 
 // TODO: this impl violates "The Law of Cons"
@@ -117,7 +119,7 @@ env_print(const struct value* env)
     while (frame != NULL) {
         struct value* vcell = car(frame);
         printf("env| %s: ", car(vcell)->as.symbol);
-        value_write(cdr(vcell));
+        io_write(cdr(vcell));
         printf("\n");
 
         frame = cdr(frame);

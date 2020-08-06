@@ -10,12 +10,18 @@
 
 #include "builtin.h"
 #include "env.h"
+#include "io.h"
+#include "list.h"
 #include "mce.h"
 #include "value.h"
 
 // 1. Define core data structure (linkable tagged union)
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
+
+// BUG: empty read crashes
+// BUG: empty list "()" read crashes
+// BUG: empty list "'()" read crashes
 
 // TODO: Add type for SDL_Event and corresponding builtins
 // TODO: Harden behavior for empty / incomplete / invalid expressions
@@ -59,6 +65,8 @@ main(int argc, char* argv[])
 //    add_to_env("window-present!", builtin_window_present, env);
 
     struct value* vars = list_make(
+        27,
+
         value_make_symbol("boolean?"),
         value_make_symbol("symbol?"),
         value_make_symbol("procedure?"),
@@ -89,10 +97,10 @@ main(int argc, char* argv[])
         value_make_symbol("window-draw-line!"),
         value_make_symbol("window-present!"),
         value_make_symbol("event-poll"),
-        value_make_symbol("event-type"),
-
-        NULL);
+        value_make_symbol("event-type"));
     struct value* vals = list_make(
+        27,
+
         value_make_builtin(builtin_is_boolean),
         value_make_builtin(builtin_is_symbol),
         value_make_builtin(builtin_is_procedure),
@@ -123,23 +131,21 @@ main(int argc, char* argv[])
         value_make_builtin(builtin_window_draw_line),
         value_make_builtin(builtin_window_present),
         value_make_builtin(builtin_event_poll),
-        value_make_builtin(builtin_event_type),
-
-        NULL);
+        value_make_builtin(builtin_event_type));
     struct value* env = env_bind(vars, vals, NULL);
 
     printf("> ");
     char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
         long consumed = 0;
-        struct value* exp = value_read(line, &consumed);
+        struct value* exp = io_read(line, &consumed);
 
         // uncomment to see what the reader gives
-//        value_write(exp);
-//        printf("\n");
+        io_write(exp);
+        printf("\n");
 
         struct value* res = mce_eval(exp, env);
-        value_write(res);
+        io_write(res);
         printf("\n");
 
         printf("> ");

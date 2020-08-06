@@ -5,6 +5,8 @@
 #include <SDL2/SDL_opengl.h>
 
 #include "builtin.h"
+#include "io.h"
+#include "list.h"
 #include "value.h"
 
 struct value*
@@ -232,7 +234,7 @@ builtin_display(struct value* args)
     // TODO: assert 1-2 args (any[, port])
 
     struct value* obj = car(args);
-    value_write(obj);
+    io_write(obj);
 
     return value_make_pair(NULL, NULL);
 }

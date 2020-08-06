@@ -4,19 +4,20 @@
 #include <stdlib.h>
 
 #include "env.h"
+#include "list.h"
 #include "value.h"
 
 static struct value*
 make_test_env(void)
 {
     struct value* vars = list_make(
+        2,
         value_make_symbol("foo"),
-        value_make_symbol("bar"),
-        NULL);
+        value_make_symbol("bar"));
     struct value* vals = list_make(
+        2,
         value_make_number(123),
-        value_make_number(42),
-        NULL);
+        value_make_number(42));
     struct value* env = env_bind(vars, vals, NULL);
 
     return env;
@@ -28,12 +29,8 @@ test_env_bind(void)
     struct value* base_env = make_test_env();
 
     // bind a new value for "foo"
-    struct value* vars = list_make(
-        value_make_symbol("foo"),
-        NULL);
-    struct value* vals = list_make(
-        value_make_number(321),
-        NULL);
+    struct value* vars = list_make(1, value_make_symbol("foo"));
+    struct value* vals = list_make(1, value_make_number(321));
     struct value* env = env_bind(vars, vals, base_env);
 
     // make sure to get the new foo
@@ -52,13 +49,13 @@ test_env_bind(void)
 
     // bind a new value for "foo" and "baz"
     struct value* new_vars = list_make(
+        2,
         value_make_symbol("foo"),
-        value_make_symbol("bar"),
-        NULL);
+        value_make_symbol("bar"));
     struct value* new_vals = list_make(
+        2,
         value_make_number(111),
-        value_make_number(222),
-        NULL);
+        value_make_number(222));
     struct value* new_env = env_bind(new_vars, new_vals, env);
 
     // make sure to get the new foo
@@ -163,12 +160,8 @@ test_env_define(void)
     }
 
     // create a new frame with a new value for 'foo'
-    struct value* vars = list_make(
-        value_make_symbol("foo"),
-        NULL);
-    struct value* vals = list_make(
-        value_make_number(321),
-        NULL);
+    struct value* vars = list_make(1, value_make_symbol("foo"));
+    struct value* vals = list_make(1, value_make_number(321));
     struct value* new_env = env_bind(vars, vals, env);
 
     // ensure to get the new frame's value for foo

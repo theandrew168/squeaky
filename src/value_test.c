@@ -26,7 +26,7 @@ test_list_make(void)
     struct value* b = value_make_symbol("b");
     struct value* c = value_make_symbol("c");
 
-    struct value* list = list_make(a, b, c, NULL);
+    struct value* list = list_make(3, a, b, c);
 
     if (!value_equal(car(list), a)) {
         fprintf(stderr, "list_make first element is wrong\n");

@@ -254,7 +254,7 @@ builtin_display(struct value* args)
     struct value* obj = car(args);
     io_write(obj);
 
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -265,7 +265,7 @@ builtin_newline(struct value* args)
     // TODO: assert 0-1 args ([port])
 
     printf("\n");
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -278,7 +278,7 @@ builtin_delay(struct value* args)
 
     SDL_Delay(delay_ms->as.number);
 
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -306,7 +306,7 @@ builtin_window_clear(struct value* args)
     SDL_SetRenderDrawColor(window->as.window.renderer, 0, 0, 0, 255);
     SDL_RenderClear(window->as.window.renderer);
 
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -326,7 +326,7 @@ builtin_window_draw_line(struct value* args)
         x1->as.number, y1->as.number,
         x2->as.number, y2->as.number);
 
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -339,7 +339,7 @@ builtin_window_present(struct value* args)
 
     SDL_RenderPresent(window->as.window.renderer);
 
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -351,7 +351,7 @@ builtin_event_poll(struct value* args)
     SDL_Event event = { 0 };
     int rc = SDL_PollEvent(&event);
     if (rc == 0) {
-        return value_make_boolean(false);
+        return EMPTY_LIST;
     } else {
         return value_make_event(event);
     }

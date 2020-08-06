@@ -29,7 +29,7 @@ io_read(const char* str, long* consumed)
     // EOF
     if (*start == '\0') {
         *consumed = start - str;
-        return value_make_error("unexpected EOF");
+        return value_make_error("EOF");
     }
 
     // quote

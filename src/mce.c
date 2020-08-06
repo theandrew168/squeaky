@@ -110,17 +110,7 @@ eval_definition(struct value* exp, struct value* env)
 #define if_consequent(exp)  \
   caddr(exp)
 #define if_alternative(exp)  \
-  !list_is_null(cdddr(exp)) ? cadddr(exp) : value_make_boolean(false)
-
-static struct value*
-eval_if(struct value* exp, struct value* env)
-{
-    if (value_is_true(mce_eval(if_predicate(exp), env))) {
-        return mce_eval(if_consequent(exp), env);
-    } else {
-        return mce_eval(if_alternative(exp), env);
-    }
-}
+  ((cdddr(exp) == EMPTY_LIST) ? value_make_boolean(false) : cadddr(exp))
 
 #define is_begin(exp)  \
   is_tagged_list(exp, "begin")
@@ -301,7 +291,9 @@ tailcall:
     } else if (is_definition(exp)) {
         return eval_definition(exp, env);
     } else if (is_if(exp)) {
-        exp = eval_if(exp, env);
+        exp = value_is_true(mce_eval(if_predicate(exp), env))
+            ? if_consequent(exp)
+            : if_alternative(exp);
         goto tailcall;
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
@@ -408,8 +400,15 @@ mce_load(struct value* args, struct value* env)
         struct value* exp = io_read(source + total, &consumed);
         total += consumed;
 
-        // trailing newlines on unix text files might finish with an empty expr
-        if (list_is_null(exp)) break;
+        // check for reader errors
+        if (value_is_error(exp)) {
+            // trailing newlines on unix text files might finish with an empty expr
+            if (strcmp(exp->as.error, "EOF") == 0) {
+                break;
+            } else {
+                return exp;
+            }
+        }
 
         // if not empty, then eval the expr and check for errors
         struct value* res = mce_eval(exp, env);
@@ -420,5 +419,5 @@ mce_load(struct value* args, struct value* env)
 
     // free the big string
     free(source);
-    return value_make_pair(NULL, NULL);
+    return EMPTY_LIST;
 }

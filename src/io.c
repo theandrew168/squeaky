@@ -29,7 +29,6 @@ io_read(const char* str, long* consumed)
     // EOF
     if (*start == '\0') {
         *consumed = start - str;
-        return value_make_pair(NULL, NULL);
         return value_make_error("unexpected EOF");
     }
 
@@ -89,7 +88,7 @@ io_read(const char* str, long* consumed)
     // symbol
     if (strchr(alpha, *start)) {
         const char* iter = start;
-        while (strchr(alpha, *iter)) iter++;
+        while (strchr(alpha, *iter) && *iter != '\0') iter++;
         *consumed = iter - str;
         return value_make_symboln(start, iter - start);
     }

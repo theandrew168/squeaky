@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "env_test.c"
+#include "io_test.c"
 #include "value_test.c"
 
 typedef bool (*test_func)(void);
@@ -11,6 +12,7 @@ static const test_func TESTS[] = {
     test_env_lookup,
     test_env_update,
     test_env_define,
+    test_io_read,
     test_value_make_number,
     test_list_make,
 };

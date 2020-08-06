@@ -44,6 +44,7 @@ squeaky: src/main.c libsqueaky.a
 
 squeaky_tests_sources =  \
   src/env_test.c         \
+  src/io_test.c          \
   src/value_test.c
 
 squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a

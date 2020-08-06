@@ -19,13 +19,8 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// BUG: empty read crashes
-// BUG: empty list "()" read crashes
-// BUG: empty list "'()" read crashes
-
 // TODO: Add type for SDL_Event and corresponding builtins
 // TODO: Harden behavior for empty / incomplete / invalid expressions
-// TODO: Harden behavior for nil / empty list (pair of NULLS or just NULL?)
 
 // TODO: Add read_list helper to read func
 // TODO: Add assert helpers for builtins (arity and types)
@@ -137,6 +132,12 @@ main(int argc, char* argv[])
     printf("> ");
     char line[512] = { 0 };
     while (fgets(line, sizeof(line), stdin) != NULL) {
+        // hack to re-prompt on empty input
+        if (*line == '\n') {
+            printf("> ");
+            continue;
+        }
+
         long consumed = 0;
         struct value* exp = io_read(line, &consumed);
 

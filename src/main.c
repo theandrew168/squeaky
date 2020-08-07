@@ -84,17 +84,20 @@ main(int argc, char* argv[])
         long consumed = 0;
         struct value* exp = io_read(line, &consumed);
 
-        // uncomment to see what the reader gives
-//        io_write(exp);
-//        printf("\n");
+        // uncomment to see what the reader reads
+        io_writeln(exp);
 
         struct value* res = mce_eval(exp, env);
-        io_write(res);
-        printf("\n");
+        io_writeln(res);
+
+        // decrement ref count for toplevel expressions
+        value_ref_dec(exp);
+        value_ref_dec(res);
 
         printf("> ");
     }
 
+    value_ref_dec(env);
     SDL_Quit();
     return EXIT_SUCCESS;
 }

@@ -1,6 +1,9 @@
 #include <assert.h>
 #include <string.h>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+
 #include "io.h"
 #include "list.h"
 #include "value.h"
@@ -167,10 +170,9 @@ io_write(const struct value* value)
             break;
         case VALUE_PAIR: {
             printf("(");
-            for (const struct value* iter = value; iter != EMPTY_LIST; iter = cdr(iter)) {
-                io_write(car(iter));
-                if (cdr(iter) != NULL) printf(" ");
-            }
+            io_write(car(value));
+            printf(" . ");
+            io_write(cdr(value));
             printf(")");
             break;
         }
@@ -183,13 +185,41 @@ io_write(const struct value* value)
         case VALUE_WINDOW:
             printf("<window>");
             break;
-        case VALUE_EVENT:
-            printf("<event:%d>", value->as.event->type);
+        case VALUE_EVENT: {
+            switch (value->as.event->type) {
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                    printf("<event:%s>", "keyboard");
+                    break;
+                case SDL_MOUSEMOTION:
+                    printf("<event:%s>", "mouse-motion");
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                    printf("<event:%s>", "mouse-button");
+                    break;
+                case SDL_QUIT:
+                    printf("<event:%s>", "quit");
+                    break;
+                case SDL_WINDOWEVENT:
+                    printf("<event:%s>", "window");
+                    break;
+                default:
+                    printf("<event:%s>", "undefined");
+            }
             break;
+        }
         case VALUE_ERROR:
             printf("error: %s", value->as.error);
             break;
         default:
             printf("<undefined>");
     }
+}
+
+void
+io_writeln(const struct value* value)
+{
+    io_write(value);
+    printf("\n");
 }

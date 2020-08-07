@@ -349,6 +349,9 @@ tailcall:
         if (is_primitive_proc(proc)) {
             // simply call the builtin
             return proc->as.builtin(args);
+//            struct value* res = proc->as.builtin(args);
+//            value_ref_dec(args);
+//            return res;
         } else if (is_compound_proc(proc)) {
             // update the env to includes bound args and the lambda's closured env
             // update the exp to be the lambda's body wrapped in a 'begin'

@@ -5,5 +5,6 @@
 
 struct value* io_read(const char* str, long* consumed);
 void io_write(const struct value* value);
+void io_writeln(const struct value* value);
 
 #endif

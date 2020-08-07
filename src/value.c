@@ -267,8 +267,6 @@ value_free(struct value* value)
             free(value->as.symbol);
             break;
         case VALUE_PAIR:
-            value_free(value->as.pair.car);
-            value_free(value->as.pair.cdr);
             break;
         case VALUE_BUILTIN:
             break;
@@ -295,11 +293,29 @@ value_free(struct value* value)
 void
 value_ref_inc(struct value* value)
 {
+    if (value == EMPTY_LIST) return;
+
+    value->ref_count++;
 }
 
 void
 value_ref_dec(struct value* value)
 {
+    if (value == EMPTY_LIST) return;
+
+    value->ref_count--;
+//    if (value->ref_count == 0) {
+//        if (value_is_pair(value)) {
+//            value_ref_dec(value->as.pair.car);
+//            value_ref_dec(value->as.pair.cdr);
+//
+//            // TODO: is this helpful? have they prevented any double frees?
+//            value->as.pair.car = EMPTY_LIST;
+//            value->as.pair.cdr = EMPTY_LIST;
+//        }
+//
+//        value_free(value);
+//    }
 }
 
 bool

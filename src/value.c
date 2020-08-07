@@ -230,7 +230,7 @@ value_make_window(const char* title, long width, long height)
 }
 
 struct value*
-value_make_event(SDL_Event event)
+value_make_event(SDL_Event* event)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_EVENT;
@@ -250,7 +250,7 @@ value_make_error(const char* error)
     return value;
 }
 
-void
+static void
 value_free(struct value* value)
 {
     if (value == NULL) return;
@@ -282,6 +282,7 @@ value_free(struct value* value)
             SDL_DestroyWindow(value->as.window.window);
             break;
         case VALUE_EVENT:
+            free(value->as.event);
             break;
         case VALUE_ERROR:
             free(value->as.error);
@@ -289,6 +290,16 @@ value_free(struct value* value)
     }
 
     free(value);
+}
+
+void
+value_ref_inc(struct value* value)
+{
+}
+
+void
+value_ref_dec(struct value* value)
+{
 }
 
 bool

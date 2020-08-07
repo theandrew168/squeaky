@@ -269,7 +269,7 @@ builtin_newline(struct value* args)
 }
 
 struct value*
-builtin_delay(struct value* args)
+builtin_sleep(struct value* args)
 {
     assert(args != NULL);
     // TODO: assert 1 arg (number)
@@ -343,33 +343,46 @@ builtin_window_present(struct value* args)
 }
 
 struct value*
-builtin_event_poll(struct value* args)
+builtin_window_event_poll(struct value* args)
 {
-//    assert(args != NULL);
-    // TODO: assert 0 args
+    assert(args != NULL);
+    // TODO: assert 1 arg (window)
 
-    SDL_Event event = { 0 };
-    int rc = SDL_PollEvent(&event);
-    if (rc == 0) {
-        return EMPTY_LIST;
-    } else {
-        return value_make_event(event);
+    struct value* events = EMPTY_LIST;
+    for (;;) {
+        SDL_Event* event = malloc(sizeof(SDL_Event));
+        int rc = SDL_PollEvent(event);
+        if (rc == 0) {
+            free(event);
+            break;
+        } else {
+            events = cons(value_make_event(event), events);
+        }
     }
+
+    return events;
 }
 
 struct value*
-builtin_event_type(struct value* args)
+builtin_window_event_type(struct value* args)
 {
     assert(args != NULL);
     // TODO: assert 1 arg (event)
 
     struct value* event = car(args);
-    switch (event->as.event.type) {
+    switch (event->as.event->type) {
         case SDL_KEYDOWN:
         case SDL_KEYUP:
             return value_make_symbol("event-keyboard");
+        case SDL_MOUSEMOTION:
+            return value_make_symbol("event-mousemotion");
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+            return value_make_symbol("event-mousebutton");
         case SDL_QUIT:
             return value_make_symbol("event-quit");
+        case SDL_WINDOWEVENT:
+            return value_make_symbol("event-window");
         default:
             return value_make_symbol("event-undefined");
     }

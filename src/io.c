@@ -184,7 +184,7 @@ io_write(const struct value* value)
             printf("<window>");
             break;
         case VALUE_EVENT:
-            printf("<event:%d>", value->as.event.type);
+            printf("<event:%d>", value->as.event->type);
             break;
         case VALUE_ERROR:
             printf("error: %s", value->as.error);

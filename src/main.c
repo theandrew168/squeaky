@@ -64,13 +64,13 @@ main(int argc, char* argv[])
     add_to_env("display", builtin_display, env);
     add_to_env("newline", builtin_newline, env);
 
-    add_to_env("delay!", builtin_delay, env);
+    add_to_env("sleep!", builtin_sleep, env);
     add_to_env("make-window", builtin_make_window, env);
     add_to_env("window-clear!", builtin_window_clear, env);
     add_to_env("window-draw-line!", builtin_window_draw_line, env);
     add_to_env("window-present!", builtin_window_present, env);
-    add_to_env("event-poll", builtin_event_poll, env);
-    add_to_env("event-type", builtin_event_type, env);
+    add_to_env("window-event-poll", builtin_window_event_poll, env);
+    add_to_env("window-event-type", builtin_window_event_type, env);
 
     printf("> ");
     char line[512] = { 0 };

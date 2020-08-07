@@ -29,12 +29,12 @@ struct value* builtin_not(struct value* args);
 struct value* builtin_display(struct value* args);
 struct value* builtin_newline(struct value* args);
 
-struct value* builtin_delay(struct value* args);
+struct value* builtin_sleep(struct value* args);
 struct value* builtin_make_window(struct value* args);
 struct value* builtin_window_clear(struct value* args);
 struct value* builtin_window_draw_line(struct value* args);
 struct value* builtin_window_present(struct value* args);
-struct value* builtin_event_poll(struct value* args);
-struct value* builtin_event_type(struct value* args);
+struct value* builtin_window_event_poll(struct value* args);
+struct value* builtin_window_event_type(struct value* args);
 
 #endif

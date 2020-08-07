@@ -46,7 +46,7 @@ struct value {
             SDL_Window* window;
             SDL_Renderer* renderer;
         } window;
-        SDL_Event event;
+        SDL_Event* event;
         char* error;
     } as;
 };
@@ -79,7 +79,7 @@ struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
 struct value* value_make_window(const char* title, long width, long height);
-struct value* value_make_event(SDL_Event event);
+struct value* value_make_event(SDL_Event* event);
 struct value* value_make_error(const char* error);
 
 // ref count functions

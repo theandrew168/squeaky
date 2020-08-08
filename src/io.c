@@ -32,7 +32,7 @@ io_read(const char* str, long* consumed)
     // EOF
     if (*start == '\0') {
         *consumed = start - str;
-        return value_make_error("EOF");
+        return value_make_eof();
     }
 
     // quote
@@ -59,7 +59,8 @@ io_read(const char* str, long* consumed)
             return value_make_boolean(boolean);
         }
 
-        return value_make_error("invalid expression");
+        fprintf(stderr, "invalid '#' expression");
+        exit(EXIT_FAILURE);
     }
 
     // number
@@ -77,7 +78,10 @@ io_read(const char* str, long* consumed)
         iter++;  // consume open quote
 
         while (*iter != '"' && *iter != '\0') iter++;
-        if (*iter == '\0') return value_make_error("unterminated string");
+        if (*iter == '\0') {
+            fprintf(stderr, "unterminated string");
+            exit(EXIT_FAILURE);
+        }
 
         // consume close quote
         iter++;
@@ -143,7 +147,8 @@ io_read(const char* str, long* consumed)
         return list;
     }
 
-    return value_make_error("invalid expression");
+    fprintf(stderr, "syntax error at: TODO");
+    exit(EXIT_FAILURE);
 }
 
 void
@@ -182,6 +187,9 @@ io_write(const struct value* value)
         case VALUE_LAMBDA:
             printf("<lambda>");
             break;
+        case VALUE_EOF:
+            printf("<EOF>");
+            break;
         case VALUE_WINDOW:
             printf("<window>");
             break;
@@ -209,9 +217,6 @@ io_write(const struct value* value)
             }
             break;
         }
-        case VALUE_ERROR:
-            printf("error: %s", value->as.error);
-            break;
         default:
             printf("<undefined>");
     }

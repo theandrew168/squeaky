@@ -60,6 +60,13 @@ value_is_lambda(const struct value* exp)
 }
 
 bool
+value_is_eof(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_EOF;
+}
+
+bool
 value_is_window(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
@@ -71,13 +78,6 @@ value_is_event(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
     return exp->type == VALUE_EVENT;
-}
-
-bool
-value_is_error(const struct value* exp)
-{
-    if (exp == EMPTY_LIST) return false;
-    return exp->type == VALUE_ERROR;
 }
 
 bool
@@ -201,6 +201,15 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 }
 
 struct value*
+value_make_eof(void)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_LAMBDA;
+    value->ref_count = 1;
+    return value;
+}
+
+struct value*
 value_make_window(const char* title, long width, long height)
 {
     SDL_Window* window = SDL_CreateWindow(
@@ -212,13 +221,13 @@ value_make_window(const char* title, long width, long height)
         0);
     if (window == NULL) {
         fprintf(stderr, "failed to create SDL2 window: %s", SDL_GetError());
-        return value_make_error("failed to create SDL2 window");
+        exit(EXIT_FAILURE);
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == NULL) {
         fprintf(stderr, "failed to create SDL2 renderer: %s", SDL_GetError());
-        return value_make_error("failed to create SDL2 renderer");
+        exit(EXIT_FAILURE);
     }
 
     struct value* value = malloc(sizeof(struct value));
@@ -236,17 +245,6 @@ value_make_event(SDL_Event* event)
     value->type = VALUE_EVENT;
     value->ref_count = 1;
     value->as.event = event;
-    return value;
-}
-
-struct value*
-value_make_error(const char* error)
-{
-    struct value* value = malloc(sizeof(struct value));
-    value->type = VALUE_ERROR;
-    value->ref_count = 1;
-    value->as.error = malloc(strlen(error) + 1);
-    strcpy(value->as.error, error);
     return value;
 }
 
@@ -275,15 +273,14 @@ value_free(struct value* value)
             value_free(value->as.lambda.body);
             value_free(value->as.lambda.env);
             break;
+        case VALUE_EOF:
+            break;
         case VALUE_WINDOW:
             SDL_DestroyRenderer(value->as.window.renderer);
             SDL_DestroyWindow(value->as.window.window);
             break;
         case VALUE_EVENT:
             free(value->as.event);
-            break;
-        case VALUE_ERROR:
-            free(value->as.error);
             break;
     }
 
@@ -344,6 +341,8 @@ value_equal(const struct value* a, const struct value* b)
             return value_equal(a->as.lambda.params, b->as.lambda.params) &&
                    value_equal(a->as.lambda.body, b->as.lambda.body) &&
                    value_equal(a->as.lambda.env, b->as.lambda.env);
+        case VALUE_EOF:
+            return true;
         case VALUE_WINDOW:
             // direct pointer compare
             return a->as.window.window == b->as.window.window &&
@@ -351,8 +350,6 @@ value_equal(const struct value* a, const struct value* b)
         case VALUE_EVENT:
             // two events are never equal?
             return false;
-        case VALUE_ERROR:
-            return strcmp(a->as.error, b->as.error) == 0;
     }
 
     return false;

@@ -60,12 +60,7 @@ env_extend(struct value* vars, struct value* vals, struct value* env)
 {
     long vars_len = list_length(vars);
     long vals_len = list_length(vals);
-    if (vars_len < vals_len) {
-        return value_make_error("too many args supplied");
-    }
-    if (vars_len > vals_len) {
-        return value_make_error("too few args supplied");
-    }
+    assert(vars_len == vals_len && "mismatched number of vars/vals supplied to env_extend");
 
     return cons(make_frame(vars, vals), env);
 }
@@ -73,7 +68,12 @@ env_extend(struct value* vars, struct value* vals, struct value* env)
 struct value*
 env_lookup(struct value* var, struct value* env)
 {
-    if (env == EMPTY_LIST) return value_make_error("unbound variable");
+    assert(value_is_symbol(var) && "non-symbol key passed to env_lookup");
+
+    if (env == EMPTY_LIST) {
+        fprintf(stderr, "unbound variable: %s", var->as.symbol);
+        return EMPTY_LIST;
+    }
 
     struct value* frame = first_frame(env);
     struct value* val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
@@ -84,7 +84,12 @@ env_lookup(struct value* var, struct value* env)
 struct value*
 env_update(struct value* var, struct value* val, struct value* env)
 {
-    if (env == EMPTY_LIST) return value_make_error("unbound variable");
+    assert(value_is_symbol(var) && "non-symbol key passed to env_update");
+
+    if (env == EMPTY_LIST) {
+        fprintf(stderr, "unbound variable: %s", var->as.symbol);
+        return EMPTY_LIST;
+    }
 
     struct value* frame = first_frame(env);
     struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
@@ -95,6 +100,8 @@ env_update(struct value* var, struct value* val, struct value* env)
 struct value*
 env_define(struct value* var, struct value* val, struct value* env)
 {
+    assert(value_is_symbol(var) && "non-symbol key passed to env_define");
+
     struct value* frame = first_frame(env);
     struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
     if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));

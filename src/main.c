@@ -46,7 +46,6 @@ main(int argc, char* argv[])
     add_to_env("procedure?", builtin_is_procedure, env);
     add_to_env("window?", builtin_is_window, env);
     add_to_env("event?", builtin_is_event, env);
-    add_to_env("error?", builtin_is_error, env);
 
     add_to_env("+", builtin_add, env);
     add_to_env("-", builtin_sub, env);

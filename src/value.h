@@ -16,9 +16,9 @@ enum value_type {
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
+    VALUE_EOF,
     VALUE_WINDOW,
     VALUE_EVENT,
-    VALUE_ERROR,
 };
 
 struct value;
@@ -47,7 +47,6 @@ struct value {
             SDL_Renderer* renderer;
         } window;
         SDL_Event* event;
-        char* error;
     } as;
 };
 
@@ -60,9 +59,9 @@ bool value_is_symbol(const struct value* exp);
 bool value_is_pair(const struct value* exp);
 bool value_is_builtin(const struct value* exp);
 bool value_is_lambda(const struct value* exp);
+bool value_is_eof(const struct value* exp);
 bool value_is_window(const struct value* exp);
 bool value_is_event(const struct value* exp);
-bool value_is_error(const struct value* exp);
 bool value_is_procedure(const struct value* exp);
 
 bool value_is_true(const struct value* exp);
@@ -80,7 +79,7 @@ struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
 struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_event(SDL_Event* event);
-struct value* value_make_error(const char* error);
+struct value* value_make_eof(void);
 
 // ref count functions
 void value_ref_inc(struct value* value);

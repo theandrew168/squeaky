@@ -45,8 +45,7 @@ is_tagged_list(struct value* exp, const char* tag)
 #define is_self_evaluating(exp)  \
   value_is_boolean(exp)          \
   || value_is_number(exp)        \
-  || value_is_string(exp)        \
-  || value_is_error(exp)
+  || value_is_string(exp)
 
 #define is_variable(exp)  \
   value_is_symbol(exp)
@@ -278,7 +277,7 @@ mce_eval(struct value* exp, struct value* env)
 // if, cond, case, and, or, let, let*, letrec,
 // let-syntax, letrec-syntax, begin, do
 tailcall:
-    if (exp == EMPTY_LIST) return value_make_error("unknown expression type!");
+    if (exp == EMPTY_LIST) return EMPTY_LIST;
 
     if (is_self_evaluating(exp)) {
         return exp;
@@ -359,11 +358,13 @@ tailcall:
             exp = cons(value_make_symbol("begin"), proc->as.lambda.body);
             goto tailcall;
         } else {
-            return value_make_error("unknown procedure type");
+            fprintf(stderr, "runtime error (invalid proc) at: TODO");
+            exit(EXIT_FAILURE);
         }
     }
 
-    return value_make_error("unknown expression type!");
+    fprintf(stderr, "runtime error (invalid expr) at: TODO");
+    exit(EXIT_FAILURE);
 }
 
 struct value*
@@ -379,7 +380,7 @@ mce_load(struct value* args, struct value* env)
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
         fprintf(stderr, "failed to open file: %s\n", path);
-        return value_make_error("failed to open file");
+        exit(EXIT_FAILURE);
     }
 
     // find out how big the file is
@@ -403,21 +404,11 @@ mce_load(struct value* args, struct value* env)
         struct value* exp = io_read(source + total, &consumed);
         total += consumed;
 
-        // check for reader errors
-        if (value_is_error(exp)) {
-            // trailing newlines on unix text files might finish with an empty expr
-            if (strcmp(exp->as.error, "EOF") == 0) {
-                break;
-            } else {
-                return exp;
-            }
-        }
+        // break loop upon reaching end of file
+        if (value_is_eof(exp)) break;
 
-        // if not empty, then eval the expr and check for errors
-        struct value* res = mce_eval(exp, env);
-        if (value_is_error(res)) {
-            return res;
-        }
+        // eval the expr
+        mce_eval(exp, env);
     }
 
     // free the big string

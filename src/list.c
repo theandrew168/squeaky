@@ -43,7 +43,7 @@ struct value*
 list_car(const struct value* list)
 {
     if (list == EMPTY_LIST) {
-        fprintf(stderr, "the primitive 'car' is defined only for non-empty lists");
+        fprintf(stderr, "the primitive 'car' is defined only for non-empty lists\n");
         exit(EXIT_FAILURE);
     }
 
@@ -54,7 +54,7 @@ struct value*
 list_cdr(const struct value* list)
 {
     if (list == EMPTY_LIST) {
-        fprintf(stderr, "the primitive 'cdr' is defined only for non-empty lists");
+        fprintf(stderr, "the primitive 'cdr' is defined only for non-empty lists\n");
         exit(EXIT_FAILURE);
     }
 

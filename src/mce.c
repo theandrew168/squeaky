@@ -358,12 +358,12 @@ tailcall:
             exp = cons(value_make_symbol("begin"), proc->as.lambda.body);
             goto tailcall;
         } else {
-            fprintf(stderr, "runtime error (invalid proc) at: TODO");
+            fprintf(stderr, "runtime error (invalid proc) at: TODO\n");
             exit(EXIT_FAILURE);
         }
     }
 
-    fprintf(stderr, "runtime error (invalid expr) at: TODO");
+    fprintf(stderr, "runtime error (invalid expr) at: TODO\n");
     exit(EXIT_FAILURE);
 }
 

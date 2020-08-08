@@ -220,13 +220,13 @@ value_make_window(const char* title, long width, long height)
         height,
         0);
     if (window == NULL) {
-        fprintf(stderr, "failed to create SDL2 window: %s", SDL_GetError());
+        fprintf(stderr, "failed to create SDL2 window: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == NULL) {
-        fprintf(stderr, "failed to create SDL2 renderer: %s", SDL_GetError());
+        fprintf(stderr, "failed to create SDL2 renderer: %s\n", SDL_GetError());
         exit(EXIT_FAILURE);
     }
 

@@ -71,7 +71,7 @@ env_lookup(struct value* var, struct value* env)
     assert(value_is_symbol(var) && "non-symbol key passed to env_lookup");
 
     if (env == EMPTY_LIST) {
-        fprintf(stderr, "unbound variable: %s", var->as.symbol);
+        fprintf(stderr, "unbound variable: %s\n", var->as.symbol);
         return EMPTY_LIST;
     }
 
@@ -87,7 +87,7 @@ env_update(struct value* var, struct value* val, struct value* env)
     assert(value_is_symbol(var) && "non-symbol key passed to env_update");
 
     if (env == EMPTY_LIST) {
-        fprintf(stderr, "unbound variable: %s", var->as.symbol);
+        fprintf(stderr, "unbound variable: %s\n", var->as.symbol);
         return EMPTY_LIST;
     }
 

@@ -89,8 +89,8 @@ test_env_lookup(void)
 
     // make sure lookup of missing key returns an error
     struct value* missing = env_lookup(value_make_symbol("missing"), env);
-    if (!value_is_error(missing)) {
-        fprintf(stderr, "env_lookup failed to return error if not found\n");
+    if (missing != EMPTY_LIST) {
+        fprintf(stderr, "env_lookup failed to return EMPTY_LIST if not found\n");
         return false;
     }
 
@@ -103,11 +103,7 @@ test_env_update(void)
     struct value* env = make_test_env();
 
     // update foo
-    struct value* res = env_update(value_make_symbol("foo"), value_make_number(111), env);
-    if (value_is_error(res)) {
-        fprintf(stderr, "env_update failed a valid update\n");
-        return false;
-    }
+    env_update(value_make_symbol("foo"), value_make_number(111), env);
 
     // make sure to get the new value for foo
     struct value* foo = env_lookup(value_make_symbol("foo"), env);
@@ -117,8 +113,8 @@ test_env_update(void)
     }
 
     // ensure update of missing key returns an error
-    res = env_update(value_make_symbol("missing"), value_make_number(42), env);
-    if (!value_is_error(res)) {
+    struct value* res = env_update(value_make_symbol("missing"), value_make_number(42), env);
+    if (res != EMPTY_LIST) {
         fprintf(stderr, "env_update failed to return error if not found\n");
         return false;
     }
@@ -132,11 +128,7 @@ test_env_define(void)
     struct value* env = make_test_env();
 
     // redefine foo in the current frame
-    struct value* res = env_define(value_make_symbol("foo"), value_make_number(111), env);
-    if (value_is_error(res)) {
-        fprintf(stderr, "env_define failed a valid redefine\n");
-        return false;
-    }
+    env_define(value_make_symbol("foo"), value_make_number(111), env);
 
     // ensure to get the new value for foo
     struct value* foo = env_lookup(value_make_symbol("foo"), env);
@@ -146,11 +138,7 @@ test_env_define(void)
     }
 
     // define a new var 'baz' in the current frame
-    res = env_define(value_make_symbol("baz"), value_make_number(333), env);
-    if (value_is_error(res)) {
-        fprintf(stderr, "env_define failed to define 'baz'\n");
-        return false;
-    }
+    env_define(value_make_symbol("baz"), value_make_number(333), env);
 
     // lookup 'baz'
     struct value* baz = env_lookup(value_make_symbol("baz"), env);

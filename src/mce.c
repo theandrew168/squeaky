@@ -15,8 +15,7 @@
 static struct value*
 list_of_values(struct value* exp, struct value* env)
 {
-    if (exp == NULL) return NULL;
-
+    if (exp == EMPTY_LIST) return EMPTY_LIST;
     return cons(mce_eval(car(exp), env), list_of_values(cdr(exp), env));
 }
 

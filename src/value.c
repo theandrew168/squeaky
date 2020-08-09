@@ -204,7 +204,7 @@ struct value*
 value_make_eof(void)
 {
     struct value* value = malloc(sizeof(struct value));
-    value->type = VALUE_LAMBDA;
+    value->type = VALUE_EOF;
     value->ref_count = 1;
     return value;
 }

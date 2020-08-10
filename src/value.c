@@ -287,36 +287,22 @@ value_free(struct value* value)
     free(value);
 }
 
-void
-value_ref_inc(struct value* value)
+bool
+value_is_eq(const struct value* a, const struct value* b)
 {
-    if (value == EMPTY_LIST) return;
-
-    value->ref_count++;
-}
-
-void
-value_ref_dec(struct value* value)
-{
-    if (value == EMPTY_LIST) return;
-
-    value->ref_count--;
-//    if (value->ref_count == 0) {
-//        if (value_is_pair(value)) {
-//            value_ref_dec(value->as.pair.car);
-//            value_ref_dec(value->as.pair.cdr);
-//
-//            // TODO: is this helpful? have they prevented any double frees?
-//            value->as.pair.car = EMPTY_LIST;
-//            value->as.pair.cdr = EMPTY_LIST;
-//        }
-//
-//        value_free(value);
-//    }
+    // TODO: how is this more specific than eqv?
+    return value_is_eqv(a, b);
 }
 
 bool
-value_equal(const struct value* a, const struct value* b)
+value_is_eqv(const struct value* a, const struct value* b)
+{
+    // TODO: this shouldn't do a deep compare!
+    return value_is_equal(a, b);
+}
+
+bool
+value_is_equal(const struct value* a, const struct value* b)
 {
     if (a == EMPTY_LIST && b == EMPTY_LIST) return true;
     if (a == EMPTY_LIST || b == EMPTY_LIST) return false;
@@ -332,16 +318,17 @@ value_equal(const struct value* a, const struct value* b)
         case VALUE_SYMBOL:
             return strcmp(a->as.symbol, b->as.symbol) == 0;
         case VALUE_PAIR:
-            return value_equal(a->as.pair.car, b->as.pair.car) &&
-                   value_equal(a->as.pair.cdr, b->as.pair.cdr);
+            return value_is_equal(a->as.pair.car, b->as.pair.car) &&
+                   value_is_equal(a->as.pair.cdr, b->as.pair.cdr);
         case VALUE_BUILTIN:
             // direct pointer compare
             return a->as.builtin == b->as.builtin;
         case VALUE_LAMBDA:
-            return value_equal(a->as.lambda.params, b->as.lambda.params) &&
-                   value_equal(a->as.lambda.body, b->as.lambda.body) &&
-                   value_equal(a->as.lambda.env, b->as.lambda.env);
+            return value_is_equal(a->as.lambda.params, b->as.lambda.params) &&
+                   value_is_equal(a->as.lambda.body, b->as.lambda.body) &&
+                   value_is_equal(a->as.lambda.env, b->as.lambda.env);
         case VALUE_EOF:
+            // all instances of EOF are semantically identical
             return true;
         case VALUE_WINDOW:
             // direct pointer compare

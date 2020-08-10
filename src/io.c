@@ -59,7 +59,7 @@ io_read(const char* str, long* consumed)
             return value_make_boolean(boolean);
         }
 
-        fprintf(stderr, "invalid '#' expression");
+        fprintf(stderr, "invalid '#' expression: expected boolean");
         exit(EXIT_FAILURE);
     }
 

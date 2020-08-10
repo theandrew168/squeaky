@@ -81,12 +81,10 @@ struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_event(SDL_Event* event);
 struct value* value_make_eof(void);
 
-// ref count functions
-void value_ref_inc(struct value* value);
-void value_ref_dec(struct value* value);
-
-// extra goodies
-bool value_equal(const struct value* a, const struct value* b);
+// comparison
+bool value_is_eq(const struct value* a, const struct value* b);
+bool value_is_eqv(const struct value* a, const struct value* b);
+bool value_is_equal(const struct value* a, const struct value* b);
 
 #define cons(a,b) (value_make_pair((a), (b)))
 

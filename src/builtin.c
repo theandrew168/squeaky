@@ -55,6 +55,15 @@ builtin_is_pair(struct value* args)
 }
 
 struct value*
+builtin_is_null(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg
+
+    return car(args) == EMPTY_LIST ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
 builtin_is_procedure(struct value* args)
 {
     assert(args != NULL);
@@ -79,6 +88,61 @@ builtin_is_event(struct value* args)
     // TODO: assert 1 arg
 
     return value_is_event(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_cons(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+    return cons(a, b);
+}
+
+struct value*
+builtin_car(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg (pair)
+
+    struct value* pair = car(args);
+    return car(pair);
+}
+
+struct value*
+builtin_cdr(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg (pair)
+
+    struct value* pair = car(args);
+    return cdr(pair);
+}
+
+struct value*
+builtin_set_car(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (pair, any)
+
+    struct value* pair = car(args);
+    struct value* val = cadr(args);
+    pair->as.pair.car = val;
+    return EMPTY_LIST;
+}
+
+struct value*
+builtin_set_cdr(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (pair, any)
+
+    struct value* pair = car(args);
+    struct value* val = cadr(args);
+    pair->as.pair.cdr = val;
+    return EMPTY_LIST;
 }
 
 struct value*
@@ -146,7 +210,7 @@ builtin_equal(struct value* args)
 
     struct value* item = car(args);
     for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!value_equal(item, car(args))) return value_make_boolean(false);
+        if (!value_is_equal(item, car(args))) return value_make_boolean(false);
         item = car(args);
     }
 
@@ -222,7 +286,31 @@ builtin_is_eq(struct value* args)
     struct value* a = car(args);
     struct value* b = cadr(args);
 
-    return value_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_eq(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_is_eqv(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_is_eqv(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_is_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_is_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*

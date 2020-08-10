@@ -167,6 +167,9 @@ tailcall:
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_begin(exp)) {
         // 'begin' is evaluated inline for TCO
+        // TODO: move this style of iteration into lambda's eval
+        //   and impl begin in terms of lambda? as a macro?
+        // (begin <body>) -> ((lambda () <body>))
         exp = begin_actions(exp);
         while (!is_last_exp(exp)) {
             mce_eval(first_exp(exp), env);
@@ -184,10 +187,10 @@ tailcall:
         } else if (is_compound_proc(proc)) {
             // evaluate the lambda's body in the current stack frame (for TCO) by
             // updating the current expression and current environment
-            // - the new expression is the lambda's body wrapped in 'begin'
             // - the new environment contains bindings for the lambda's arguments
-            exp = make_begin(proc->as.lambda.body);
+            // - the new expression is the lambda's body wrapped in 'begin'
             env = env_extend(proc->as.lambda.params, args, proc->as.lambda.env);
+            exp = make_begin(proc->as.lambda.body);
             goto tailcall;
         } else {
             fprintf(stderr, "runtime error (invalid proc) at: TODO\n");

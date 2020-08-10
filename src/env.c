@@ -19,7 +19,7 @@ frame_lookup(struct value* var, struct value* vars, struct value* vals)
     assert(vars != NULL && "env frame has mismatched vars and vals");
     assert(vals != NULL && "env frame has mismatched vars and vals");
 
-    if (value_equal(var, car(vars))) return car(vals);
+    if (value_is_equal(var, car(vars))) return car(vals);
     return frame_lookup(var, cdr(vars), cdr(vals));
 }
 
@@ -30,10 +30,8 @@ frame_update(struct value* var, struct value* val, struct value* vars, struct va
     assert(vars != NULL && "env frame has mismatched vars and vals");
     assert(vals != NULL && "env frame has mismatched vars and vals");
 
-    if (value_equal(var, car(vars))) {
-        value_ref_dec(vals->as.pair.car);
+    if (value_is_equal(var, car(vars))) {
         vals->as.pair.car = val;
-        value_ref_inc(vals->as.pair.car);
         return EMPTY_LIST;
     }
 
@@ -45,9 +43,7 @@ frame_add_binding(struct value* var, struct value* val, struct value* frame)
 {
     assert(frame != NULL);
 
-    value_ref_inc(var);
     frame->as.pair.car = cons(var, car(frame));
-    value_ref_inc(val);
     frame->as.pair.cdr = cons(val, cdr(frame));
     return EMPTY_LIST;
 }

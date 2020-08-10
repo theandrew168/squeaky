@@ -19,12 +19,8 @@
 // 2. Convert text to this data structure (read)
 // 3. Evaluate the data structure (eval/apply)
 
-// TODO: Add type for SDL_Event and corresponding builtins
-// TODO: Harden behavior for empty / incomplete / invalid expressions
-
-// TODO: Add read_list helper to read func
+// TODO: Rewrite the reader
 // TODO: Add assert helpers for builtins (arity and types)
-// TODO: Add a simple ref counted GC / memory management
 
 #define add_to_env(sym, func, env)  \
   env_define(value_make_symbol(sym), value_make_builtin(func), env);
@@ -43,9 +39,16 @@ main(int argc, char* argv[])
     add_to_env("string?", builtin_is_string, env);
     add_to_env("symbol?", builtin_is_symbol, env);
     add_to_env("pair?", builtin_is_pair, env);
+    add_to_env("null?", builtin_is_null, env);
     add_to_env("procedure?", builtin_is_procedure, env);
     add_to_env("window?", builtin_is_window, env);
     add_to_env("event?", builtin_is_event, env);
+
+    add_to_env("cons", builtin_cons, env);
+    add_to_env("car", builtin_car, env);
+    add_to_env("cdr", builtin_cdr, env);
+    add_to_env("set-car!", builtin_set_car, env);
+    add_to_env("set-cdr!", builtin_set_cdr, env);
 
     add_to_env("+", builtin_add, env);
     add_to_env("-", builtin_sub, env);
@@ -57,7 +60,9 @@ main(int argc, char* argv[])
     add_to_env(">", builtin_greater, env);
     add_to_env(">=", builtin_greater_equal, env);
 
-    add_to_env("eq?", builtin_is_eq, env);
+    add_to_env("eq?", builtin_is_eqv, env);  // shallow compare (slightly more specific than eqv)
+    add_to_env("eqv?", builtin_is_eqv, env);  // shallow compare (baseline "what you'd expect" comparison)
+    add_to_env("equal?", builtin_is_eqv, env);  // deep compare (recursive baseline comparison)
     add_to_env("not", builtin_not, env);
 
     add_to_env("display", builtin_display, env);
@@ -89,14 +94,9 @@ main(int argc, char* argv[])
         struct value* res = mce_eval(exp, env);
         io_writeln(res);
 
-        // decrement ref count for toplevel expressions
-        value_ref_dec(exp);
-        value_ref_dec(res);
-
         printf("> ");
     }
 
-    value_ref_dec(env);
     SDL_Quit();
     return EXIT_SUCCESS;
 }

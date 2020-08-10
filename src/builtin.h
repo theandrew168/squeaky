@@ -8,9 +8,16 @@ struct value* builtin_is_number(struct value* args);
 struct value* builtin_is_string(struct value* args);
 struct value* builtin_is_symbol(struct value* args);
 struct value* builtin_is_pair(struct value* args);
+struct value* builtin_is_null(struct value* args);
 struct value* builtin_is_procedure(struct value* args);
 struct value* builtin_is_window(struct value* args);
 struct value* builtin_is_event(struct value* args);
+
+struct value* builtin_cons(struct value* args);
+struct value* builtin_car(struct value* args);
+struct value* builtin_cdr(struct value* args);
+struct value* builtin_set_car(struct value* args);
+struct value* builtin_set_cdr(struct value* args);
 
 struct value* builtin_add(struct value* args);
 struct value* builtin_sub(struct value* args);
@@ -23,6 +30,8 @@ struct value* builtin_greater(struct value* args);
 struct value* builtin_greater_equal(struct value* args);
 
 struct value* builtin_is_eq(struct value* args);
+struct value* builtin_is_eqv(struct value* args);
+struct value* builtin_is_equal(struct value* args);
 struct value* builtin_not(struct value* args);
 
 struct value* builtin_display(struct value* args);

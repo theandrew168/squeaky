@@ -60,6 +60,15 @@ eval_assignment(struct value* exp, struct value* env)
         env);
 }
 
+// this looks like it creates an improper list but it doesn't
+// because 'cddr(exp)' will include the initial list's terminator
+#define make_lambda(exp)  \
+  cons(value_make_symbol("lambda"), cons(cdadr(exp), cddr(exp)))
+
+// 'define' supports two forms (the second is syntactic sugar for lambdas):
+// NORMAL: (define square (lambda (x) (* x x)))
+// SUGAR:  (define (square x) (* x x))
+
 #define is_definition(exp)  \
   is_tagged_list(exp, "define")
 #define definition_var(exp)  \
@@ -69,7 +78,7 @@ eval_assignment(struct value* exp, struct value* env)
 #define definition_val(exp)   \
   value_is_symbol(cadr(exp))  \
   ? caddr(exp)                \
-  : cons(value_make_symbol("lambda"), cons(cdadr(exp), cddr(exp)))
+  : make_lambda(exp)
 
 static struct value*
 eval_definition(struct value* exp, struct value* env)
@@ -119,11 +128,6 @@ eval_if(struct value* exp, struct value* env)
 #define rest_exps(exp)  \
   cdr(exp)
 
-#define is_load(exp)  \
-  is_tagged_list(exp, "load")
-#define load_path(exp)  \
-  cadr(exp)
-
 #define is_application(exp)  \
   value_is_pair(exp)
 
@@ -145,7 +149,6 @@ mce_eval(struct value* exp, struct value* env)
 // if, cond, case, and, or, let, let*, letrec,
 // let-syntax, letrec-syntax, begin, do
 tailcall:
-    if (exp == EMPTY_LIST) return EMPTY_LIST;
 
     if (is_self_evaluating(exp)) {
         return exp;
@@ -163,6 +166,7 @@ tailcall:
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_begin(exp)) {
+        // 'begin' is evaluated inline for TCO
         exp = begin_actions(exp);
         while (!is_last_exp(exp)) {
             mce_eval(first_exp(exp), env);
@@ -171,14 +175,11 @@ tailcall:
         exp = first_exp(exp);
         goto tailcall;
     } else if (is_application(exp)) {
+        // 'apply' is evalutaed inline for TCO
         struct value* proc = mce_eval(operator(exp), env);
         struct value* args = list_of_values(operands(exp), env);
 
-        // TODO: handle 'eval' builtin proc specifically
-        // TODO: handle 'apply' builtin proc specifically
-
         if (is_primitive_proc(proc)) {
-            // simply call the builtin
             return proc->as.builtin(args);
         } else if (is_compound_proc(proc)) {
             // evaluate the lambda's body in the current stack frame (for TCO) by

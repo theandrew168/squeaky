@@ -34,6 +34,13 @@ value_is_false(const struct value* exp)
 }
 
 bool
+value_is_character(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_CHARACTER;
+}
+
+bool
 value_is_number(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
@@ -127,6 +134,15 @@ value_make_boolean(bool boolean)
 }
 
 struct value*
+value_make_character(int character)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_CHARACTER;
+    value->as.character = character;
+    return value;
+}
+
+struct value*
 value_make_number(long number)
 {
     struct value* value = malloc(sizeof(struct value));
@@ -206,10 +222,20 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 }
 
 struct value*
-value_make_eof(void)
+value_make_input_port(FILE* port)
 {
     struct value* value = malloc(sizeof(struct value));
-    value->type = VALUE_EOF;
+    value->type = VALUE_INPUT_PORT;
+    value->as.port = port;
+    return value;
+}
+
+struct value*
+value_make_output_port(FILE* port)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_OUTPUT_PORT;
+    value->as.port = port;
     return value;
 }
 
@@ -250,6 +276,15 @@ value_make_event(SDL_Event* event)
     return value;
 }
 
+struct value*
+value_make_eof(void)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_EOF;
+    return value;
+}
+
+// TODO: move this into GC routine
 static void
 value_free(struct value* value)
 {
@@ -257,6 +292,8 @@ value_free(struct value* value)
 
     switch (value->type) {
         case VALUE_BOOLEAN:
+            break;
+        case VALUE_CHARACTER:
             break;
         case VALUE_NUMBER:
             break;
@@ -275,7 +312,9 @@ value_free(struct value* value)
             value_free(value->as.lambda.body);
             value_free(value->as.lambda.env);
             break;
-        case VALUE_EOF:
+        case VALUE_INPUT_PORT:
+        case VALUE_OUTPUT_PORT:
+            fclose(value->as.port);
             break;
         case VALUE_WINDOW:
             SDL_DestroyRenderer(value->as.window.renderer);
@@ -283,6 +322,8 @@ value_free(struct value* value)
             break;
         case VALUE_EVENT:
             free(value->as.event);
+            break;
+        case VALUE_EOF:
             break;
     }
 
@@ -313,6 +354,8 @@ value_is_equal(const struct value* a, const struct value* b)
     switch (a->type) {
         case VALUE_BOOLEAN:
             return a->as.boolean == b->as.boolean;
+        case VALUE_CHARACTER:
+            return a->as.character == b->as.character;
         case VALUE_NUMBER:
             return a->as.number == b->as.number;
         case VALUE_STRING:
@@ -329,9 +372,10 @@ value_is_equal(const struct value* a, const struct value* b)
             return value_is_equal(a->as.lambda.params, b->as.lambda.params) &&
                    value_is_equal(a->as.lambda.body, b->as.lambda.body) &&
                    value_is_equal(a->as.lambda.env, b->as.lambda.env);
-        case VALUE_EOF:
-            // all instances of EOF are semantically identical
-            return true;
+        case VALUE_INPUT_PORT:
+        case VALUE_OUTPUT_PORT:
+            // direct pointer compare
+            return a->as.port == b->as.port;
         case VALUE_WINDOW:
             // direct pointer compare
             return a->as.window.window == b->as.window.window &&
@@ -339,6 +383,9 @@ value_is_equal(const struct value* a, const struct value* b)
         case VALUE_EVENT:
             // two events are never equal?
             return false;
+        case VALUE_EOF:
+            // all instances of EOF are semantically identical
+            return true;
     }
 
     return false;

@@ -10,6 +10,7 @@
 enum value_type {
     VALUE_UNDEFINED = 0,
     VALUE_BOOLEAN,
+    VALUE_CHARACTER,
     VALUE_NUMBER,
     VALUE_STRING,
     VALUE_SYMBOL,
@@ -33,6 +34,7 @@ struct value {
     int type;  // this int will pad to 8 bytes on a 64-bit system
     union {
         bool boolean;
+        int character;  // "int" for future-proofing UTF-8 support
         long number;
         char* string;
         char* symbol;
@@ -46,7 +48,7 @@ struct value {
             struct value* body;
             struct value* env;
         } lambda;
-        FILE* port;
+        FILE* port;  // used for both VALUE_INPUT_PORT and VALUE_OUTPUT_PORT
         struct {
             SDL_Window* window;
             SDL_Renderer* renderer;
@@ -65,6 +67,7 @@ struct value {
 bool value_is_boolean(const struct value* exp);
 bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
+bool value_is_character(const struct value* exp);
 bool value_is_number(const struct value* exp);
 bool value_is_string(const struct value* exp);
 bool value_is_symbol(const struct value* exp);
@@ -80,6 +83,7 @@ bool value_is_eof(const struct value* exp);
 
 // constructors
 struct value* value_make_boolean(bool boolean);
+struct value* value_make_character(int character);
 struct value* value_make_number(long number);
 struct value* value_make_string(const char* string);
 struct value* value_make_stringn(const char* string, long length);
@@ -88,6 +92,8 @@ struct value* value_make_symboln(const char* symbol, long length);
 struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
+struct value* value_make_input_port(FILE* port);
+struct value* value_make_output_port(FILE* port);
 struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_event(SDL_Event* event);
 struct value* value_make_eof(void);

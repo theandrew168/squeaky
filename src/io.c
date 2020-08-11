@@ -8,6 +8,10 @@
 #include "list.h"
 #include "value.h"
 
+// TODO: rewrite this using a struct that keeps track of the
+//   base string and current position. could even track "start"
+//   and "current" like Rob Pike's lexer.
+
 struct value*
 io_read(const char* str, long* consumed)
 {
@@ -49,6 +53,7 @@ io_read(const char* str, long* consumed)
     // boolean
     // TODO: character "#\"
     // TODO: vector    "#("
+    // IDEA: "#u8(", "#f32(", "#f64", and other "dense" vectors
     if (*start == '#') {
         const char* iter = start;
         iter++;
@@ -163,6 +168,10 @@ io_write(const struct value* value)
         case VALUE_BOOLEAN:
             printf("%s", value->as.boolean ? "#t" : "#f");
             break;
+        case VALUE_CHARACTER:
+            // TODO: how to support UTF-8 here?
+            printf("%c", value->as.character);
+            break;
         case VALUE_NUMBER:
             printf("%ld", value->as.number);
             break;
@@ -187,8 +196,11 @@ io_write(const struct value* value)
         case VALUE_LAMBDA:
             printf("<lambda>");
             break;
-        case VALUE_EOF:
-            printf("<EOF>");
+        case VALUE_INPUT_PORT:
+            printf("<input port>");
+            break;
+        case VALUE_OUTPUT_PORT:
+            printf("<output port>");
             break;
         case VALUE_WINDOW:
             printf("<window>");
@@ -217,6 +229,9 @@ io_write(const struct value* value)
             }
             break;
         }
+        case VALUE_EOF:
+            printf("<EOF>");
+            break;
         default:
             printf("<undefined>");
     }

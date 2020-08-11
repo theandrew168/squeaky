@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <SDL2/SDL.h>
@@ -10,12 +11,39 @@
 #include "value.h"
 
 struct value*
-builtin_is_boolean(struct value* args)
+builtin_is_eq(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert 1 arg
+    // TODO: assert 2 args (any, any)
 
-    return value_is_boolean(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_is_eq(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_is_eqv(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_is_eqv(a, b) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_is_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 2 args (any, any)
+
+    struct value* a = car(args);
+    struct value* b = cadr(args);
+
+    return value_is_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -28,21 +56,144 @@ builtin_is_number(struct value* args)
 }
 
 struct value*
-builtin_is_string(struct value* args)
+builtin_equal(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert 1 arg
+    // TODO: assert >= 2 args (numbers)
 
-    return value_is_string(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!value_is_equal(item, car(args))) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
 }
 
 struct value*
-builtin_is_symbol(struct value* args)
+builtin_less(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number < car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_greater(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number > car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_less_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number <= car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_greater_equal(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    struct value* item = car(args);
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        if (!(item->as.number >= car(args)->as.number)) return value_make_boolean(false);
+        item = car(args);
+    }
+
+    return value_make_boolean(true);
+}
+
+struct value*
+builtin_add(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    long res = 0;
+    for (; args != NULL; args = cdr(args)) {
+        res += car(args)->as.number;
+    }
+
+    return value_make_number(res);
+}
+
+struct value*
+builtin_mul(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    long res = 1;
+    for (; args != NULL; args = cdr(args)) {
+        res *= car(args)->as.number;
+    }
+
+    return value_make_number(res);
+}
+
+struct value*
+builtin_sub(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+
+    long res = car(args)->as.number;
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        res -= car(args)->as.number;
+    }
+
+    return value_make_number(res);
+}
+
+struct value*
+builtin_div(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert >= 2 args (numbers)
+    // TODO: assert non-zero args (except first as special case ret zero?)
+
+    long res = car(args)->as.number;
+    for (args = cdr(args); args != NULL; args = cdr(args)) {
+        res /= car(args)->as.number;
+    }
+
+    return value_make_number(res);
+}
+
+struct value*
+builtin_is_boolean(struct value* args)
 {
     assert(args != NULL);
     // TODO: assert 1 arg
 
-    return value_is_symbol(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_boolean(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -52,42 +203,6 @@ builtin_is_pair(struct value* args)
     // TODO: assert 1 arg
 
     return value_is_pair(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_null(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 1 arg
-
-    return car(args) == EMPTY_LIST ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_procedure(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 1 arg
-
-    return value_is_procedure(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_window(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 1 arg
-
-    return value_is_window(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_event(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 1 arg
-
-    return value_is_event(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -146,206 +261,265 @@ builtin_set_cdr(struct value* args)
 }
 
 struct value*
-builtin_add(struct value* args)
+builtin_is_null(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
+    // TODO: assert 1 arg
 
-    long res = 0;
-    for (; args != NULL; args = cdr(args)) {
-        res += car(args)->as.number;
-    }
-
-    return value_make_number(res);
+    return car(args) == EMPTY_LIST ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
-builtin_sub(struct value* args)
+builtin_is_symbol(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
+    // TODO: assert 1 arg
 
-    long res = car(args)->as.number;
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        res -= car(args)->as.number;
-    }
-
-    return value_make_number(res);
+    return value_is_symbol(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
-builtin_mul(struct value* args)
+builtin_is_string(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
+    // TODO: assert 1 arg
 
-    long res = 1;
-    for (; args != NULL; args = cdr(args)) {
-        res *= car(args)->as.number;
-    }
-
-    return value_make_number(res);
+    return value_is_string(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
-builtin_div(struct value* args)
+builtin_is_procedure(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
-    // TODO: assert non-zero args (except first as special case ret zero?)
+    // TODO: assert 1 arg
 
-    long res = car(args)->as.number;
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        res /= car(args)->as.number;
-    }
-
-    return value_make_number(res);
+    return value_is_procedure(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
-builtin_equal(struct value* args)
+builtin_is_input_port(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
+    return value_is_input_port(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
 
-    struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!value_is_equal(item, car(args))) return value_make_boolean(false);
-        item = car(args);
+struct value*
+builtin_is_output_port(struct value* args)
+{
+    assert(args != NULL);
+    return value_is_output_port(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+// TODO: is there a better way to handle this?
+struct value*
+builtin_current_input_port(struct value* args)
+{
+//    assert(args != NULL);
+    return value_make_input_port(stdin);
+}
+
+// TODO: is there a better way to handle this?
+struct value*
+builtin_current_output_port(struct value* args)
+{
+//    assert(args != NULL);
+    return value_make_output_port(stdout);
+}
+
+struct value*
+builtin_open_input_file(struct value* args)
+{
+    assert(args != NULL);
+
+    struct value* path = car(args);
+
+    FILE* port = fopen(path->as.string, "rb");
+    if (port == NULL) {
+        fprintf(stderr, "failed to open input file: %s\n", path->as.string);
+        perror("reason");
+        exit(EXIT_FAILURE);
     }
+
+    return value_make_input_port(port);
+}
+
+struct value*
+builtin_open_output_file(struct value* args)
+{
+    assert(args != NULL);
+
+    struct value* path = car(args);
+
+    FILE* port = fopen(path->as.string, "wb");
+    if (port == NULL) {
+        fprintf(stderr, "failed to open output file: %s\n", path->as.string);
+        perror("reason");
+        exit(EXIT_FAILURE);
+    }
+
+    return value_make_output_port(port);
+}
+
+struct value*
+builtin_close_input_port(struct value* args)
+{
+    assert(args != NULL);
+
+    struct value* port = car(args);
+    fclose(port->as.port);
+
+    return EMPTY_LIST;
+}
+
+struct value*
+builtin_close_output_port(struct value* args)
+{
+    assert(args != NULL);
+
+    struct value* port = car(args);
+    fclose(port->as.port);
+
+    return EMPTY_LIST;
+}
+
+struct value*
+builtin_read_char(struct value* args)
+{
+    struct value* port = NULL;
+    if (args == EMPTY_LIST) {
+        port = builtin_current_input_port(args);
+    } else {
+        port = car(args);
+    }
+
+    FILE* fp = port->as.port;
+
+    int c = fgetc(fp);
+    if (ferror(fp)) {
+        perror("error reading from port");
+        exit(EXIT_FAILURE);
+    }
+
+    if (c == EOF && feof(fp)) {
+        return value_make_eof();
+    }
+
+    return value_make_character(c);
+}
+
+struct value*
+builtin_peek_char(struct value* args)
+{
+    struct value* port = NULL;
+    if (args == EMPTY_LIST) {
+        port = builtin_current_input_port(args);
+    } else {
+        port = car(args);
+    }
+
+    FILE* fp = port->as.port;
+
+    int c = fgetc(fp);
+    if (ferror(fp)) {
+        perror("error reading from port");
+        exit(EXIT_FAILURE);
+    }
+
+    if (c == EOF && feof(fp)) {
+        return value_make_eof();
+    }
+
+    ungetc(c, fp);
+
+    return value_make_character(c);
+}
+
+struct value*
+builtin_is_eof_object(struct value* args)
+{
+    assert(args != NULL);
+    // assrts 1 arg (any)
+
+    return value_is_eof(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+}
+
+struct value*
+builtin_is_char_ready(struct value* args)
+{
+    struct value* port = NULL;
+    if (args == EMPTY_LIST) {
+        port = builtin_current_input_port(args);
+    } else {
+        port = car(args);
+    }
+
+    FILE* fp = port->as.port;
+
+    int c = fgetc(fp);
+    if (ferror(fp)) {
+        perror("error reading from port");
+        exit(EXIT_FAILURE);
+    }
+
+    if (c == EOF && feof(fp)) {
+        return value_make_boolean(false);
+    }
+
+    ungetc(c, fp);
 
     return value_make_boolean(true);
 }
 
 struct value*
-builtin_less(struct value* args)
+builtin_write(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
-
-    struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!(item->as.number < car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-    }
-
-    return value_make_boolean(true);
-}
-
-struct value*
-builtin_less_equal(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
-
-    struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!(item->as.number <= car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-    }
-
-    return value_make_boolean(true);
-}
-
-struct value*
-builtin_greater(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
-
-    struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!(item->as.number > car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-    }
-
-    return value_make_boolean(true);
-}
-
-struct value*
-builtin_greater_equal(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert >= 2 args (numbers)
-
-    struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
-        if (!(item->as.number >= car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-    }
-
-    return value_make_boolean(true);
-}
-
-struct value*
-builtin_is_eq(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 2 args (any, any)
-
-    struct value* a = car(args);
-    struct value* b = cadr(args);
-
-    return value_is_eq(a, b) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_eqv(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 2 args (any, any)
-
-    struct value* a = car(args);
-    struct value* b = cadr(args);
-
-    return value_is_eqv(a, b) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_is_equal(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 2 args (any, any)
-
-    struct value* a = car(args);
-    struct value* b = cadr(args);
-
-    return value_is_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
-}
-
-struct value*
-builtin_not(struct value* args)
-{
-    assert(args != NULL);
-    // TODO: assert 1 arg (any)
-
-    struct value* a = car(args);
-
-    return value_is_false(a) ? value_make_boolean(true) : value_make_boolean(false);
+    return EMPTY_LIST;
 }
 
 struct value*
 builtin_display(struct value* args)
 {
     assert(args != NULL);
-    // TODO: assert 1-2 args (any[, port])
-
-    struct value* obj = car(args);
-    io_write(obj);
-
     return EMPTY_LIST;
 }
 
 struct value*
 builtin_newline(struct value* args)
 {
-    // might actually be NULL if zero args!
-//    assert(args != NULL);
-    // TODO: assert 0-1 args ([port])
-
-    printf("\n");
+    assert(args != NULL);
     return EMPTY_LIST;
 }
+
+struct value*
+builtin_write_char(struct value* args)
+{
+    assert(args != NULL);
+    return EMPTY_LIST;
+}
+
+//struct value*
+//builtin_display(struct value* args)
+//{
+//    assert(args != NULL);
+//    // TODO: assert 1-2 args (any[, port])
+//
+//    struct value* obj = car(args);
+//    io_write(obj);
+//
+//    return EMPTY_LIST;
+//}
+//
+//struct value*
+//builtin_newline(struct value* args)
+//{
+//    // might actually be NULL if zero args!
+////    assert(args != NULL);
+//    // TODO: assert 0-1 args ([port])
+//
+//    printf("\n");
+//    return EMPTY_LIST;
+//}
 
 struct value*
 builtin_sleep(struct value* args)
@@ -358,6 +532,15 @@ builtin_sleep(struct value* args)
     SDL_Delay(delay_ms->as.number);
 
     return EMPTY_LIST;
+}
+
+struct value*
+builtin_is_window(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg
+
+    return value_is_window(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -419,6 +602,15 @@ builtin_window_present(struct value* args)
     SDL_RenderPresent(window->as.window.renderer);
 
     return EMPTY_LIST;
+}
+
+struct value*
+builtin_is_event(struct value* args)
+{
+    assert(args != NULL);
+    // TODO: assert 1 arg
+
+    return value_is_event(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*

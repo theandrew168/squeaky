@@ -165,6 +165,9 @@ io_write(const struct value* value)
     }
 
     switch (value->type) {
+        case VALUE_EMPTY_LIST:
+            printf("'()");
+            break;
         case VALUE_BOOLEAN:
             printf("%s", value->as.boolean ? "#t" : "#f");
             break;

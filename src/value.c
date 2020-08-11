@@ -11,6 +11,13 @@
 #include "value.h"
 
 bool
+value_is_empty_list(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return true;
+    return exp->type == VALUE_EMPTY_LIST;
+}
+
+bool
 value_is_boolean(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
@@ -122,6 +129,14 @@ value_is_eof(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
     return exp->type == VALUE_EOF;
+}
+
+struct value*
+value_make_empty_list(void)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_EMPTY_LIST;
+    return value;
 }
 
 struct value*
@@ -288,9 +303,11 @@ value_make_eof(void)
 static void
 value_free(struct value* value)
 {
-    if (value == NULL) return;
+    if (value == EMPTY_LIST) return;
 
     switch (value->type) {
+        case VALUE_EMPTY_LIST:
+            break;
         case VALUE_BOOLEAN:
             break;
         case VALUE_CHARACTER:
@@ -352,6 +369,8 @@ value_is_equal(const struct value* a, const struct value* b)
     if (a->type != b->type) return false;
 
     switch (a->type) {
+        case VALUE_EMPTY_LIST:
+            return true;
         case VALUE_BOOLEAN:
             return a->as.boolean == b->as.boolean;
         case VALUE_CHARACTER:

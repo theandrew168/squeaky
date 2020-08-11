@@ -53,6 +53,7 @@ struct value* builtin_close_input_port(struct value* args);
 struct value* builtin_close_output_port(struct value* args);
 
 // R5RS 6.6.2: Input
+struct value* builtin_read(struct value* args);
 struct value* builtin_read_char(struct value* args);
 struct value* builtin_peek_char(struct value* args);
 struct value* builtin_is_eof_object(struct value* args);

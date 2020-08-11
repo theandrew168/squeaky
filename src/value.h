@@ -9,6 +9,7 @@
 
 enum value_type {
     VALUE_UNDEFINED = 0,
+    VALUE_EMPTY_LIST,
     VALUE_BOOLEAN,
     VALUE_CHARACTER,
     VALUE_NUMBER,
@@ -64,6 +65,7 @@ struct value {
 #define EMPTY_LIST NULL
 
 // dynamic type checks
+bool value_is_empty_list(const struct value* exp);
 bool value_is_boolean(const struct value* exp);
 bool value_is_true(const struct value* exp);
 bool value_is_false(const struct value* exp);
@@ -82,6 +84,7 @@ bool value_is_event(const struct value* exp);
 bool value_is_eof(const struct value* exp);
 
 // constructors
+struct value* value_make_empty_list(void);
 struct value* value_make_boolean(bool boolean);
 struct value* value_make_character(int character);
 struct value* value_make_number(long number);

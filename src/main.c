@@ -83,6 +83,7 @@ main(int argc, char* argv[])
     add_builtin("close-output-port", builtin_close_output_port, env);
 
     // R5RS 6.6.2: Input
+    add_builtin("read", builtin_read, env);
     add_builtin("read-char", builtin_read_char, env);
     add_builtin("peek-char", builtin_peek_char, env);
     add_builtin("eof-object?", builtin_is_eof_object, env);

@@ -383,6 +383,21 @@ builtin_close_output_port(struct value* args)
 }
 
 struct value*
+builtin_read(struct value* args)
+{
+    struct value* port = NULL;
+    if (args == EMPTY_LIST) {
+        port = builtin_current_input_port(args);
+    } else {
+        port = car(args);
+    }
+
+//    FILE* fp = port->as.port;
+//    return reader_read(fp);
+    return EMPTY_LIST;
+}
+
+struct value*
 builtin_read_char(struct value* args)
 {
     struct value* port = NULL;
@@ -473,7 +488,18 @@ builtin_is_char_ready(struct value* args)
 struct value*
 builtin_write(struct value* args)
 {
-    assert(args != NULL);
+    assert(list_length(args) == 1 || list_length(args) == 2);
+
+    struct value* obj = car(args);
+
+    struct value* port = NULL;
+    if (cddr(args) == EMPTY_LIST) {
+        port = builtin_current_output_port(args);
+    } else {
+        port = cadr(args);
+    }
+
+    // TODO: actually do the write
     return EMPTY_LIST;
 }
 

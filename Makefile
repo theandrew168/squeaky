@@ -20,6 +20,7 @@ libsqueaky_sources =  \
   src/io.c            \
   src/list.c          \
   src/mce.c           \
+  src/reader.c        \
   src/value.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
@@ -28,6 +29,7 @@ src/env.o: src/env.c src/env.h src/io.h src/value.h
 src/io.o: src/io.c src/io.h src/list.h src/value.h
 src/list.o: src/list.c src/list.h src/value.h
 src/mce.o: src/mce.c src/mce.h src/env.h src/io.h src/list.h src/value.h
+src/reader.o: src/reader.c src/reader.h src/value.h
 src/value.o: src/value.c src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)

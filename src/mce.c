@@ -10,13 +10,21 @@
 #include "value.h"
 
 // Meta-Circular Evaluator is based on SICP Chapter 4
-// Helpers are from SICP 4.1.2
+// Helper macros are based on funcs from SICP 4.1.2
+
+#define is_last_exp(exp)  \
+  (cdr(exp) == NULL)
+#define first_exp(exp)  \
+  car(exp)
+#define rest_exps(exp)  \
+  cdr(exp)
 
 static struct value*
-list_of_values(struct value* exp, struct value* env)
+list_of_values(struct value* exps, struct value* env)
 {
-    if (exp == EMPTY_LIST) return EMPTY_LIST;
-    return cons(mce_eval(car(exp), env), list_of_values(cdr(exp), env));
+    if (exps == EMPTY_LIST) return EMPTY_LIST;
+    return cons(mce_eval(first_exp(exps), env),
+                list_of_values(rest_exps(exps), env));
 }
 
 static bool
@@ -115,19 +123,6 @@ eval_if(struct value* exp, struct value* env)
     }
 }
 
-#define is_begin(exp)  \
-  is_tagged_list(exp, "begin")
-#define make_begin(exp)  \
-  cons(value_make_symbol("begin"), exp)
-#define begin_actions(exp)  \
-  cdr(exp)
-#define is_last_exp(exp)  \
-  (cdr(exp) == NULL)
-#define first_exp(exp)  \
-  car(exp)
-#define rest_exps(exp)  \
-  cdr(exp)
-
 #define is_application(exp)  \
   value_is_pair(exp)
 
@@ -145,9 +140,6 @@ eval_if(struct value* exp, struct value* env)
 struct value*
 mce_eval(struct value* exp, struct value* env)
 {
-// R5RS mandates TCO on lambdas and the following exprs:
-// if, cond, case, and, or, let, let*, letrec,
-// let-syntax, letrec-syntax, begin, do
 tailcall:
 
     if (is_self_evaluating(exp)) {
@@ -165,18 +157,6 @@ tailcall:
         goto tailcall;
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
-    } else if (is_begin(exp)) {
-        // 'begin' is evaluated inline for TCO
-        // TODO: move this style of iteration into lambda's eval
-        //   and impl begin in terms of lambda? as a macro?
-        // (begin <body>) -> ((lambda () <body>))
-        exp = begin_actions(exp);
-        while (!is_last_exp(exp)) {
-            mce_eval(first_exp(exp), env);
-            exp = rest_exps(exp);
-        }
-        exp = first_exp(exp);
-        goto tailcall;
     } else if (is_application(exp)) {
         // 'apply' is evalutaed inline for TCO
         struct value* proc = mce_eval(operator(exp), env);
@@ -190,7 +170,12 @@ tailcall:
             // - the new environment contains bindings for the lambda's arguments
             // - the new expression is the lambda's body wrapped in 'begin'
             env = env_extend(proc->as.lambda.params, args, proc->as.lambda.env);
-            exp = make_begin(proc->as.lambda.body);
+            exp = proc->as.lambda.body;
+            while (!is_last_exp(exp)) {
+                mce_eval(first_exp(exp), env);
+                exp = rest_exps(exp);
+            }
+            exp = first_exp(exp);
             goto tailcall;
         } else {
             fprintf(stderr, "runtime error (invalid proc) at: TODO\n");

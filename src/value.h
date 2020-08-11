@@ -16,17 +16,21 @@ enum value_type {
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
-    VALUE_EOF,
+    VALUE_INPUT_PORT,
+    VALUE_OUTPUT_PORT,
     VALUE_WINDOW,
     VALUE_EVENT,
+    VALUE_EOF,
 };
 
 struct value;
 typedef struct value* (*builtin_func)(struct value* args);
 
+// TODO: consider a fancier, compressed, tagged uint64_t approach?
+// would be 8 bytes per value instead of 32 (thats big!)
+// 1 bit for GC marking, 4 bits for tagging, 59 bits for everything else (ints, floats, ptrs)
 struct value {
-    int type;
-    int ref_count;
+    int type;  // this int will pad to 8 bytes on a 64-bit system
     union {
         bool boolean;
         long number;
@@ -42,6 +46,7 @@ struct value {
             struct value* body;
             struct value* env;
         } lambda;
+        FILE* port;
         struct {
             SDL_Window* window;
             SDL_Renderer* renderer;
@@ -50,22 +55,28 @@ struct value {
     } as;
 };
 
+// making the EMPTY_LIST be NULL has both pros and cons:
+// a lot of list iteration code becomes simpler but the
+// need arises for extra NULL checks in other parts of the code
+// TODO: would it be better to just make a VALUE_EMPTY_LIST?
 #define EMPTY_LIST NULL
 
+// dynamic type checks
 bool value_is_boolean(const struct value* exp);
+bool value_is_true(const struct value* exp);
+bool value_is_false(const struct value* exp);
 bool value_is_number(const struct value* exp);
 bool value_is_string(const struct value* exp);
 bool value_is_symbol(const struct value* exp);
 bool value_is_pair(const struct value* exp);
 bool value_is_builtin(const struct value* exp);
 bool value_is_lambda(const struct value* exp);
-bool value_is_eof(const struct value* exp);
+bool value_is_procedure(const struct value* exp);
+bool value_is_input_port(const struct value* exp);
+bool value_is_output_port(const struct value* exp);
 bool value_is_window(const struct value* exp);
 bool value_is_event(const struct value* exp);
-bool value_is_procedure(const struct value* exp);
-
-bool value_is_true(const struct value* exp);
-bool value_is_false(const struct value* exp);
+bool value_is_eof(const struct value* exp);
 
 // constructors
 struct value* value_make_boolean(bool boolean);

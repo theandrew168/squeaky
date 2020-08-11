@@ -18,6 +18,22 @@ value_is_boolean(const struct value* exp)
 }
 
 bool
+value_is_true(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return value_is_boolean(exp) &&
+           exp->as.boolean == true;
+}
+
+bool
+value_is_false(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return value_is_boolean(exp) &&
+           exp->as.boolean == false;
+}
+
+bool
 value_is_number(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
@@ -60,10 +76,24 @@ value_is_lambda(const struct value* exp)
 }
 
 bool
-value_is_eof(const struct value* exp)
+value_is_procedure(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
-    return exp->type == VALUE_EOF;
+    return value_is_builtin(exp) || value_is_lambda(exp);
+}
+
+bool
+value_is_input_port(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_INPUT_PORT;
+}
+
+bool
+value_is_output_port(const struct value* exp)
+{
+    if (exp == EMPTY_LIST) return false;
+    return exp->type == VALUE_OUTPUT_PORT;
 }
 
 bool
@@ -81,26 +111,10 @@ value_is_event(const struct value* exp)
 }
 
 bool
-value_is_procedure(const struct value* exp)
+value_is_eof(const struct value* exp)
 {
     if (exp == EMPTY_LIST) return false;
-    return value_is_builtin(exp) || value_is_lambda(exp);
-}
-
-bool
-value_is_true(const struct value* exp)
-{
-    if (exp == EMPTY_LIST) return false;
-    return value_is_boolean(exp) &&
-           exp->as.boolean == true;
-}
-
-bool
-value_is_false(const struct value* exp)
-{
-    if (exp == EMPTY_LIST) return false;
-    return value_is_boolean(exp) &&
-           exp->as.boolean == false;
+    return exp->type == VALUE_EOF;
 }
 
 struct value*
@@ -108,7 +122,6 @@ value_make_boolean(bool boolean)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_BOOLEAN;
-    value->ref_count = 1;
     value->as.boolean = boolean;
     return value;
 }
@@ -118,7 +131,6 @@ value_make_number(long number)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_NUMBER;
-    value->ref_count = 1;
     value->as.number = number;
     return value;
 }
@@ -128,7 +140,6 @@ value_make_string(const char* string)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_STRING;
-    value->ref_count = 1;
     value->as.string = malloc(strlen(string) + 1);
     strcpy(value->as.string, string);
     return value;
@@ -139,7 +150,6 @@ value_make_stringn(const char* string, long length)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_STRING;
-    value->ref_count = 1;
     value->as.string = malloc(length + 1);
     snprintf(value->as.string, length + 1, "%s", string);
     return value;
@@ -150,7 +160,6 @@ value_make_symbol(const char* symbol)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_SYMBOL;
-    value->ref_count = 1;
     value->as.symbol = malloc(strlen(symbol) + 1);
     strcpy(value->as.symbol, symbol);
     return value;
@@ -161,7 +170,6 @@ value_make_symboln(const char* symbol, long length)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_SYMBOL;
-    value->ref_count = 1;
     value->as.symbol = malloc(length + 1);
     snprintf(value->as.symbol, length + 1, "%s", symbol);
     return value;
@@ -172,7 +180,6 @@ value_make_pair(struct value* car, struct value* cdr)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_PAIR;
-    value->ref_count = 1;
     value->as.pair.car = car;
     value->as.pair.cdr = cdr;
     return value;
@@ -183,7 +190,6 @@ value_make_builtin(builtin_func builtin)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_BUILTIN;
-    value->ref_count = 1;
     value->as.builtin = builtin;
     return value;
 }
@@ -193,7 +199,6 @@ value_make_lambda(struct value* params, struct value* body, struct value* env)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_LAMBDA;
-    value->ref_count = 1;
     value->as.lambda.params = params;
     value->as.lambda.body = body;
     value->as.lambda.env = env;
@@ -205,7 +210,6 @@ value_make_eof(void)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_EOF;
-    value->ref_count = 1;
     return value;
 }
 
@@ -232,7 +236,6 @@ value_make_window(const char* title, long width, long height)
 
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_WINDOW;
-    value->ref_count = 1;
     value->as.window.window = window;
     value->as.window.renderer = renderer;
     return value;
@@ -243,7 +246,6 @@ value_make_event(SDL_Event* event)
 {
     struct value* value = malloc(sizeof(struct value));
     value->type = VALUE_EVENT;
-    value->ref_count = 1;
     value->as.event = event;
     return value;
 }

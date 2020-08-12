@@ -201,6 +201,18 @@ read_number(FILE* fp)
 }
 
 struct value*
+read_symbol(FILE* fp)
+{
+    return NULL;
+}
+
+struct value*
+read_list(FILE* fp)
+{
+    return NULL;
+}
+
+struct value*
 reader_read(FILE* fp)
 {
     assert(fp != NULL);
@@ -240,7 +252,7 @@ reader_read(FILE* fp)
 
     // symbol
     if (is_initial(c)) {
-
+        return read_symbol(fp);
     }
 
     // quoted expr
@@ -268,6 +280,11 @@ reader_read(FILE* fp)
 
         struct value* exp = reader_read(fp);
         return list_make(2, value_make_symbol("unquote"), exp);
+    }
+
+    // pair / list / s-expression
+    if (c == '(') {
+        return read_list(fp);
     }
 
     fprintf(stderr, "reader: invalid expression\n");

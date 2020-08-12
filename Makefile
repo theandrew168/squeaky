@@ -7,8 +7,8 @@ CFLAGS   = -std=c99
 CFLAGS  += -fPIC -g -Og
 CFLAGS  += -Wall -Wextra -Wpedantic
 CFLAGS  += -Wno-unused-parameter -Wno-unused-result -Wno-unused-function
-CFLAGS  += -Isrc/
-LDFLAGS  =
+CFLAGS  += -Isrc/ -I/usr/include
+LDFLAGS  = -L/usr/lib
 LDLIBS   = -lGL -lSDL2
 
 default: squeaky
@@ -40,9 +40,9 @@ libsqueaky.so: $(libsqueaky_objects)
 	@echo "SHARED  $@"
 	@$(CC) $(LDFLAGS) -shared -o $@ $(libsqueaky_objects) $(LDLIBS)
 
-squeaky: src/main.c libsqueaky.a
+squeaky: src/main2.c libsqueaky.a
 	@echo "EXE     $@"
-	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
+	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main2.c libsqueaky.a $(LDLIBS)
 
 squeaky_tests_sources =  \
   src/env_test.c         \

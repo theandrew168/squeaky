@@ -6,7 +6,6 @@
 #include <SDL2/SDL_opengl.h>
 
 #include "builtin.h"
-#include "io.h"
 #include "list.h"
 #include "value.h"
 

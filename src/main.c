@@ -10,12 +10,11 @@
 
 #include "builtin.h"
 #include "env.h"
-#include "io.h"
 #include "list.h"
 #include "mce.h"
+#include "reader.h"
 #include "value.h"
 
-// TODO: Rewrite the reader
 // TODO: Add assert helpers for builtins (arity and types)
 
 #define add_builtin(sym, func, env)  \
@@ -112,25 +111,13 @@ main(int argc, char* argv[])
     add_builtin("window-event-poll", builtin_window_event_poll, env);
     add_builtin("window-event-type", builtin_window_event_type, env);
 
-    printf("> ");
-    char line[512] = { 0 };
-    while (fgets(line, sizeof(line), stdin) != NULL) {
-        // hack to re-prompt on empty input
-        if (*line == '\n') {
-            printf("> ");
-            continue;
-        }
-
-        long consumed = 0;
-        struct value* exp = io_read(line, &consumed);
-
-        // uncomment to see what the reader reads
-        io_writeln(exp);
+    for (;;) {
+        printf("> ");
+        struct value* exp = reader_read(stdin);
+        value_println(exp);
 
         struct value* res = mce_eval(exp, env);
-        io_writeln(res);
-
-        printf("> ");
+        value_println(res);
     }
 
     SDL_Quit();

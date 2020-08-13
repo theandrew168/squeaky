@@ -347,6 +347,97 @@ value_free(struct value* value)
     free(value);
 }
 
+void
+value_print(const struct value* value)
+{
+    if (value == EMPTY_LIST) {
+        printf("'()");
+        return;
+    }
+
+    switch (value->type) {
+        case VALUE_EMPTY_LIST:
+            printf("'()");
+            break;
+        case VALUE_BOOLEAN:
+            printf("%s", value->as.boolean ? "#t" : "#f");
+            break;
+        case VALUE_CHARACTER:
+            // TODO: how to support UTF-8 here?
+            printf("%c", value->as.character);
+            break;
+        case VALUE_NUMBER:
+            printf("%ld", value->as.number);
+            break;
+        case VALUE_STRING:
+            // TODO: handle escapes
+            printf("\"%s\"", value->as.string);
+            break;
+        case VALUE_SYMBOL:
+            printf("%s", value->as.symbol);
+            break;
+        case VALUE_PAIR: {
+            printf("(");
+            value_print(value->as.pair.car);
+            printf(" . ");
+            value_print(value->as.pair.cdr);
+            printf(")");
+            break;
+        }
+        case VALUE_BUILTIN:
+            printf("<builtin>");
+            break;
+        case VALUE_LAMBDA:
+            printf("<lambda>");
+            break;
+        case VALUE_INPUT_PORT:
+            printf("<input port>");
+            break;
+        case VALUE_OUTPUT_PORT:
+            printf("<output port>");
+            break;
+        case VALUE_WINDOW:
+            printf("<window>");
+            break;
+        case VALUE_EVENT: {
+            switch (value->as.event->type) {
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                    printf("<event:%s>", "keyboard");
+                    break;
+                case SDL_MOUSEMOTION:
+                    printf("<event:%s>", "mouse-motion");
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                    printf("<event:%s>", "mouse-button");
+                    break;
+                case SDL_QUIT:
+                    printf("<event:%s>", "quit");
+                    break;
+                case SDL_WINDOWEVENT:
+                    printf("<event:%s>", "window");
+                    break;
+                default:
+                    printf("<event:%s>", "undefined");
+            }
+            break;
+        }
+        case VALUE_EOF:
+            printf("<EOF>");
+            break;
+        default:
+            printf("<undefined>");
+    }
+}
+
+void
+value_println(const struct value* value)
+{
+    value_print(value);
+    printf("\n");
+}
+
 bool
 value_is_eq(const struct value* a, const struct value* b)
 {

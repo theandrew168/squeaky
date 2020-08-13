@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "env.h"
-#include "io.h"
 #include "list.h"
 #include "mce.h"
 #include "value.h"

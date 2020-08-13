@@ -20,7 +20,7 @@
 #define is_digit(c)  \
   (c >= '0' && c <= '9')
 #define is_delimiter(c)  \
-  (is_whitespace(c) || strchr("()\";", c) != NULL)
+  (is_whitespace(c) || c == EOF || strchr("()\";", c) != NULL)
 #define is_special_initial(c)  \
   (strchr("!$%&*/:<=>?^_~", c) != NULL)
 #define is_initial(c)  \
@@ -29,8 +29,8 @@
   (strchr("+-.@", c) != NULL)
 #define is_subsequent(c)  \
   (is_initial(c) || is_digit(c) || is_special_subsequent(c))
-#define is_peculiar_identifier(s)  \
-  (*s == '+' || *s == '-' || strncmp("...", s, 3) == 0)
+#define is_peculiar_identifier(c)  \
+  (c == '+' || c == '-' || c == '.')
 
 static int
 advance(FILE* fp)
@@ -93,7 +93,7 @@ peek_expect_delimiter(FILE* fp)
 {
     // expect a delimiter to follow some token otherwise raise an error
     if (!is_delimiter(peek(fp))) {
-        fprintf(stderr, "reader: character not followed by delimiter\n");
+        fprintf(stderr, "reader: token not followed by delimiter\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -127,6 +127,36 @@ read_character(FILE* fp)
 }
 
 struct value*
+read_number(FILE* fp)
+{
+    // temp buffer to hold the number's contents
+    char buf[MAX_NUMBER_SIZE] = { 0 };
+    long i = 0;
+
+    // read characters into the buffer until:
+    // EOF is reached, non-numeric char is read, or buffer is filled
+    int c;
+    while ((c = advance(fp)) != EOF) {
+        if (!is_digit(c)) break;
+
+        // "- 2" here to account for terminator
+        if (i >= MAX_NUMBER_SIZE - 2) {
+            fprintf(stderr, "reader: numeric literal larger than %d characters\n", MAX_NUMBER_SIZE);
+            exit(EXIT_FAILURE);
+        }
+
+        buf[i++] = c;
+    }
+
+    // put the last non-numeric char back
+    rollback(fp, c);
+    peek_expect_delimiter(fp);
+
+    long number = strtol(buf, NULL, 10);
+    return value_make_number(number);
+}
+
+struct value*
 read_string(FILE* fp)
 {
     // temp buffer to hold the string's contents
@@ -148,8 +178,7 @@ read_string(FILE* fp)
             exit(EXIT_FAILURE);
         }
 
-        buf[i] = c;
-        i++;
+        buf[i++] = c;
     }
 
     // unterminated string literal is an error
@@ -158,58 +187,101 @@ read_string(FILE* fp)
         exit(EXIT_FAILURE);
     }
 
-    struct value* value = value_make_string(buf);
-
-    // skip tailing quote
-    advance(fp);
-    return value;
-}
-
-struct value*
-read_number(FILE* fp)
-{
-    // temp buffer to hold the number's contents
-    char buf[MAX_NUMBER_SIZE] = { 0 };
-    long i = 0;
-
-    // read characters into the buffer until:
-    // EOF is reached, non-numeric char is read, or buffer is filled
-    int c;
-    while ((c = advance(fp)) != EOF) {
-        if (!is_digit(c)) break;
-
-        // "- 2" here to account for terminator
-        if (i >= MAX_NUMBER_SIZE - 2) {
-            fprintf(stderr, "reader: numeric literal larger than %d characters\n", MAX_NUMBER_SIZE);
-            exit(EXIT_FAILURE);
-        }
-
-        buf[i] = c;
-        i++;
-    }
-
-    if (!is_delimiter(c)) {
-        fprintf(stderr, "reader: numeric literal not followed by delimiter\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // put the last non-numeric char back
-    rollback(fp, c);
-
-    long number = strtol(buf, NULL, 10);
-    return value_make_number(number);
+    peek_expect_delimiter(fp);
+    return value_make_string(buf);
 }
 
 struct value*
 read_symbol(FILE* fp)
 {
-    return NULL;
+    // temp buffer to hold the symbol's contents
+    char buf[MAX_STRING_SIZE] = { 0 };
+    long i = 0;
+
+    // grab the first character
+    int c = advance(fp);
+    buf[i++] = c;
+
+    // check for peculiar identifier
+    if (is_peculiar_identifier(c)) {
+        if (c == '+' || c == '-') {
+            peek_expect_delimiter(fp);
+            return value_make_symbol(buf);
+        }
+
+        // only other peculiar identifier left at this point is "..."
+        buf[i++] = advance(fp);
+        buf[i++] = advance(fp);
+        if (strcmp(buf, "...") == 0) {
+            peek_expect_delimiter(fp);
+            return value_make_symbol(buf);
+        }
+
+        fprintf(stderr, "reader: invalid symbol: %s\n", buf);
+        exit(EXIT_FAILURE);
+    }
+
+    // at this point, the first char in buf must be an 'initial'
+
+    // read characters into the buffer until:
+    // EOF is reached, non-subsequent char is read, or buffer is filled
+    while ((c = advance(fp)) != EOF) {
+        if (!is_subsequent(c)) break;
+
+        // "- 2" here to account for terminator
+        if (i >= MAX_SYMBOL_SIZE - 2) {
+            fprintf(stderr, "reader: symbol larger than %d characters\n", MAX_SYMBOL_SIZE);
+            exit(EXIT_FAILURE);
+        }
+
+        buf[i++] = c;
+    }
+
+    // put non-symbol char back and ensure it was a delimiter
+    rollback(fp, c);
+    peek_expect_delimiter(fp);
+    return value_make_symbol(buf);
 }
 
 struct value*
-read_list(FILE* fp)
+read_pair(FILE* fp)
 {
-    return NULL;
+    eat_whitespace(fp);
+
+    // return the empty list upon finding a closing paren
+    if (peek(fp) == ')') {
+        advance(fp);
+        return EMPTY_LIST;
+//        return value_make_empty_list();
+    }
+
+    // read the first half of the pair
+    struct value* car = reader_read(fp);
+    eat_whitespace(fp);
+
+    // check for an "improper" list
+    if (peek(fp) == '.') {
+        advance(fp);
+        peek_expect_delimiter(fp);
+
+        // read the last expr
+        struct value* cdr = reader_read(fp);
+        eat_whitespace(fp);
+
+        // ensure a closing paren comes next
+        if (peek(fp) != ')') {
+            fprintf(stderr, "reader: expected closing paren after last expr in improper list\n");
+            exit(EXIT_FAILURE);
+        }
+
+        // consume the closing paren
+        advance(fp);
+        return cons(car, cdr);
+    }
+
+    // read the next expr in a "normal" list
+    struct value* cdr = read_pair(fp);
+    return cons(car, cdr);
 }
 
 struct value*
@@ -234,6 +306,9 @@ reader_read(FILE* fp)
             return value_make_boolean(false);
         } else if (c == '\\') {
             return read_character(fp);
+        // TODO: read vectors
+//        } else if (c == '(') {
+//            return read_vector(fp);
         } else {
             fprintf(stderr, "reader: invalid sharp expression\n");
             exit(EXIT_FAILURE);
@@ -251,7 +326,7 @@ reader_read(FILE* fp)
     }
 
     // symbol
-    if (is_initial(c)) {
+    if (is_initial(c) || is_peculiar_identifier(c)) {
         return read_symbol(fp);
     }
 
@@ -284,7 +359,8 @@ reader_read(FILE* fp)
 
     // pair / list / s-expression
     if (c == '(') {
-        return read_list(fp);
+        advance(fp);  // skip opening paren
+        return read_pair(fp);
     }
 
     fprintf(stderr, "reader: invalid expression\n");

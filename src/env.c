@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "env.h"
-#include "io.h"
 #include "list.h"
 #include "value.h"
 
@@ -108,6 +107,6 @@ void
 env_print(const struct value* env)
 {
     printf("TODO: env_print\n");
-    io_write(env);
+    value_print(env);
     printf("\n");
 }

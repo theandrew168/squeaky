@@ -101,6 +101,10 @@ struct value* value_make_window(const char* title, long width, long height);
 struct value* value_make_event(SDL_Event* event);
 struct value* value_make_eof(void);
 
+// printing
+void value_print(const struct value* value);
+void value_println(const struct value* value);
+
 // comparison
 bool value_is_eq(const struct value* a, const struct value* b);
 bool value_is_eqv(const struct value* a, const struct value* b);

@@ -348,100 +348,122 @@ value_free(struct value* value)
 }
 
 void
-value_print(const struct value* value)
+value_print(FILE* fp, const struct value* value)
 {
     if (value == EMPTY_LIST) {
-        printf("'()");
+        fprintf(fp, "'()");
         return;
     }
 
     switch (value->type) {
         case VALUE_EMPTY_LIST:
-            printf("'()");
+            fprintf(fp, "'()");
             break;
         case VALUE_BOOLEAN:
-            printf("#%c", value->as.boolean ? 't' : 'f');
+            fprintf(fp, "#%c", value->as.boolean ? 't' : 'f');
             break;
         case VALUE_CHARACTER:
             // TODO: how to support UTF-8 here?
             if (value->as.character == ' ') {
-                printf("#\\space");
+                fprintf(fp, "#\\space");
             } else if (value->as.character == '\n') {
-                printf("#\\newline");
+                fprintf(fp, "#\\newline");
             } else {
-                printf("#\\%c", value->as.character);
+                fprintf(fp, "#\\%c", value->as.character);
             }
             break;
         case VALUE_NUMBER:
-            printf("%ld", value->as.number);
+            fprintf(fp, "%ld", value->as.number);
             break;
         case VALUE_STRING:
             // TODO: handle escapes
-            printf("\"%s\"", value->as.string);
+            fprintf(fp, "\"%s\"", value->as.string);
             break;
         case VALUE_SYMBOL:
-            printf("%s", value->as.symbol);
+            fprintf(fp, "%s", value->as.symbol);
             break;
         case VALUE_PAIR: {
-            printf("(");
-            value_print(value->as.pair.car);
-            printf(" . ");
-            value_print(value->as.pair.cdr);
-            printf(")");
+            fprintf(fp, "(");
+            value_print(fp, value->as.pair.car);
+            fprintf(fp, " . ");
+            value_print(fp, value->as.pair.cdr);
+            fprintf(fp, ")");
             break;
         }
         case VALUE_BUILTIN:
-            printf("<builtin>");
+            fprintf(fp, "<builtin>");
             break;
         case VALUE_LAMBDA:
-            printf("<lambda>");
+            fprintf(fp, "<lambda>");
             break;
         case VALUE_INPUT_PORT:
-            printf("<input port>");
+            fprintf(fp, "<input port>");
             break;
         case VALUE_OUTPUT_PORT:
-            printf("<output port>");
+            fprintf(fp, "<output port>");
             break;
         case VALUE_WINDOW:
-            printf("<window>");
+            fprintf(fp, "<window>");
             break;
         case VALUE_EVENT: {
             switch (value->as.event->type) {
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
-                    printf("<event:%s>", "keyboard");
+                    fprintf(fp, "<event:%s>", "keyboard");
                     break;
                 case SDL_MOUSEMOTION:
-                    printf("<event:%s>", "mouse-motion");
+                    fprintf(fp, "<event:%s>", "mouse-motion");
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                 case SDL_MOUSEBUTTONUP:
-                    printf("<event:%s>", "mouse-button");
+                    fprintf(fp, "<event:%s>", "mouse-button");
                     break;
                 case SDL_QUIT:
-                    printf("<event:%s>", "quit");
+                    fprintf(fp, "<event:%s>", "quit");
                     break;
                 case SDL_WINDOWEVENT:
-                    printf("<event:%s>", "window");
+                    fprintf(fp, "<event:%s>", "window");
                     break;
                 default:
-                    printf("<event:%s>", "undefined");
+                    fprintf(fp, "<event:%s>", "undefined");
             }
             break;
         }
         case VALUE_EOF:
-            printf("<EOF>");
+            fprintf(fp, "<EOF>");
             break;
         default:
-            printf("<undefined>");
+            fprintf(fp, "<undefined>");
     }
 }
 
 void
-value_println(const struct value* value)
+value_println(FILE* fp, const struct value* value)
 {
-    value_print(value);
+    value_print(fp, value);
     printf("\n");
+}
+
+const char*
+value_type_name(int type)
+{
+    switch (type) {
+        case VALUE_EMPTY_LIST: return "Empty List";
+        case VALUE_BOOLEAN: return "Boolean";
+        case VALUE_CHARACTER: return "Character";
+        case VALUE_NUMBER: return "Number";
+        case VALUE_STRING: return "String";
+        case VALUE_SYMBOL: return "Symbol";
+        case VALUE_PAIR: return "Pair";
+        case VALUE_BUILTIN: return "Builtin";
+        case VALUE_LAMBDA: return "Lambda";
+        case VALUE_INPUT_PORT: return "Input Port";
+        case VALUE_OUTPUT_PORT: return "Output Port";
+        case VALUE_WINDOW: return "Window";
+        case VALUE_EVENT: return "Event";
+        case VALUE_EOF: return "EOF";
+        default: return "Undefined";
+    }
 }
 
 bool

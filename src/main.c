@@ -88,11 +88,11 @@ main(int argc, char* argv[])
     add_builtin("eof-object?", builtin_is_eof_object, env);
     add_builtin("char-ready?", builtin_is_char_ready, env);
 
-//    // R5RS 6.6.3: Output
-//    add_builtin("write", builtin_write, env);
-//    add_builtin("display", builtin_display, env);
-//    add_builtin("newline", builtin_newline, env);
-//    add_builtin("write-char", builtin_write_char, env);
+    // R5RS 6.6.3: Output
+    add_builtin("write", builtin_write, env);
+    add_builtin("display", builtin_display, env);
+    add_builtin("newline", builtin_newline, env);
+    add_builtin("write-char", builtin_write_char, env);
 
     /* Squeaky Extensions */
 
@@ -115,10 +115,10 @@ main(int argc, char* argv[])
         printf("> ");
         struct value* exp = reader_read(stdin);
         if (value_is_eof(exp)) break;
-        value_println(exp);
+        value_println(stdout, exp);
 
         struct value* res = mce_eval(exp, env);
-        value_println(res);
+        value_println(stdout, res);
     }
 
     SDL_Quit();

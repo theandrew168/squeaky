@@ -102,11 +102,3 @@ env_define(struct value* var, struct value* val, struct value* env)
     if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
     return frame_add_binding(var, val, frame);
 }
-
-void
-env_print(const struct value* env)
-{
-    printf("TODO: env_print\n");
-    value_print(env);
-    printf("\n");
-}

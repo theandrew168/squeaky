@@ -2,6 +2,7 @@
 #define SQUEAKY_VALUE_H_INCLUDED
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <SDL2/SDL.h>
@@ -102,8 +103,9 @@ struct value* value_make_event(SDL_Event* event);
 struct value* value_make_eof(void);
 
 // printing
-void value_print(const struct value* value);
-void value_println(const struct value* value);
+void value_print(FILE* fp, const struct value* value);
+void value_println(FILE* fp, const struct value* value);
+const char* value_type_name(int type);
 
 // comparison
 bool value_is_eq(const struct value* a, const struct value* b);

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "list.h"
@@ -37,6 +38,22 @@ list_length(const struct value* list)
     }
 
     return count;
+}
+
+struct value*
+list_nth(const struct value* list, long n)
+{
+    if (n < 0 || n >= list_length(list)) {
+        fprintf(stderr, "list: invalid index: %ld\n", n);
+        exit(EXIT_FAILURE);
+    }
+
+    const struct value* iter = list;
+    for (long i = 0; i < n; i++) {
+        iter = cdr(iter);
+    }
+
+    return car(iter);
 }
 
 struct value*

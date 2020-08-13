@@ -10,6 +10,7 @@
 
 struct value* list_make(long count, struct value* value, ...);
 long list_length(const struct value* list);
+struct value* list_nth(const struct value* list, long n);
 
 struct value* list_car(const struct value* list);
 struct value* list_cdr(const struct value* list);

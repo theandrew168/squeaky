@@ -8,6 +8,4 @@ struct value* env_lookup(struct value* var, struct value* env);
 struct value* env_update(struct value* var, struct value* val, struct value* env);
 struct value* env_define(struct value* var, struct value* val, struct value* env);
 
-void env_print(const struct value* env);
-
 #endif

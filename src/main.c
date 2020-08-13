@@ -15,7 +15,9 @@
 #include "reader.h"
 #include "value.h"
 
-// TODO: Add assert helpers for builtins (arity and types)
+// TODO: Impl VALUE_EMPTY_LIST type everywhere instead of NULL
+// TODO: Impl basic standard library and load it on start
+// TODO: Move REPL to a .scm file and load it if no other file is specified on CLI
 
 #define add_builtin(sym, func, env)  \
   env_define(value_make_symbol(sym), value_make_builtin(func), env);
@@ -70,10 +72,10 @@ main(int argc, char* argv[])
 
     // R5RS 6.4: Control Features
     add_builtin("procedure?", builtin_is_procedure, env);
-    add_builtin("apply", mce_builtin_apply, env);  // will be handle specifically by the MCE
+    add_builtin("apply", mce_builtin_apply, env);  // will be handled specifically by the MCE
 
     // R5RS 6.5: Eval
-    add_builtin("eval", mce_builtin_eval, env);  // will be handle specifically by the MCE
+    add_builtin("eval", mce_builtin_eval, env);  // will be handled specifically by the MCE
 
     // R5RS 6.6.1: Ports
     add_builtin("input-port?", builtin_is_input_port, env);

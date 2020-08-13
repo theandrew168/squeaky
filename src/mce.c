@@ -34,8 +34,9 @@ is_tagged_list(struct value* exp, const char* tag)
 }
 
 #define is_self_evaluating(exp)  \
-  value_is_boolean(exp) ||       \
-  value_is_number(exp)  ||       \
+  value_is_character(exp) ||     \
+  value_is_boolean(exp)   ||     \
+  value_is_number(exp)    ||     \
   value_is_string(exp)
 
 #define is_variable(exp)  \

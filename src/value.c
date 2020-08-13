@@ -360,11 +360,17 @@ value_print(const struct value* value)
             printf("'()");
             break;
         case VALUE_BOOLEAN:
-            printf("%s", value->as.boolean ? "#t" : "#f");
+            printf("#%c", value->as.boolean ? 't' : 'f');
             break;
         case VALUE_CHARACTER:
             // TODO: how to support UTF-8 here?
-            printf("%c", value->as.character);
+            if (value->as.character == ' ') {
+                printf("#\\space");
+            } else if (value->as.character == '\n') {
+                printf("#\\newline");
+            } else {
+                printf("#\\%c", value->as.character);
+            }
             break;
         case VALUE_NUMBER:
             printf("%ld", value->as.number);

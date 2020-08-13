@@ -122,6 +122,11 @@ read_character(FILE* fp)
             break;
     }
 
+    if (c < '!' || c > '~') {
+        fprintf(stderr, "reader: non-printable character literal\n");
+        exit(EXIT_FAILURE);
+    }
+
     peek_expect_delimiter(fp);
     return value_make_character(c);
 }

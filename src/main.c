@@ -114,6 +114,7 @@ main(int argc, char* argv[])
     for (;;) {
         printf("> ");
         struct value* exp = reader_read(stdin);
+        if (value_is_eof(exp)) break;
         value_println(exp);
 
         struct value* res = mce_eval(exp, env);

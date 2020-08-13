@@ -6,6 +6,7 @@
 #include "env.h"
 #include "list.h"
 #include "mce.h"
+#include "reader.h"
 #include "value.h"
 
 // Meta-Circular Evaluator is based on SICP Chapter 4
@@ -45,10 +46,10 @@ is_tagged_list(struct value* exp, const char* tag)
 }
 
 #define is_self_evaluating(exp)  \
-  value_is_character(exp) ||     \
-  value_is_boolean(exp)   ||     \
-  value_is_number(exp)    ||     \
-  value_is_string(exp)
+  value_is_character(exp)        \
+  || value_is_boolean(exp)       \
+  || value_is_number(exp)        \
+  || value_is_string(exp)
 
 #define is_variable(exp)  \
   value_is_symbol(exp)
@@ -108,13 +109,6 @@ eval_definition(struct value* exp, struct value* env)
         env);
 }
 
-#define is_lambda(exp)  \
-  is_tagged_list(exp, "lambda")
-#define lambda_params(exp)  \
-  cadr(exp)
-#define lambda_body(exp)  \
-  cddr(exp)
-
 #define is_if(exp)  \
   is_tagged_list(exp, "if")
 #define if_predicate(exp)  \
@@ -133,6 +127,50 @@ eval_if(struct value* exp, struct value* env)
         return if_alternative(exp);
     }
 }
+
+#define is_environment(exp)                          \
+  is_tagged_list(exp, "scheme-report-environment")   \
+  || is_tagged_list(exp, "null-environment")         \
+  || is_tagged_list(exp, "interaction-environment")
+#define environment_version(exp)  \
+  cadr(exp)
+
+#define is_load(exp)  \
+  is_tagged_list(exp, "load")
+#define load_args(exp)  \
+  cdr(exp)
+
+static struct value*
+load(struct value* args, struct value* env)
+{
+    ASSERT_ARITY("load", args, 1);
+    ASSERT_TYPE("load", args, 0, VALUE_STRING);
+
+    struct value* path = list_nth(args, 0);
+
+    FILE* fp = fopen(path->as.string, "rb");
+    if (fp == NULL) {
+        fprintf(stderr, "failed to load file: %s\n", path->as.string);
+        exit(EXIT_FAILURE);
+    }
+
+    while (!feof(fp)) {
+        struct value* exp = reader_read(fp);
+        if (value_is_eof(exp)) break;
+
+        mce_eval(exp, env);
+    }
+
+    fclose(fp);
+    return EMPTY_LIST;
+}
+
+#define is_lambda(exp)  \
+  is_tagged_list(exp, "lambda")
+#define lambda_params(exp)  \
+  cadr(exp)
+#define lambda_body(exp)  \
+  cddr(exp)
 
 #define is_application(exp)  \
   value_is_pair(exp)
@@ -186,6 +224,10 @@ tailcall:
     } else if (is_if(exp)) {
         exp = eval_if(exp, env);
         goto tailcall;
+    } else if (is_environment(exp)) {
+        return env;
+    } else if (is_load(exp)) {
+        return load(load_args(exp), env);
     } else if (is_lambda(exp)) {
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_application(exp)) {
@@ -193,7 +235,7 @@ tailcall:
         struct value* proc = mce_eval(operator(exp), env);
         struct value* args = list_of_values(operands(exp), env);
 
-        // handle builtin 'eval' specifically
+        // handle builtin 'eval' specifically for TCO
         if (is_primitive_proc(proc) && proc->as.builtin == mce_builtin_eval) {
             ASSERT_ARITY("eval", args, 2);
             ASSERT_TYPE("eval", args, 1, VALUE_PAIR);
@@ -202,7 +244,7 @@ tailcall:
             goto tailcall;
         }
 
-        // handle builtin 'apply' specifically
+        // handle builtin 'apply' specifically for TCO
         if (is_primitive_proc(proc) && proc->as.builtin == mce_builtin_apply) {
             proc = apply_operator(args);
             args = apply_operands(args);

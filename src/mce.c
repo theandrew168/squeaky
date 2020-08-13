@@ -19,6 +19,17 @@
   cdr(exp)
 
 static struct value*
+eval_sequence(struct value* exp, struct value* env)
+{
+    if (is_last_exp(exp)) {
+        return mce_eval(first_exp(exp), env);
+    } else {
+        mce_eval(first_exp(exp), env);
+        return eval_sequence(rest_exps(exp), env);
+    }
+}
+
+static struct value*
 list_of_values(struct value* exps, struct value* env)
 {
     if (exps == EMPTY_LIST) return EMPTY_LIST;
@@ -137,6 +148,26 @@ eval_if(struct value* exp, struct value* env)
 #define is_compound_proc(exp)  \
   ((exp)->type == VALUE_LAMBDA)
 
+#define eval_exp(exp)  \
+  car(exp)
+#define eval_env(exp)  \
+  cadr(exp)
+
+#define apply_operator(exp)  \
+  car(exp)
+#define apply_operands(exp)  \
+  cdr(exp)
+
+static struct value*
+listify(struct value* exp)
+{
+    if (cdr(exp) == EMPTY_LIST) {
+        return car(exp);
+    }
+
+    return cons(car(exp), listify(cdr(exp)));
+}
+
 struct value*
 mce_eval(struct value* exp, struct value* env)
 {
@@ -162,6 +193,21 @@ tailcall:
         struct value* proc = mce_eval(operator(exp), env);
         struct value* args = list_of_values(operands(exp), env);
 
+        // handle builtin 'eval' specifically
+        if (is_primitive_proc(proc) && proc->as.builtin == mce_builtin_eval) {
+            ASSERT_ARITY("eval", args, 2);
+            ASSERT_TYPE("eval", args, 1, VALUE_PAIR);
+            env = eval_env(args);
+            exp = eval_exp(args);
+            goto tailcall;
+        }
+
+        // handle builtin 'apply' specifically
+        if (is_primitive_proc(proc) && proc->as.builtin == mce_builtin_apply) {
+            proc = apply_operator(args);
+            args = apply_operands(args);
+        }
+
         if (is_primitive_proc(proc)) {
             return proc->as.builtin(args);
         } else if (is_compound_proc(proc)) {
@@ -184,5 +230,34 @@ tailcall:
     }
 
     fprintf(stderr, "runtime error (invalid expr) at: TODO\n");
+    exit(EXIT_FAILURE);
+}
+
+struct value*
+mce_apply(struct value* proc, struct value* args)
+{
+    if (is_primitive_proc(proc)) {
+        return proc->as.builtin(args);
+    } else if (is_compound_proc(proc)) {
+        return eval_sequence(
+            proc->as.lambda.body,
+            env_extend(proc->as.lambda.params, args, proc->as.lambda.env));
+    } else {
+        fprintf(stderr, "runtime error (invalid proc) at: TODO\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+struct value*
+mce_builtin_eval(struct value* args)
+{
+    fprintf(stderr, "error: builtin 'eval' should be handled by the MCE\n");
+    exit(EXIT_FAILURE);
+}
+
+struct value*
+mce_builtin_apply(struct value* args)
+{
+    fprintf(stderr, "error: builtin 'apply' should be handled by the MCE\n");
     exit(EXIT_FAILURE);
 }

@@ -4,6 +4,10 @@
 #include "value.h"
 
 struct value* mce_eval(struct value* exp, struct value* env);
-struct value* mce_load(struct value* args, struct value* env);
+struct value* mce_apply(struct value* proc, struct value* args);
+
+// these two funcs won't actually be called, they are just markers for the MCE
+struct value* mce_builtin_eval(struct value* args);
+struct value* mce_builtin_apply(struct value* args);
 
 #endif

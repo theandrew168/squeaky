@@ -11,44 +11,6 @@
 #include "reader.h"
 #include "value.h"
 
-#define ASSERTF(cond, fmt, ...)           \
-  if (!(cond)) {                          \
-    fprintf(stderr, fmt, ##__VA_ARGS__);  \
-    exit(EXIT_FAILURE);                   \
-  }
-
-#define ASSERT_ARITY(func, args, count)                                   \
-  ASSERTF(list_length(args) == count,                                     \
-    "function '%s' passed incorrect number of args: want %d, got %ld\n",  \
-    func, count, list_length(args))
-
-#define ASSERT_ARITY_OR(func, args, a, b)                                       \
-  ASSERTF(list_length(args) == (a) || list_length(args) == (b),                 \
-    "function '%s' passed incorrect number of args: want %d or %d, got %ld\n",  \
-    func, a, b, list_length(args))
-
-#define ASSERT_ARITY_LTE(func, args, count)                            \
-  ASSERTF(list_length(args) <= count,                                  \
-    "function '%s' passed too many args: want at most %d, got %ld\n",  \
-    func, count, list_length(args))
-
-#define ASSERT_ARITY_GTE(func, args, count)                            \
-  ASSERTF(list_length(args) >= count,                                  \
-    "function '%s' passed too few args: want at least %d, got %ld\n",  \
-    func, count, list_length(args))
-
-#define ASSERT_TYPE(func, args, index, want)                              \
-  ASSERTF(list_nth(args, index)->type == want,                            \
-    "function '%s' passed incorrect type for arg %i: want %s, got %s\n",  \
-    func, index,                                                          \
-    value_type_name(want),                                                \
-    value_type_name(list_nth(args, index)->type))
-
-#define ASSERT_TYPE_ALL(func, args, want)        \
-  for (int i = 0; i < list_length(args); i++) {  \
-    ASSERT_TYPE(func, args, i, want)             \
-  }
-
 struct value*
 builtin_is_eq(struct value* args)
 {

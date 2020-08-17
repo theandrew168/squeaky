@@ -12,13 +12,13 @@ list_make(long count, struct value* value, ...)
     va_list args;
     va_start(args, value);
 
-    struct value* head = cons(value, EMPTY_LIST);
+    struct value* head = cons(value, value_make_empty_list());
     struct value* tail = head;
 
     // i starts at 1 because the first element is part of the initial 'head'
     for (long i = 1; i < count; i++) { 
         struct value* v = va_arg(args, struct value*);
-        tail->as.pair.cdr = cons(v, EMPTY_LIST);
+        tail->as.pair.cdr = cons(v, tail->as.pair.cdr);
         tail = cdr(tail);
     }
 
@@ -32,7 +32,7 @@ list_length(const struct value* list)
     long count = 0;
 
     const struct value* iter = list;
-    while (iter != EMPTY_LIST) {
+    while (!value_is_empty_list(iter)) {
         count++;
         iter = cdr(iter);
     }
@@ -59,7 +59,7 @@ list_nth(const struct value* list, long n)
 struct value*
 list_car(const struct value* list)
 {
-    if (list == EMPTY_LIST) {
+    if (value_is_empty_list(list)) {
         fprintf(stderr, "the primitive 'car' is defined only for non-empty lists\n");
         exit(EXIT_FAILURE);
     }
@@ -70,7 +70,7 @@ list_car(const struct value* list)
 struct value*
 list_cdr(const struct value* list)
 {
-    if (list == EMPTY_LIST) {
+    if (value_is_empty_list(list)) {
         fprintf(stderr, "the primitive 'cdr' is defined only for non-empty lists\n");
         exit(EXIT_FAILURE);
     }

@@ -59,9 +59,12 @@ builtin_equal(struct value* args)
     ASSERT_TYPE_ALL("=", args, VALUE_NUMBER);
 
     struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (!value_is_equal(item, car(args))) return value_make_boolean(false);
         item = car(args);
+        args = cdr(args);
     }
 
     return value_make_boolean(true);
@@ -74,9 +77,12 @@ builtin_less(struct value* args)
     ASSERT_TYPE_ALL("<", args, VALUE_NUMBER);
 
     struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (!(item->as.number < car(args)->as.number)) return value_make_boolean(false);
         item = car(args);
+        args = cdr(args);
     }
 
     return value_make_boolean(true);
@@ -89,9 +95,12 @@ builtin_greater(struct value* args)
     ASSERT_TYPE_ALL(">", args, VALUE_NUMBER);
 
     struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (!(item->as.number > car(args)->as.number)) return value_make_boolean(false);
         item = car(args);
+        args = cdr(args);
     }
 
     return value_make_boolean(true);
@@ -104,9 +113,12 @@ builtin_less_equal(struct value* args)
     ASSERT_TYPE_ALL("<=", args, VALUE_NUMBER);
 
     struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (!(item->as.number <= car(args)->as.number)) return value_make_boolean(false);
         item = car(args);
+        args = cdr(args);
     }
 
     return value_make_boolean(true);
@@ -119,9 +131,12 @@ builtin_greater_equal(struct value* args)
     ASSERT_TYPE_ALL(">=", args, VALUE_NUMBER);
 
     struct value* item = car(args);
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (!(item->as.number >= car(args)->as.number)) return value_make_boolean(false);
         item = car(args);
+        args = cdr(args);
     }
 
     return value_make_boolean(true);
@@ -134,8 +149,9 @@ builtin_add(struct value* args)
     ASSERT_TYPE_ALL("+", args, VALUE_NUMBER);
 
     long res = 0;
-    for (; args != NULL; args = cdr(args)) {
+    while (!value_is_empty_list(args)) {
         res += car(args)->as.number;
+        args = cdr(args);
     }
 
     return value_make_number(res);
@@ -148,8 +164,9 @@ builtin_mul(struct value* args)
     ASSERT_TYPE_ALL("*", args, VALUE_NUMBER);
 
     long res = 1;
-    for (; args != NULL; args = cdr(args)) {
+    while (!value_is_empty_list(args)) {
         res *= car(args)->as.number;
+        args = cdr(args);
     }
 
     return value_make_number(res);
@@ -162,8 +179,11 @@ builtin_sub(struct value* args)
     ASSERT_TYPE_ALL("-", args, VALUE_NUMBER);
 
     long res = car(args)->as.number;
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         res -= car(args)->as.number;
+        args = cdr(args);
     }
 
     return value_make_number(res);
@@ -176,13 +196,16 @@ builtin_div(struct value* args)
     ASSERT_TYPE_ALL("/", args, VALUE_NUMBER);
 
     long res = car(args)->as.number;
-    for (args = cdr(args); args != NULL; args = cdr(args)) {
+    args = cdr(args);
+
+    while (!value_is_empty_list(args)) {
         if (car(args)->as.number == 0) {
             fprintf(stderr, "error: divide by zero\n");
             exit(EXIT_FAILURE);
         }
 
         res /= car(args)->as.number;
+        args = cdr(args);
     }
 
     return value_make_number(res);
@@ -243,7 +266,7 @@ builtin_set_car(struct value* args)
     struct value* pair = car(args);
     struct value* val = cadr(args);
     pair->as.pair.car = val;
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -255,7 +278,7 @@ builtin_set_cdr(struct value* args)
     struct value* pair = car(args);
     struct value* val = cadr(args);
     pair->as.pair.cdr = val;
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -263,7 +286,7 @@ builtin_is_null(struct value* args)
 {
     ASSERT_ARITY("null?", args, 1);
 
-    return car(args) == EMPTY_LIST ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_empty_list(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -369,7 +392,7 @@ builtin_close_input_port(struct value* args)
     struct value* port = car(args);
     fclose(port->as.port);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -381,7 +404,7 @@ builtin_close_output_port(struct value* args)
     struct value* port = car(args);
     fclose(port->as.port);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -533,7 +556,7 @@ builtin_write(struct value* args)
     }
 
     value_print(port->as.port, obj);
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -556,7 +579,7 @@ builtin_display(struct value* args)
     }
 
     value_print(port->as.port, obj);
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -577,7 +600,7 @@ builtin_newline(struct value* args)
     }
 
     fputc('\n', port->as.port);
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -601,7 +624,7 @@ builtin_write_char(struct value* args)
     }
 
     fputc(obj->as.character, port->as.port);
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -613,7 +636,7 @@ builtin_sleep(struct value* args)
     struct value* delay_ms = car(args);
     SDL_Delay(delay_ms->as.number);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -650,7 +673,7 @@ builtin_window_clear(struct value* args)
     SDL_SetRenderDrawColor(window->as.window.renderer, 0, 0, 0, 255);
     SDL_RenderClear(window->as.window.renderer);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -674,7 +697,7 @@ builtin_window_draw_line(struct value* args)
         x1->as.number, y1->as.number,
         x2->as.number, y2->as.number);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -686,7 +709,7 @@ builtin_window_present(struct value* args)
     struct value* window = car(args);
     SDL_RenderPresent(window->as.window.renderer);
 
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 struct value*
@@ -703,7 +726,7 @@ builtin_window_event_poll(struct value* args)
     ASSERT_ARITY("window-event-poll", args, 1);
     ASSERT_TYPE("window-event-poll", args, 0, VALUE_WINDOW);
 
-    struct value* events = EMPTY_LIST;
+    struct value* events = value_make_empty_list();
     for (;;) {
         SDL_Event* event = malloc(sizeof(SDL_Event));
         int rc = SDL_PollEvent(event);
@@ -715,6 +738,7 @@ builtin_window_event_poll(struct value* args)
         }
     }
 
+    // TODO: reverse the list of events
     return events;
 }
 

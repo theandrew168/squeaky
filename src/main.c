@@ -30,7 +30,7 @@ main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    struct value* env = env_extend(NULL, NULL, NULL);
+    struct value* env = env_empty();
     env_define(value_make_symbol("stdin"), value_make_input_port(stdin), env);
     env_define(value_make_symbol("stdout"), value_make_output_port(stdout), env);
     env_define(value_make_symbol("stderr"), value_make_output_port(stderr), env);

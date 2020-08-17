@@ -6,8 +6,6 @@
 
 #include "list.h"
 
-#define list_is_null(l) ((l) == EMPTY_LIST)
-
 struct value* list_make(long count, struct value* value, ...);
 long list_length(const struct value* list);
 struct value* list_nth(const struct value* list, long n);

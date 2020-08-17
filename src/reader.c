@@ -256,8 +256,7 @@ read_pair(FILE* fp)
     // return the empty list upon finding a closing paren
     if (peek(fp) == ')') {
         advance(fp);
-        return EMPTY_LIST;
-//        return value_make_empty_list();
+        return value_make_empty_list();
     }
 
     // read the first half of the pair

@@ -14,9 +14,9 @@
 static struct value*
 frame_lookup(struct value* var, struct value* vars, struct value* vals)
 {
-    if (vars == NULL && vals == NULL) return EMPTY_LIST;
-    assert(vars != NULL && "env frame has mismatched vars and vals");
-    assert(vals != NULL && "env frame has mismatched vars and vals");
+    if (value_is_empty_list(vars) && value_is_empty_list(vals)) return NULL;
+    assert(!value_is_empty_list(vars) && "env frame has mismatched vars and vals");
+    assert(!value_is_empty_list(vals) && "env frame has mismatched vars and vals");
 
     if (value_is_equal(var, car(vars))) return car(vals);
     return frame_lookup(var, cdr(vars), cdr(vals));
@@ -25,13 +25,13 @@ frame_lookup(struct value* var, struct value* vars, struct value* vals)
 static struct value*
 frame_update(struct value* var, struct value* val, struct value* vars, struct value* vals)
 {
-    if (vars == NULL && vals == NULL) return EMPTY_LIST;
-    assert(vars != NULL && "env frame has mismatched vars and vals");
-    assert(vals != NULL && "env frame has mismatched vars and vals");
+    if (value_is_empty_list(vars) && value_is_empty_list(vals)) return NULL;
+    assert(!value_is_empty_list(vars) && "env frame has mismatched vars and vals");
+    assert(!value_is_empty_list(vals) && "env frame has mismatched vars and vals");
 
     if (value_is_equal(var, car(vars))) {
         vals->as.pair.car = val;
-        return EMPTY_LIST;
+        return value_make_empty_list();
     }
 
     return frame_update(var, val, cdr(vars), cdr(vals));
@@ -44,11 +44,20 @@ frame_add_binding(struct value* var, struct value* val, struct value* frame)
 
     frame->as.pair.car = cons(var, car(frame));
     frame->as.pair.cdr = cons(val, cdr(frame));
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 #define first_frame(env) (car(env))
 #define rest_frames(env) (cdr(env))
+
+struct value*
+env_empty(void)
+{
+    return env_extend(
+        value_make_empty_list(),
+        value_make_empty_list(),
+        value_make_empty_list());
+}
 
 struct value*
 env_extend(struct value* vars, struct value* vals, struct value* env)
@@ -65,14 +74,14 @@ env_lookup(struct value* var, struct value* env)
 {
     assert(value_is_symbol(var) && "non-symbol key passed to env_lookup");
 
-    if (env == EMPTY_LIST) {
-        fprintf(stderr, "TODO: EMPTY_LIST (ok) or unbound variable (not ok): %s\n", var->as.symbol);
-        return EMPTY_LIST;
+    if (value_is_empty_list(env)) {
+        fprintf(stderr, "unbound variable: %s\n", var->as.symbol);
+        exit(EXIT_FAILURE);
     }
 
     struct value* frame = first_frame(env);
     struct value* val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
-    if (val != EMPTY_LIST) return val;
+    if (val != NULL) return val;
     return env_lookup(var, rest_frames(env));
 }
 
@@ -81,14 +90,14 @@ env_update(struct value* var, struct value* val, struct value* env)
 {
     assert(value_is_symbol(var) && "non-symbol key passed to env_update");
 
-    if (env == EMPTY_LIST) {
+    if (value_is_empty_list(env)) {
         fprintf(stderr, "unbound variable: %s\n", var->as.symbol);
-        return EMPTY_LIST;
+        exit(EXIT_FAILURE);
     }
 
     struct value* frame = first_frame(env);
     struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
-    if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
+    if (existing_val != NULL) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
     return env_update(var, val, rest_frames(env));
 }
 
@@ -99,6 +108,6 @@ env_define(struct value* var, struct value* val, struct value* env)
 
     struct value* frame = first_frame(env);
     struct value* existing_val = frame_lookup(var, frame_vars(frame), frame_vals(frame));
-    if (existing_val != EMPTY_LIST) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
+    if (existing_val != NULL) return frame_update(var, val, frame_vars(frame), frame_vals(frame));
     return frame_add_binding(var, val, frame);
 }

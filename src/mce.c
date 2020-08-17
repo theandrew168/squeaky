@@ -13,7 +13,7 @@
 // Helper macros are based on funcs from SICP 4.1.2
 
 #define is_last_exp(exp)  \
-  (cdr(exp) == NULL)
+  (value_is_empty_list(cdr(exp)))
 #define first_exp(exp)  \
   car(exp)
 #define rest_exps(exp)  \
@@ -33,7 +33,7 @@ eval_sequence(struct value* exp, struct value* env)
 static struct value*
 list_of_values(struct value* exps, struct value* env)
 {
-    if (exps == EMPTY_LIST) return EMPTY_LIST;
+    if (value_is_empty_list(exps)) return exps;
     return cons(mce_eval(first_exp(exps), env),
                 list_of_values(rest_exps(exps), env));
 }
@@ -60,7 +60,7 @@ is_tagged_list(struct value* exp, const char* tag)
 static struct value*
 text_of_quotation(struct value* exp)
 {
-    if (exp == EMPTY_LIST) return EMPTY_LIST;
+    if (value_is_empty_list(exp)) return exp;
     return cadr(exp);
 }
 
@@ -116,7 +116,7 @@ eval_definition(struct value* exp, struct value* env)
 #define if_consequent(exp)  \
   caddr(exp)
 #define if_alternative(exp)  \
-  ((cdddr(exp) == EMPTY_LIST) ? value_make_boolean(false) : cadddr(exp))
+  (value_is_empty_list(cdddr(exp)) ? value_make_boolean(false) : cadddr(exp))
 
 static struct value*
 eval_if(struct value* exp, struct value* env)
@@ -162,7 +162,7 @@ load(struct value* args, struct value* env)
     }
 
     fclose(fp);
-    return EMPTY_LIST;
+    return value_make_empty_list();
 }
 
 #define is_lambda(exp)  \
@@ -195,16 +195,6 @@ load(struct value* args, struct value* env)
   car(exp)
 #define apply_operands(exp)  \
   cdr(exp)
-
-static struct value*
-listify(struct value* exp)
-{
-    if (cdr(exp) == EMPTY_LIST) {
-        return car(exp);
-    }
-
-    return cons(car(exp), listify(cdr(exp)));
-}
 
 struct value*
 mce_eval(struct value* exp, struct value* env)
@@ -253,10 +243,7 @@ tailcall:
         if (is_primitive_proc(proc)) {
             return proc->as.builtin(args);
         } else if (is_compound_proc(proc)) {
-            // evaluate the lambda's body in the current stack frame (for TCO) by
-            // updating the current expression and current environment
-            // - the new environment contains bindings for the lambda's arguments
-            // - the new expression is the lambda's body wrapped in 'begin'
+            // evaluate the lambda's body in the current stack frame (for TCO)
             env = env_extend(proc->as.lambda.params, args, proc->as.lambda.env);
             exp = proc->as.lambda.body;
             while (!is_last_exp(exp)) {

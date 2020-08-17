@@ -10,7 +10,6 @@
       (if (eqv? (window-event-type (car events)) 'event-quit)
           #t
           (quit? (cdr events)))))
-      
 
 (define (loop w)
   (window-clear! w)

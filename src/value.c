@@ -13,121 +13,119 @@
 bool
 value_is_empty_list(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return true;
+    assert(exp != NULL);
     return exp->type == VALUE_EMPTY_LIST;
 }
 
 bool
 value_is_boolean(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_BOOLEAN;
 }
 
 bool
 value_is_true(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
-    return value_is_boolean(exp) &&
-           exp->as.boolean == true;
+    assert(exp != NULL);
+    return value_is_boolean(exp) && exp->as.boolean == true;
 }
 
 bool
 value_is_false(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
-    return value_is_boolean(exp) &&
-           exp->as.boolean == false;
+    assert(exp != NULL);
+    return value_is_boolean(exp) && exp->as.boolean == false;
 }
 
 bool
 value_is_character(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_CHARACTER;
 }
 
 bool
 value_is_number(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_NUMBER;
 }
 
 bool
 value_is_string(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_STRING;
 }
 
 bool
 value_is_symbol(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_SYMBOL;
 }
 
 bool
 value_is_pair(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_PAIR;
 }
 
 bool
 value_is_builtin(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_BUILTIN;
 }
 
 bool
 value_is_lambda(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_LAMBDA;
 }
 
 bool
 value_is_procedure(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return value_is_builtin(exp) || value_is_lambda(exp);
 }
 
 bool
 value_is_input_port(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_INPUT_PORT;
 }
 
 bool
 value_is_output_port(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_OUTPUT_PORT;
 }
 
 bool
 value_is_window(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_WINDOW;
 }
 
 bool
 value_is_event(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_EVENT;
 }
 
 bool
 value_is_eof(const struct value* exp)
 {
-    if (exp == EMPTY_LIST) return false;
+    assert(exp != NULL);
     return exp->type == VALUE_EOF;
 }
 
@@ -303,8 +301,6 @@ value_make_eof(void)
 static void
 value_free(struct value* value)
 {
-    if (value == EMPTY_LIST) return;
-
     switch (value->type) {
         case VALUE_EMPTY_LIST:
             break;
@@ -350,11 +346,6 @@ value_free(struct value* value)
 void
 value_print(FILE* fp, const struct value* value)
 {
-    if (value == EMPTY_LIST) {
-        fprintf(fp, "'()");
-        return;
-    }
-
     switch (value->type) {
         case VALUE_EMPTY_LIST:
             fprintf(fp, "'()");
@@ -483,12 +474,11 @@ value_is_eqv(const struct value* a, const struct value* b)
 bool
 value_is_equal(const struct value* a, const struct value* b)
 {
-    if (a == EMPTY_LIST && b == EMPTY_LIST) return true;
-    if (a == EMPTY_LIST || b == EMPTY_LIST) return false;
     if (a->type != b->type) return false;
 
     switch (a->type) {
         case VALUE_EMPTY_LIST:
+            // all instances of the empty list are the same
             return true;
         case VALUE_BOOLEAN:
             return a->as.boolean == b->as.boolean;
@@ -522,7 +512,7 @@ value_is_equal(const struct value* a, const struct value* b)
             // two events are never equal?
             return false;
         case VALUE_EOF:
-            // all instances of EOF are semantically identical
+            // all instances of EOF are the same
             return true;
     }
 

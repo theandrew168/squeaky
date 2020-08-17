@@ -30,7 +30,6 @@ struct value* builtin_car(struct value* args);
 struct value* builtin_cdr(struct value* args);
 struct value* builtin_set_car(struct value* args);
 struct value* builtin_set_cdr(struct value* args);
-// TODO: how to make this a library procedure (R5RS says it can be)
 struct value* builtin_is_null(struct value* args);
 
 // R5RS 6.3.3: Symbols

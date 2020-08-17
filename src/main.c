@@ -15,10 +15,6 @@
 #include "reader.h"
 #include "value.h"
 
-// TODO: Impl VALUE_EMPTY_LIST type everywhere instead of NULL
-// TODO: Impl basic standard library and load it on start
-// TODO: Move REPL to a .scm file and load it if no other file is specified on CLI
-
 #define add_builtin(sym, func, env)  \
   env_define(value_make_symbol(sym), value_make_builtin(func), env);
 
@@ -117,14 +113,19 @@ main(int argc, char* argv[])
     add_builtin("window-event-poll", builtin_window_event_poll, env);
     add_builtin("window-event-type", builtin_window_event_type, env);
 
-    for (;;) {
-        printf("> ");
-        struct value* exp = reader_read(stdin);
-        if (value_is_eof(exp)) break;
-        value_println(stdout, exp);
+    // load prelude (small library of R5RS funcs and extensions)
+    struct value* exp = list_make(2, value_make_symbol("load"), value_make_string("prelude.scm"));
+    mce_eval(exp, env);
 
-        struct value* res = mce_eval(exp, env);
-        value_println(stdout, res);
+    // eval files given on CLI (if any) otherwise default to REPL
+    if (argc >= 2) {
+        for (int i = 1; i < argc; i++) {
+            struct value* exp = list_make(2, value_make_symbol("load"), value_make_string(argv[1]));
+            mce_eval(exp, env);
+        }
+    } else {
+        struct value* exp = list_make(2, value_make_symbol("load"), value_make_string("repl.scm"));
+        mce_eval(exp, env);
     }
 
     SDL_Quit();

@@ -107,6 +107,6 @@ bool value_is_eq(const struct value* a, const struct value* b);
 bool value_is_eqv(const struct value* a, const struct value* b);
 bool value_is_equal(const struct value* a, const struct value* b);
 
-#define cons(a,b) (value_make_pair((a), (b)))
+#define CONS(a,b) (value_make_pair((a), (b)))
 
 #endif

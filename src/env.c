@@ -7,9 +7,9 @@
 #include "list.h"
 #include "value.h"
 
-#define make_frame(vars, vals) (cons(vars, vals))
-#define frame_vars(frame) (car(frame))
-#define frame_vals(frame) (cdr(frame))
+#define make_frame(vars, vals) (CONS(vars, vals))
+#define frame_vars(frame) (CAR(frame))
+#define frame_vals(frame) (CDR(frame))
 
 static struct value*
 frame_lookup(struct value* var, struct value* vars, struct value* vals)
@@ -18,8 +18,8 @@ frame_lookup(struct value* var, struct value* vars, struct value* vals)
     assert(!value_is_empty_list(vars) && "env frame has mismatched vars and vals");
     assert(!value_is_empty_list(vals) && "env frame has mismatched vars and vals");
 
-    if (value_is_equal(var, car(vars))) return car(vals);
-    return frame_lookup(var, cdr(vars), cdr(vals));
+    if (value_is_equal(var, CAR(vars))) return CAR(vals);
+    return frame_lookup(var, CDR(vars), CDR(vals));
 }
 
 static struct value*
@@ -29,12 +29,12 @@ frame_update(struct value* var, struct value* val, struct value* vars, struct va
     assert(!value_is_empty_list(vars) && "env frame has mismatched vars and vals");
     assert(!value_is_empty_list(vals) && "env frame has mismatched vars and vals");
 
-    if (value_is_equal(var, car(vars))) {
+    if (value_is_equal(var, CAR(vars))) {
         vals->as.pair.car = val;
         return value_make_empty_list();
     }
 
-    return frame_update(var, val, cdr(vars), cdr(vals));
+    return frame_update(var, val, CDR(vars), CDR(vals));
 }
 
 static struct value*
@@ -42,13 +42,13 @@ frame_add_binding(struct value* var, struct value* val, struct value* frame)
 {
     assert(frame != NULL);
 
-    frame->as.pair.car = cons(var, car(frame));
-    frame->as.pair.cdr = cons(val, cdr(frame));
+    frame->as.pair.car = CONS(var, CAR(frame));
+    frame->as.pair.cdr = CONS(val, CDR(frame));
     return value_make_empty_list();
 }
 
-#define first_frame(env) (car(env))
-#define rest_frames(env) (cdr(env))
+#define first_frame(env) (CAR(env))
+#define rest_frames(env) (CDR(env))
 
 struct value*
 env_empty(void)
@@ -66,7 +66,7 @@ env_extend(struct value* vars, struct value* vals, struct value* env)
     long vals_len = list_length(vals);
     assert(vars_len == vals_len && "mismatched number of vars/vals supplied to env_extend");
 
-    return cons(make_frame(vars, vals), env);
+    return CONS(make_frame(vars, vals), env);
 }
 
 struct value*

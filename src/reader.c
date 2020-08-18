@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,24 +14,59 @@
 
 // R5RS 7.1.1: Lexical Structure
 
-#define is_whitespace(c)  \
-  (strchr(" \f\n\r\t\v", c) != NULL)
-#define is_letter(c)  \
-  ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-#define is_digit(c)  \
-  (c >= '0' && c <= '9')
-#define is_delimiter(c)  \
-  (is_whitespace(c) || c == EOF || strchr("()\";", c) != NULL)
-#define is_special_initial(c)  \
-  (strchr("!$%&*/:<=>?^_~", c) != NULL)
-#define is_initial(c)  \
-  (is_letter(c) || is_special_initial(c))
-#define is_special_subsequent(c)  \
-  (strchr("+-.@", c) != NULL)
-#define is_subsequent(c)  \
-  (is_initial(c) || is_digit(c) || is_special_subsequent(c))
-#define is_peculiar_identifier(c)  \
-  (c == '+' || c == '-' || c == '.')
+static bool
+is_whitespace(char c)
+{
+    return strchr(" \f\n\r\t\v", c) != NULL;
+}
+
+static bool
+is_letter(char c)
+{
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+static bool
+is_digit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+static bool
+is_delimiter(char c)
+{
+    return is_whitespace(c) || c == EOF || strchr("()\";", c) != NULL;
+}
+
+static bool
+is_special_initial(char c)
+{
+    return strchr("!$%&*/:<=>?^_~", c) != NULL;
+}
+
+static bool
+is_initial(char c)
+{
+    return is_letter(c) || is_special_initial(c);
+}
+
+static bool
+is_special_subsequent(char c)
+{
+    return strchr("+-.@", c) != NULL;
+}
+
+static bool
+is_subsequent(char c)
+{
+    return is_initial(c) || is_digit(c) || is_special_subsequent(c);
+}
+
+static bool
+is_peculiar_identifier(char c)
+{
+    return c == '+' || c == '-' || c == '.';
+}
 
 static int
 advance(FILE* fp)
@@ -280,12 +316,12 @@ read_pair(FILE* fp)
 
         // consume the closing paren
         advance(fp);
-        return cons(car, cdr);
+        return CONS(car, cdr);
     }
 
     // read the next expr in a "normal" list
     struct value* cdr = read_pair(fp);
-    return cons(car, cdr);
+    return CONS(car, cdr);
 }
 
 struct value*

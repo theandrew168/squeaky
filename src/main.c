@@ -17,7 +17,7 @@
 
 // TODO: capitalize cons, car, cdr C macros
 // TODO: switch number type to double (and update reader)
-// TODO: understand improper list notation: literals and func args
+// TODO: impl 'begin' and 'let' as "dumb" macros
 
 #define add_builtin(sym, func, env)  \
   env_define(value_make_symbol(sym), value_make_builtin(func), env);

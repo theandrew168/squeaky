@@ -16,8 +16,8 @@ builtin_is_eq(struct value* args)
 {
     ASSERT_ARITY("eq?", args, 2);
 
-    struct value* a = car(args);
-    struct value* b = cadr(args);
+    struct value* a = CAR(args);
+    struct value* b = CADR(args);
 
     return value_is_eq(a, b) ? value_make_boolean(true) : value_make_boolean(false);
 }
@@ -27,8 +27,8 @@ builtin_is_eqv(struct value* args)
 {
     ASSERT_ARITY("eqv?", args, 2);
 
-    struct value* a = car(args);
-    struct value* b = cadr(args);
+    struct value* a = CAR(args);
+    struct value* b = CADR(args);
 
     return value_is_eqv(a, b) ? value_make_boolean(true) : value_make_boolean(false);
 }
@@ -38,8 +38,8 @@ builtin_is_equal(struct value* args)
 {
     ASSERT_ARITY("equal?", args, 2);
 
-    struct value* a = car(args);
-    struct value* b = cadr(args);
+    struct value* a = CAR(args);
+    struct value* b = CADR(args);
 
     return value_is_equal(a, b) ? value_make_boolean(true) : value_make_boolean(false);
 }
@@ -49,7 +49,7 @@ builtin_is_number(struct value* args)
 {
     ASSERT_ARITY("number?", args, 1);
 
-    return value_is_number(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_number(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -58,13 +58,13 @@ builtin_equal(struct value* args)
     ASSERT_ARITY_GTE("=", args, 2);
     ASSERT_TYPE_ALL("=", args, VALUE_NUMBER);
 
-    struct value* item = car(args);
-    args = cdr(args);
+    struct value* item = CAR(args);
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (!value_is_equal(item, car(args))) return value_make_boolean(false);
-        item = car(args);
-        args = cdr(args);
+        if (!value_is_equal(item, CAR(args))) return value_make_boolean(false);
+        item = CAR(args);
+        args = CDR(args);
     }
 
     return value_make_boolean(true);
@@ -76,13 +76,13 @@ builtin_less(struct value* args)
     ASSERT_ARITY_GTE("<", args, 2);
     ASSERT_TYPE_ALL("<", args, VALUE_NUMBER);
 
-    struct value* item = car(args);
-    args = cdr(args);
+    struct value* item = CAR(args);
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (!(item->as.number < car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-        args = cdr(args);
+        if (!(item->as.number < CAR(args)->as.number)) return value_make_boolean(false);
+        item = CAR(args);
+        args = CDR(args);
     }
 
     return value_make_boolean(true);
@@ -94,13 +94,13 @@ builtin_greater(struct value* args)
     ASSERT_ARITY_GTE(">", args, 2);
     ASSERT_TYPE_ALL(">", args, VALUE_NUMBER);
 
-    struct value* item = car(args);
-    args = cdr(args);
+    struct value* item = CAR(args);
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (!(item->as.number > car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-        args = cdr(args);
+        if (!(item->as.number > CAR(args)->as.number)) return value_make_boolean(false);
+        item = CAR(args);
+        args = CDR(args);
     }
 
     return value_make_boolean(true);
@@ -112,13 +112,13 @@ builtin_less_equal(struct value* args)
     ASSERT_ARITY_GTE("<=", args, 2);
     ASSERT_TYPE_ALL("<=", args, VALUE_NUMBER);
 
-    struct value* item = car(args);
-    args = cdr(args);
+    struct value* item = CAR(args);
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (!(item->as.number <= car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-        args = cdr(args);
+        if (!(item->as.number <= CAR(args)->as.number)) return value_make_boolean(false);
+        item = CAR(args);
+        args = CDR(args);
     }
 
     return value_make_boolean(true);
@@ -130,13 +130,13 @@ builtin_greater_equal(struct value* args)
     ASSERT_ARITY_GTE(">=", args, 2);
     ASSERT_TYPE_ALL(">=", args, VALUE_NUMBER);
 
-    struct value* item = car(args);
-    args = cdr(args);
+    struct value* item = CAR(args);
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (!(item->as.number >= car(args)->as.number)) return value_make_boolean(false);
-        item = car(args);
-        args = cdr(args);
+        if (!(item->as.number >= CAR(args)->as.number)) return value_make_boolean(false);
+        item = CAR(args);
+        args = CDR(args);
     }
 
     return value_make_boolean(true);
@@ -150,8 +150,8 @@ builtin_add(struct value* args)
 
     long res = 0;
     while (!value_is_empty_list(args)) {
-        res += car(args)->as.number;
-        args = cdr(args);
+        res += CAR(args)->as.number;
+        args = CDR(args);
     }
 
     return value_make_number(res);
@@ -165,8 +165,8 @@ builtin_mul(struct value* args)
 
     long res = 1;
     while (!value_is_empty_list(args)) {
-        res *= car(args)->as.number;
-        args = cdr(args);
+        res *= CAR(args)->as.number;
+        args = CDR(args);
     }
 
     return value_make_number(res);
@@ -178,12 +178,12 @@ builtin_sub(struct value* args)
     ASSERT_ARITY_GTE("-", args, 2);
     ASSERT_TYPE_ALL("-", args, VALUE_NUMBER);
 
-    long res = car(args)->as.number;
-    args = cdr(args);
+    long res = CAR(args)->as.number;
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        res -= car(args)->as.number;
-        args = cdr(args);
+        res -= CAR(args)->as.number;
+        args = CDR(args);
     }
 
     return value_make_number(res);
@@ -195,17 +195,17 @@ builtin_div(struct value* args)
     ASSERT_ARITY_GTE("/", args, 2);
     ASSERT_TYPE_ALL("/", args, VALUE_NUMBER);
 
-    long res = car(args)->as.number;
-    args = cdr(args);
+    long res = CAR(args)->as.number;
+    args = CDR(args);
 
     while (!value_is_empty_list(args)) {
-        if (car(args)->as.number == 0) {
+        if (CAR(args)->as.number == 0) {
             fprintf(stderr, "error: divide by zero\n");
             exit(EXIT_FAILURE);
         }
 
-        res /= car(args)->as.number;
-        args = cdr(args);
+        res /= CAR(args)->as.number;
+        args = CDR(args);
     }
 
     return value_make_number(res);
@@ -216,7 +216,7 @@ builtin_is_boolean(struct value* args)
 {
     ASSERT_ARITY("boolean?", args, 1);
 
-    return value_is_boolean(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_boolean(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -224,7 +224,7 @@ builtin_is_pair(struct value* args)
 {
     ASSERT_ARITY("pair?", args, 1);
 
-    return value_is_pair(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_pair(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -232,9 +232,9 @@ builtin_cons(struct value* args)
 {
     ASSERT_ARITY("cons", args, 2);
 
-    struct value* a = car(args);
-    struct value* b = cadr(args);
-    return cons(a, b);
+    struct value* a = CAR(args);
+    struct value* b = CADR(args);
+    return CONS(a, b);
 }
 
 struct value*
@@ -243,8 +243,8 @@ builtin_car(struct value* args)
     ASSERT_ARITY("car", args, 1);
     ASSERT_TYPE("car", args, 0, VALUE_PAIR);
 
-    struct value* pair = car(args);
-    return car(pair);
+    struct value* pair = CAR(args);
+    return CAR(pair);
 }
 
 struct value*
@@ -253,8 +253,8 @@ builtin_cdr(struct value* args)
     ASSERT_ARITY("cdr", args, 1);
     ASSERT_TYPE("cdr", args, 0, VALUE_PAIR);
 
-    struct value* pair = car(args);
-    return cdr(pair);
+    struct value* pair = CAR(args);
+    return CDR(pair);
 }
 
 struct value*
@@ -263,8 +263,8 @@ builtin_set_car(struct value* args)
     ASSERT_ARITY("set-car!", args, 2);
     ASSERT_TYPE("set-car!", args, 0, VALUE_PAIR);
 
-    struct value* pair = car(args);
-    struct value* val = cadr(args);
+    struct value* pair = CAR(args);
+    struct value* val = CADR(args);
     pair->as.pair.car = val;
     return value_make_empty_list();
 }
@@ -275,8 +275,8 @@ builtin_set_cdr(struct value* args)
     ASSERT_ARITY("set-cdr!", args, 2);
     ASSERT_TYPE("set-cdr!", args, 0, VALUE_PAIR);
 
-    struct value* pair = car(args);
-    struct value* val = cadr(args);
+    struct value* pair = CAR(args);
+    struct value* val = CADR(args);
     pair->as.pair.cdr = val;
     return value_make_empty_list();
 }
@@ -286,7 +286,7 @@ builtin_is_null(struct value* args)
 {
     ASSERT_ARITY("null?", args, 1);
 
-    return value_is_empty_list(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_empty_list(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -294,7 +294,7 @@ builtin_is_symbol(struct value* args)
 {
     ASSERT_ARITY("symbol?", args, 1);
 
-    return value_is_symbol(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_symbol(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -302,7 +302,7 @@ builtin_is_string(struct value* args)
 {
     ASSERT_ARITY("string?", args, 1);
 
-    return value_is_string(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_string(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -310,7 +310,7 @@ builtin_is_procedure(struct value* args)
 {
     ASSERT_ARITY("procedure?", args, 1);
 
-    return value_is_procedure(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_procedure(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -318,7 +318,7 @@ builtin_is_input_port(struct value* args)
 {
     ASSERT_ARITY("input-port?", args, 1);
 
-    return value_is_input_port(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_input_port(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -326,7 +326,7 @@ builtin_is_output_port(struct value* args)
 {
     ASSERT_ARITY("output-port?", args, 1);
 
-    return value_is_output_port(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_output_port(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 // TODO: is there a better way to handle this?
@@ -353,7 +353,7 @@ builtin_open_input_file(struct value* args)
     ASSERT_ARITY("open-input-file", args, 1);
     ASSERT_TYPE("open-input-file", args, 0, VALUE_STRING);
 
-    struct value* path = car(args);
+    struct value* path = CAR(args);
 
     FILE* port = fopen(path->as.string, "rb");
     if (port == NULL) {
@@ -371,7 +371,7 @@ builtin_open_output_file(struct value* args)
     ASSERT_ARITY("open-output-file", args, 1);
     ASSERT_TYPE("open-output-file", args, 0, VALUE_STRING);
 
-    struct value* path = car(args);
+    struct value* path = CAR(args);
 
     FILE* port = fopen(path->as.string, "wb");
     if (port == NULL) {
@@ -389,7 +389,7 @@ builtin_close_input_port(struct value* args)
     ASSERT_ARITY("close-input-port", args, 1);
     ASSERT_TYPE("close-input-port", args, 0, VALUE_INPUT_PORT);
 
-    struct value* port = car(args);
+    struct value* port = CAR(args);
     fclose(port->as.port);
 
     return value_make_empty_list();
@@ -401,7 +401,7 @@ builtin_close_output_port(struct value* args)
     ASSERT_ARITY("close-output-port", args, 1);
     ASSERT_TYPE("close-output-port", args, 0, VALUE_OUTPUT_PORT);
 
-    struct value* port = car(args);
+    struct value* port = CAR(args);
     fclose(port->as.port);
 
     return value_make_empty_list();
@@ -419,7 +419,7 @@ builtin_read(struct value* args)
 
     struct value* port = NULL;
     if (arity == 1) {
-        port = car(args);
+        port = CAR(args);
     } else {
         port = value_make_input_port(stdin);
     }
@@ -440,7 +440,7 @@ builtin_read_char(struct value* args)
 
     struct value* port = NULL;
     if (arity == 1) {
-        port = car(args);
+        port = CAR(args);
     } else {
         port = value_make_input_port(stdin);
     }
@@ -472,7 +472,7 @@ builtin_peek_char(struct value* args)
 
     struct value* port = NULL;
     if (arity == 1) {
-        port = car(args);
+        port = CAR(args);
     } else {
         port = value_make_input_port(stdin);
     }
@@ -499,7 +499,7 @@ builtin_is_eof_object(struct value* args)
 {
     ASSERT_ARITY("eof-object?", args, 1);
 
-    return value_is_eof(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_eof(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -514,7 +514,7 @@ builtin_is_char_ready(struct value* args)
 
     struct value* port = NULL;
     if (arity == 1) {
-        port = car(args);
+        port = CAR(args);
     } else {
         port = value_make_input_port(stdin);
     }
@@ -546,11 +546,11 @@ builtin_write(struct value* args)
         ASSERT_TYPE("write", args, 1, VALUE_OUTPUT_PORT);
     }
 
-    struct value* obj = car(args);
+    struct value* obj = CAR(args);
 
     struct value* port = NULL;
     if (arity == 2) {
-        port = cadr(args);
+        port = CADR(args);
     } else {
         port = value_make_output_port(stdout);
     }
@@ -569,11 +569,11 @@ builtin_display(struct value* args)
         ASSERT_TYPE("display", args, 1, VALUE_OUTPUT_PORT);
     }
 
-    struct value* obj = car(args);
+    struct value* obj = CAR(args);
 
     struct value* port = NULL;
     if (arity == 2) {
-        port = cadr(args);
+        port = CADR(args);
     } else {
         port = value_make_output_port(stdout);
     }
@@ -594,7 +594,7 @@ builtin_newline(struct value* args)
 
     struct value* port = NULL;
     if (arity == 1) {
-        port = car(args);
+        port = CAR(args);
     } else {
         port = value_make_output_port(stdout);
     }
@@ -614,11 +614,11 @@ builtin_write_char(struct value* args)
         ASSERT_TYPE("write-char", args, 1, VALUE_OUTPUT_PORT);
     }
 
-    struct value* obj = car(args);
+    struct value* obj = CAR(args);
 
     struct value* port = NULL;
     if (arity == 2) {
-        port = cadr(args);
+        port = CADR(args);
     } else {
         port = value_make_output_port(stdout);
     }
@@ -633,7 +633,7 @@ builtin_sleep(struct value* args)
     ASSERT_ARITY("sleep!", args, 1);
     ASSERT_TYPE("sleep!", args, 0, VALUE_NUMBER);
 
-    struct value* delay_ms = car(args);
+    struct value* delay_ms = CAR(args);
     SDL_Delay(delay_ms->as.number);
 
     return value_make_empty_list();
@@ -644,7 +644,7 @@ builtin_is_window(struct value* args)
 {
     ASSERT_ARITY("window?", args, 1);
 
-    return value_is_window(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_window(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -668,7 +668,7 @@ builtin_window_clear(struct value* args)
     ASSERT_ARITY("window-clear!", args, 1);
     ASSERT_TYPE("window-clear!", args, 0, VALUE_WINDOW);
 
-    struct value* window = car(args);
+    struct value* window = CAR(args);
 
     SDL_SetRenderDrawColor(window->as.window.renderer, 0, 0, 0, 255);
     SDL_RenderClear(window->as.window.renderer);
@@ -706,7 +706,7 @@ builtin_window_present(struct value* args)
     ASSERT_ARITY("window-present!", args, 1);
     ASSERT_TYPE("window-present!", args, 0, VALUE_WINDOW);
 
-    struct value* window = car(args);
+    struct value* window = CAR(args);
     SDL_RenderPresent(window->as.window.renderer);
 
     return value_make_empty_list();
@@ -717,7 +717,7 @@ builtin_is_event(struct value* args)
 {
     ASSERT_ARITY("event?", args, 1);
 
-    return value_is_event(car(args)) ? value_make_boolean(true) : value_make_boolean(false);
+    return value_is_event(CAR(args)) ? value_make_boolean(true) : value_make_boolean(false);
 }
 
 struct value*
@@ -742,7 +742,7 @@ builtin_window_event_type(struct value* args)
     ASSERT_ARITY("window-event-type", args, 1);
     ASSERT_TYPE("window-event-type", args, 0, VALUE_EVENT);
 
-    struct value* event = car(args);
+    struct value* event = CAR(args);
     switch (event->as.event->type) {
         case SDL_KEYDOWN:
 //        case SDL_KEYUP:
@@ -767,7 +767,7 @@ builtin_window_event_key(struct value* args)
     ASSERT_ARITY("window-event-type", args, 1);
     ASSERT_TYPE("window-event-type", args, 0, VALUE_EVENT);
 
-    struct value* event = car(args);
+    struct value* event = CAR(args);
     switch (event->as.event->key.keysym.sym) {
         case SDLK_ESCAPE:
             return value_make_symbol("key-escape");

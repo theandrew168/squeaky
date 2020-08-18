@@ -12,14 +12,14 @@ list_make(long count, struct value* value, ...)
     va_list args;
     va_start(args, value);
 
-    struct value* head = cons(value, value_make_empty_list());
+    struct value* head = CONS(value, value_make_empty_list());
     struct value* tail = head;
 
     // i starts at 1 because the first element is part of the initial 'head'
     for (long i = 1; i < count; i++) { 
         struct value* v = va_arg(args, struct value*);
-        tail->as.pair.cdr = cons(v, tail->as.pair.cdr);
-        tail = cdr(tail);
+        tail->as.pair.cdr = CONS(v, tail->as.pair.cdr);
+        tail = CDR(tail);
     }
 
     va_end(args);
@@ -34,7 +34,7 @@ list_length(const struct value* list)
     const struct value* iter = list;
     while (!value_is_empty_list(iter)) {
         count++;
-        iter = cdr(iter);
+        iter = CDR(iter);
     }
 
     return count;
@@ -50,10 +50,10 @@ list_nth(const struct value* list, long n)
 
     const struct value* iter = list;
     for (long i = 0; i < n; i++) {
-        iter = cdr(iter);
+        iter = CDR(iter);
     }
 
-    return car(iter);
+    return CAR(iter);
 }
 
 struct value*

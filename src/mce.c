@@ -13,11 +13,11 @@
 // Helper macros are based on funcs from SICP 4.1.2
 
 #define is_last_exp(exp)  \
-  (value_is_empty_list(cdr(exp)))
+  (value_is_empty_list(CDR(exp)))
 #define first_exp(exp)  \
-  car(exp)
+  CAR(exp)
 #define rest_exps(exp)  \
-  cdr(exp)
+  CDR(exp)
 
 static struct value*
 eval_sequence(struct value* exp, struct value* env)
@@ -34,7 +34,7 @@ static struct value*
 list_of_values(struct value* exps, struct value* env)
 {
     if (value_is_empty_list(exps)) return exps;
-    return cons(mce_eval(first_exp(exps), env),
+    return CONS(mce_eval(first_exp(exps), env),
                 list_of_values(rest_exps(exps), env));
 }
 
@@ -42,7 +42,7 @@ static bool
 is_tagged_list(struct value* exp, const char* tag)
 {
     if (!value_is_pair(exp)) return false;
-    return strcmp(car(exp)->as.symbol, tag) == 0;
+    return strcmp(CAR(exp)->as.symbol, tag) == 0;
 }
 
 #define is_self_evaluating(exp)  \
@@ -61,15 +61,15 @@ static struct value*
 text_of_quotation(struct value* exp)
 {
     if (value_is_empty_list(exp)) return exp;
-    return cadr(exp);
+    return CADR(exp);
 }
 
 #define is_assignment(exp)  \
   is_tagged_list(exp, "set!")
 #define assignment_var(exp)  \
-  cadr(exp)
+  CADR(exp)
 #define assignment_val(exp)  \
-  caddr(exp)
+  CADDR(exp)
 
 static struct value*
 eval_assignment(struct value* exp, struct value* env)
@@ -81,9 +81,9 @@ eval_assignment(struct value* exp, struct value* env)
 }
 
 // this looks like it creates an improper list but it doesn't
-// because 'cddr(exp)' will include the initial list's terminator
+// because 'CDDR(exp)' will include the initial list's terminator
 #define make_lambda(exp)  \
-  cons(value_make_symbol("lambda"), cons(cdadr(exp), cddr(exp)))
+  CONS(value_make_symbol("lambda"), CONS(CDADR(exp), CDDR(exp)))
 
 // 'define' supports two forms (the second is syntactic sugar for lambdas):
 // NORMAL: (define square (lambda (x) (* x x)))
@@ -92,17 +92,19 @@ eval_assignment(struct value* exp, struct value* env)
 #define is_definition(exp)  \
   is_tagged_list(exp, "define")
 #define definition_var(exp)  \
-  value_is_symbol(cadr(exp)) \
-  ? cadr(exp)                \
-  : caadr(exp)
+  value_is_symbol(CADR(exp)) \
+  ? CADR(exp)                \
+  : CAADR(exp)
 #define definition_val(exp)   \
-  value_is_symbol(cadr(exp))  \
-  ? caddr(exp)                \
+  value_is_symbol(CADR(exp))  \
+  ? CADDR(exp)                \
   : make_lambda(exp)
 
 static struct value*
 eval_definition(struct value* exp, struct value* env)
 {
+    // TODO: check for dot form
+    // (define (foo . args) body) -> (define foo (lambda args body))
     return env_define(
         definition_var(exp),
         mce_eval(definition_val(exp), env),
@@ -112,11 +114,11 @@ eval_definition(struct value* exp, struct value* env)
 #define is_if(exp)  \
   is_tagged_list(exp, "if")
 #define if_predicate(exp)  \
-  cadr(exp)
+  CADR(exp)
 #define if_consequent(exp)  \
-  caddr(exp)
+  CADDR(exp)
 #define if_alternative(exp)  \
-  (value_is_empty_list(cdddr(exp)) ? value_make_boolean(false) : cadddr(exp))
+  (value_is_empty_list(CDDDR(exp)) ? value_make_boolean(false) : CADDDR(exp))
 
 static struct value*
 eval_if(struct value* exp, struct value* env)
@@ -133,12 +135,12 @@ eval_if(struct value* exp, struct value* env)
   || is_tagged_list(exp, "null-environment")         \
   || is_tagged_list(exp, "interaction-environment")
 #define environment_version(exp)  \
-  cadr(exp)
+  CADR(exp)
 
 #define is_load(exp)  \
   is_tagged_list(exp, "load")
 #define load_args(exp)  \
-  cdr(exp)
+  CDR(exp)
 
 static struct value*
 load(struct value* args, struct value* env)
@@ -168,17 +170,17 @@ load(struct value* args, struct value* env)
 #define is_lambda(exp)  \
   is_tagged_list(exp, "lambda")
 #define lambda_params(exp)  \
-  cadr(exp)
+  CADR(exp)
 #define lambda_body(exp)  \
-  cddr(exp)
+  CDDR(exp)
 
 #define is_application(exp)  \
   value_is_pair(exp)
 
 #define operator(exp)  \
-  car(exp)
+  CAR(exp)
 #define operands(exp)  \
-  cdr(exp)
+  CDR(exp)
 
 #define is_primitive_proc(exp)  \
   ((exp)->type == VALUE_BUILTIN)
@@ -187,14 +189,14 @@ load(struct value* args, struct value* env)
   ((exp)->type == VALUE_LAMBDA)
 
 #define eval_exp(exp)  \
-  car(exp)
+  CAR(exp)
 #define eval_env(exp)  \
-  cadr(exp)
+  CADR(exp)
 
 #define apply_operator(exp)  \
-  car(exp)
+  CAR(exp)
 #define apply_operands(exp)  \
-  cdr(exp)
+  CDR(exp)
 
 struct value*
 mce_eval(struct value* exp, struct value* env)
@@ -219,6 +221,10 @@ tailcall:
     } else if (is_load(exp)) {
         return load(load_args(exp), env);
     } else if (is_lambda(exp)) {
+        // TODO: check for the three different lambda forms:
+        // (lambda (x) (* x x))
+        // (lambda x x)
+        // (lambda (x . rest) (append x rest))
         return value_make_lambda(lambda_params(exp), lambda_body(exp), env);
     } else if (is_application(exp)) {
         // 'apply' is evalutaed inline for TCO

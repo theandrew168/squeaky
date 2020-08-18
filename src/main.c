@@ -15,6 +15,10 @@
 #include "reader.h"
 #include "value.h"
 
+// TODO: capitalize cons, car, cdr C macros
+// TODO: switch number type to double (and update reader)
+// TODO: understand improper list notation: literals and func args
+
 #define add_builtin(sym, func, env)  \
   env_define(value_make_symbol(sym), value_make_builtin(func), env);
 
@@ -27,6 +31,7 @@ main(int argc, char* argv[])
     }
 
     struct value* env = env_empty();
+    env_define(value_make_symbol("nil"), value_make_empty_list(), env);
     env_define(value_make_symbol("stdin"), value_make_input_port(stdin), env);
     env_define(value_make_symbol("stdout"), value_make_output_port(stdout), env);
     env_define(value_make_symbol("stderr"), value_make_output_port(stderr), env);
@@ -112,6 +117,7 @@ main(int argc, char* argv[])
     add_builtin("event?", builtin_is_event, env);
     add_builtin("window-event-poll", builtin_window_event_poll, env);
     add_builtin("window-event-type", builtin_window_event_type, env);
+    add_builtin("window-event-key", builtin_window_event_key, env);
 
     // load prelude (small library of R5RS funcs and extensions)
     struct value* exp = list_make(2, value_make_symbol("load"), value_make_string("prelude.scm"));

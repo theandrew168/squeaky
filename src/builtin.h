@@ -80,5 +80,6 @@ struct value* builtin_window_present(struct value* args);
 struct value* builtin_is_event(struct value* args);
 struct value* builtin_window_event_poll(struct value* args);
 struct value* builtin_window_event_type(struct value* args);
+struct value* builtin_window_event_key(struct value* args);
 
 #endif

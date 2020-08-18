@@ -1,3 +1,16 @@
+(define (not obj)
+  (if (eqv? obj #f) #t #f))
+
+(define (and a b)
+  (if a
+      (if b #t #f)
+      #f))
+
+(define (or a b)
+  (if a
+      #t
+      (if b #t #f)))
+
 (define (caar x) (car (car x)))
 (define (cadr x) (car (cdr x)))
 (define (cdar x) (cdr (car x)))

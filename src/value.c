@@ -10,6 +10,10 @@
 
 #include "value.h"
 
+enum {
+    VECTOR_INIT_CAPACITY = 8,
+};
+
 bool
 value_is_empty_list(const struct value* exp)
 {
@@ -64,6 +68,13 @@ value_is_symbol(const struct value* exp)
 {
     assert(exp != NULL);
     return exp->type == VALUE_SYMBOL;
+}
+
+bool
+value_is_vector(const struct value* exp)
+{
+    assert(exp != NULL);
+    return exp->type == VALUE_VECTOR;
 }
 
 bool
@@ -195,6 +206,17 @@ value_make_symbol(const char* symbol)
 }
 
 struct value*
+value_make_vector(void)
+{
+    struct value* value = malloc(sizeof(struct value));
+    value->type = VALUE_VECTOR;
+    value->as.vector.count = 0;
+    value->as.vector.capacity = VECTOR_INIT_CAPACITY;
+    value->as.vector.array = malloc(VECTOR_INIT_CAPACITY * sizeof(struct value*));
+    return value;
+}
+
+struct value*
 value_make_symboln(const char* symbol, long length)
 {
     struct value* value = malloc(sizeof(struct value));
@@ -316,6 +338,11 @@ value_free(struct value* value)
         case VALUE_SYMBOL:
             free(value->as.symbol);
             break;
+        case VALUE_VECTOR:
+            for (long i = 0; i < value->as.vector.count; i++) {
+                value_free(value->as.vector.array[i]);
+            }
+            free(value->as.vector.array);
         case VALUE_PAIR:
             break;
         case VALUE_BUILTIN:
@@ -372,6 +399,14 @@ value_print(FILE* fp, const struct value* value)
             break;
         case VALUE_SYMBOL:
             fprintf(fp, "%s", value->as.symbol);
+            break;
+        case VALUE_VECTOR:
+            fprintf(fp, "#(");
+            for (long i = 0; i < value->as.vector.count; i++) {
+                value_print(fp, value->as.vector.array[i]);
+                if (i < value->as.vector.count - 1) fprintf(fp, " ");
+            }
+            fprintf(fp, ")");
             break;
         case VALUE_PAIR: {
             fprintf(fp, "(");
@@ -445,6 +480,7 @@ value_type_name(int type)
         case VALUE_NUMBER: return "Number";
         case VALUE_STRING: return "String";
         case VALUE_SYMBOL: return "Symbol";
+        case VALUE_VECTOR: return "Vector";
         case VALUE_PAIR: return "Pair";
         case VALUE_BUILTIN: return "Builtin";
         case VALUE_LAMBDA: return "Lambda";
@@ -490,6 +526,14 @@ value_is_equal(const struct value* a, const struct value* b)
             return strcmp(a->as.string, b->as.string) == 0;
         case VALUE_SYMBOL:
             return strcmp(a->as.symbol, b->as.symbol) == 0;
+        case VALUE_VECTOR:
+            if (a->as.vector.count != b->as.vector.count) return false;
+            for (long i = 0; i < a->as.vector.count; i++) {
+                if (!value_is_equal(a->as.vector.array[i], b->as.vector.array[i])) {
+                    return false;
+                }
+            }
+            return true;
         case VALUE_PAIR:
             return value_is_equal(a->as.pair.car, b->as.pair.car) &&
                    value_is_equal(a->as.pair.cdr, b->as.pair.cdr);

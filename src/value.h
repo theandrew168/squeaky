@@ -16,6 +16,7 @@ enum value_type {
     VALUE_NUMBER,
     VALUE_STRING,
     VALUE_SYMBOL,
+    VALUE_VECTOR,
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
@@ -29,9 +30,6 @@ enum value_type {
 struct value;
 typedef struct value* (*builtin_func)(struct value* args);
 
-// TODO: consider a fancier, compressed, tagged uint64_t approach?
-// would be 8 bytes per value instead of 32 (thats big!)
-// 1 bit for GC marking, 4 bits for tagging, 59 bits for everything else (ints, floats, ptrs)
 struct value {
     int type;  // this int will pad to 8 bytes on a 64-bit system
     int gc_mark;
@@ -41,6 +39,11 @@ struct value {
         long number;
         char* string;
         char* symbol;
+        struct {
+            long count;
+            long capacity;
+            struct value** array;
+        } vector;
         struct {
             struct value* car;
             struct value* cdr;
@@ -69,6 +72,7 @@ bool value_is_character(const struct value* exp);
 bool value_is_number(const struct value* exp);
 bool value_is_string(const struct value* exp);
 bool value_is_symbol(const struct value* exp);
+bool value_is_vector(const struct value* exp);
 bool value_is_pair(const struct value* exp);
 bool value_is_builtin(const struct value* exp);
 bool value_is_lambda(const struct value* exp);
@@ -88,6 +92,7 @@ struct value* value_make_string(const char* string);
 struct value* value_make_stringn(const char* string, long length);
 struct value* value_make_symbol(const char* symbol);
 struct value* value_make_symboln(const char* symbol, long length);
+struct value* value_make_vector(void);
 struct value* value_make_pair(struct value* car, struct value* cdr);
 struct value* value_make_builtin(builtin_func builtin);
 struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);

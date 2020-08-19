@@ -32,7 +32,6 @@ typedef struct value* (*builtin_func)(struct value* args);
 
 struct value {
     int type;  // this int will pad to 8 bytes on a 64-bit system
-    int gc_mark;
     union {
         bool boolean;
         int character;  // "int" for future-proofing UTF-8 support

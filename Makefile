@@ -20,7 +20,8 @@ libsqueaky_sources =  \
   src/list.c          \
   src/mce.c           \
   src/reader.c        \
-  src/value.c
+  src/value.c         \
+  src/vm.c
 libsqueaky_objects = $(libsqueaky_sources:.c=.o)
 
 src/builtin.o: src/builtin.c src/builtin.h src/reader.h src/value.h
@@ -29,6 +30,7 @@ src/list.o: src/list.c src/list.h src/value.h
 src/mce.o: src/mce.c src/mce.h src/env.h src/list.h src/reader.h src/value.h
 src/reader.o: src/reader.c src/reader.h src/value.h
 src/value.o: src/value.c src/value.h
+src/vm.o: src/vm.c src/vm.h src/value.h
 
 libsqueaky.a: $(libsqueaky_objects)
 	@echo "STATIC  $@"
@@ -42,9 +44,7 @@ squeaky: src/main.c libsqueaky.a
 	@echo "EXE     $@"
 	@$(CC) $(CFLAGS) $(LDFLAGS) -o $@ src/main.c libsqueaky.a $(LDLIBS)
 
-squeaky_tests_sources =  \
-  src/env_test.c         \
-  src/value_test.c
+squeaky_tests_sources =
 
 squeaky_tests: $(squeaky_tests_sources) src/main_test.c libsqueaky.a
 	@echo "EXE     $@"

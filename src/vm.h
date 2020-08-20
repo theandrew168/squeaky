@@ -74,13 +74,14 @@
 //};
 
 struct vm {
-    long count;
     long capacity;
     struct value* heap;    
+    struct value* free;
 };
 
 void vm_init(struct vm* vm);
 void vm_free(struct vm* vm);
+void vm_gc(struct vm* vm, struct value* root);
 
 struct value* vm_make_empty_list(struct vm* vm);
 struct value* vm_make_boolean(struct vm* vm, bool boolean);

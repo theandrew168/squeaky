@@ -22,10 +22,10 @@
 int
 main(int argc, char* argv[])
 {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
-        return EXIT_FAILURE;
-    }
+//    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+//        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
+//        return EXIT_FAILURE;
+//    }
 
     struct vm vm = { 0 };
     vm_init(&vm);
@@ -120,27 +120,38 @@ main(int argc, char* argv[])
     add_builtin(&vm, "window-event-key", builtin_window_event_key, env);
 
     // load prelude (small library of R5RS funcs and extensions)
-    struct value* exp = vm_make_pair(&vm, vm_make_symbol(&vm, "load"),
-                                          vm_make_pair(&vm, vm_make_string(&vm, "prelude.scm"),
-                                                            vm_make_empty_list(&vm)));
+    struct value* exp = vm_make_pair(&vm,
+        vm_make_symbol(&vm, "load"),
+        vm_make_pair(&vm,
+            vm_make_string(&vm, "prelude.scm"),
+            vm_make_empty_list(&vm)));
     mce_eval(&vm, exp, env);
 
     // eval files given on CLI (if any) otherwise default to REPL
     if (argc >= 2) {
         for (int i = 1; i < argc; i++) {
-            struct value* exp = vm_make_pair(&vm, vm_make_symbol(&vm, "load"),
-                                                  vm_make_pair(&vm, vm_make_string(&vm, argv[1]),
-                                                                    vm_make_empty_list(&vm)));
+            struct value* exp = vm_make_pair(&vm,
+                vm_make_symbol(&vm, "load"),
+                vm_make_pair(&vm,
+                    vm_make_string(&vm, argv[1]),
+                    vm_make_empty_list(&vm)));
             mce_eval(&vm, exp, env);
         }
     } else {
-        struct value* exp = vm_make_pair(&vm, vm_make_symbol(&vm, "load"),
-                                              vm_make_pair(&vm, vm_make_string(&vm, "repl.scm"),
-                                                                vm_make_empty_list(&vm)));
-        mce_eval(&vm, exp, env);
+        for (;;) {
+            printf("> ");
+            struct value* exp = reader_read(&vm, stdin);
+            if (value_is_eof(exp)) break;
+            value_println(stdout, exp);
+
+            struct value* res = mce_eval(&vm, exp, env);
+            value_println(stdout, res);
+
+            vm_gc(&vm, env);
+        }
     }
 
     vm_free(&vm);
-    SDL_Quit();
+//    SDL_Quit();
     return EXIT_SUCCESS;
 }

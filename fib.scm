@@ -5,5 +5,5 @@
         (iter (+ a b) a (- c 1))))
   (iter 1 0 n))
 
-(display (fib 100))
+(display (fib 1000000))
 (newline)

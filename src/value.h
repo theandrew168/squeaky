@@ -34,8 +34,7 @@ typedef struct value* (*builtin_func)(struct vm* vm, struct value* args);
 struct value {
     int type;
     int gc_mark;
-// TODO: SLL for free list?
-//    struct value* next;
+    struct value* next;
     union {
         bool boolean;
         int character;  // "int" for future-proofing UTF-8 support

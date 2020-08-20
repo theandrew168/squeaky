@@ -6,14 +6,15 @@
 #include "vm.h"
 
 enum {
-    GC_UNALLOCATED = 0,
-    GC_ALLOCATED,
+    GC_UNMARKED = 0,
     GC_MARKED,
 };
 
 static void
 value_free(struct value* value)
 {
+    assert(value != NULL);
+
     switch (value->type) {
         case VALUE_EMPTY_LIST:
             break;
@@ -59,9 +60,15 @@ vm_init(struct vm* vm)
 {
     assert(vm != NULL);
 
-    vm->count = 0;
     vm->capacity = 1024 * 1024;
     vm->heap = calloc(vm->capacity, sizeof(struct value));
+
+    // init the allocation free list
+    vm->free = &vm->heap[0];
+    for (long i = 0; i < vm->capacity - 1; i++) {
+        vm->heap[i].next = &vm->heap[i + 1];
+    }
+    vm->heap[vm->capacity - 1].next = NULL;
 }
 
 void
@@ -69,31 +76,67 @@ vm_free(struct vm* vm)
 {
     assert(vm != NULL);
 
-    for (long i = 0; i < vm->capacity; i++) {
-        if (vm->heap[i].gc_mark == GC_ALLOCATED) {
-            vm->heap[i].gc_mark = GC_UNALLOCATED;
-            value_free(&vm->heap[i]);
-        }
-    }
-
+    vm_gc(vm, NULL);
     free(vm->heap);
-    vm->count = 0;
+
     vm->capacity = 0;
     vm->heap = NULL;
+    vm->free = NULL;
+}
+
+static void
+gc_mark(struct vm* vm, struct value* root)
+{
+    if (root == NULL) return;
+    if (root->gc_mark == GC_MARKED) return;
+
+    // mark everything reachable from a given root node
+    root->gc_mark = GC_MARKED;
+    printf("marking: %s\n", value_type_name(root->type));
+    if (value_is_pair(root)) {
+        gc_mark(vm, root->as.pair.car);
+        gc_mark(vm, root->as.pair.cdr);
+    }
+}
+
+static void
+gc_sweep(struct vm* vm)
+{
+    // sweep anything that isn't marked
+    for (long i = 0; i < vm->capacity; i++) {
+        if (vm->heap[i].gc_mark == GC_UNMARKED) {
+            value_free(&vm->heap[i]);
+
+            // put freed value back into the free list
+//            vm->heap[i].next = vm->free;
+//            vm->free = &vm->heap[i];
+        }
+
+        // every value goes back to unmarked after GC
+        vm->heap[i].gc_mark = GC_UNMARKED;
+    }
+}
+
+void
+vm_gc(struct vm* vm, struct value* root)
+{
+    assert(vm != NULL);
+
+    gc_mark(vm, root);
+    gc_sweep(vm);
 }
 
 static struct value*
 next_available_value(struct vm* vm)
 {
-    for (long i = 0; i < vm->capacity; i++) {
-        if (vm->heap[i].gc_mark == GC_UNALLOCATED) {
-            vm->heap[i].gc_mark = GC_ALLOCATED;
-            return &vm->heap[i];
-        }
+    struct value* value = vm->free;
+    if (value == NULL) {
+        fprintf(stderr, "vm: out of memory\n");
+        exit(EXIT_FAILURE);
     }
 
-    fprintf(stderr, "vm: out of memory\n");
-    exit(EXIT_FAILURE);
+    vm->free = value->next;
+    return value;
 }
 
 struct value*

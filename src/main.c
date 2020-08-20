@@ -16,8 +16,8 @@
 #include "value.h"
 #include "vm.h"
 
-#define add_builtin(sym, func, env)  \
-  env_define(value_make_symbol(sym), value_make_builtin(func), env);
+#define add_builtin(vm, sym, func, env)  \
+  env_define(vm, vm_make_symbol(vm, sym), vm_make_builtin(vm, func), env)
 
 int
 main(int argc, char* argv[])
@@ -30,12 +30,12 @@ main(int argc, char* argv[])
     struct vm vm = { 0 };
     vm_init(&vm);
 
-//    struct value* env = env_empty();
-//    env_define(value_make_symbol("nil"), value_make_empty_list(), env);
-//    env_define(value_make_symbol("stdin"), value_make_input_port(stdin), env);
-//    env_define(value_make_symbol("stdout"), value_make_output_port(stdout), env);
-//    env_define(value_make_symbol("stderr"), value_make_output_port(stderr), env);
-//
+    struct value* env = env_empty(&vm);
+    env_define(&vm, vm_make_symbol(&vm, "nil"), vm_make_empty_list(&vm), env);
+    env_define(&vm, vm_make_symbol(&vm, "stdin"), vm_make_input_port(&vm, stdin), env);
+    env_define(&vm, vm_make_symbol(&vm, "stdout"), vm_make_output_port(&vm, stdout), env);
+    env_define(&vm, vm_make_symbol(&vm, "stderr"), vm_make_output_port(&vm, stderr), env);
+
 //    // R5RS 6.1: Equivalence Predicates
 //    add_builtin("eq?", builtin_is_eq, env);  // shallow compare (slightly more specific than eqv)
 //    add_builtin("eqv?", builtin_is_eqv, env);  // shallow compare (baseline "what you'd expect" comparison)
@@ -48,11 +48,11 @@ main(int argc, char* argv[])
 //    add_builtin(">", builtin_greater, env);
 //    add_builtin("<=", builtin_less_equal, env);
 //    add_builtin(">=", builtin_greater_equal, env);
-//    add_builtin("+", builtin_add, env);
-//    add_builtin("*", builtin_mul, env);
-//    add_builtin("-", builtin_sub, env);
-//    add_builtin("/", builtin_div, env);
-//
+    add_builtin(&vm, "+", builtin_add, env);
+    add_builtin(&vm, "*", builtin_mul, env);
+    add_builtin(&vm, "-", builtin_sub, env);
+    add_builtin(&vm, "/", builtin_div, env);
+
 //    // R5RS 6.3.1: Booleans
 //    add_builtin("boolean?", builtin_is_boolean, env);
 //
@@ -73,11 +73,11 @@ main(int argc, char* argv[])
 //
 //    // R5RS 6.4: Control Features
 //    add_builtin("procedure?", builtin_is_procedure, env);
-//    add_builtin("apply", mce_builtin_apply, env);  // will be handled specifically by the MCE
-//
-//    // R5RS 6.5: Eval
-//    add_builtin("eval", mce_builtin_eval, env);  // will be handled specifically by the MCE
-//
+    add_builtin(&vm, "apply", mce_builtin_apply, env);  // will be handled specifically by the MCE
+
+    // R5RS 6.5: Eval
+    add_builtin(&vm, "eval", mce_builtin_eval, env);  // will be handled specifically by the MCE
+
 //    // R5RS 6.6.1: Ports
 //    add_builtin("input-port?", builtin_is_input_port, env);
 //    add_builtin("output-port?", builtin_is_output_port, env);
@@ -87,20 +87,20 @@ main(int argc, char* argv[])
 //    add_builtin("open-output-file", builtin_open_output_file, env);
 //    add_builtin("close-input-port", builtin_close_input_port, env);
 //    add_builtin("close-output-port", builtin_close_output_port, env);
-//
-//    // R5RS 6.6.2: Input
-//    add_builtin("read", builtin_read, env);
-//    add_builtin("read-char", builtin_read_char, env);
-//    add_builtin("peek-char", builtin_peek_char, env);
-//    add_builtin("eof-object?", builtin_is_eof_object, env);
-//    add_builtin("char-ready?", builtin_is_char_ready, env);
-//
-//    // R5RS 6.6.3: Output
-//    add_builtin("write", builtin_write, env);
-//    add_builtin("display", builtin_display, env);
-//    add_builtin("newline", builtin_newline, env);
-//    add_builtin("write-char", builtin_write_char, env);
-//
+
+    // R5RS 6.6.2: Input
+    add_builtin(&vm, "read", builtin_read, env);
+    add_builtin(&vm, "read-char", builtin_read_char, env);
+    add_builtin(&vm, "peek-char", builtin_peek_char, env);
+    add_builtin(&vm, "eof-object?", builtin_is_eof_object, env);
+    add_builtin(&vm, "char-ready?", builtin_is_char_ready, env);
+
+    // R5RS 6.6.3: Output
+    add_builtin(&vm, "write", builtin_write, env);
+    add_builtin(&vm, "display", builtin_display, env);
+    add_builtin(&vm, "newline", builtin_newline, env);
+    add_builtin(&vm, "write-char", builtin_write_char, env);
+
 //    /* Squeaky Extensions */
 //
 //    // General Utilities
@@ -126,12 +126,16 @@ main(int argc, char* argv[])
     // eval files given on CLI (if any) otherwise default to REPL
     if (argc >= 2) {
         for (int i = 1; i < argc; i++) {
-            struct value* exp = list_make(2, value_make_symbol("load"), value_make_string(argv[1]));
-            mce_eval(exp, env);
+            struct value* exp = vm_make_pair(&vm, vm_make_symbol(&vm, "load"),
+                                                  vm_make_pair(&vm, vm_make_string(&vm, argv[1]),
+                                                                    vm_make_empty_list(&vm)));
+            mce_eval(&vm, exp, env);
         }
     } else {
-        struct value* exp = list_make(2, value_make_symbol("load"), value_make_string("repl.scm"));
-        mce_eval(exp, env);
+        struct value* exp = vm_make_pair(&vm, vm_make_symbol(&vm, "load"),
+                                              vm_make_pair(&vm, vm_make_string(&vm, "repl.scm"),
+                                                                vm_make_empty_list(&vm)));
+        mce_eval(&vm, exp, env);
     }
 
     vm_free(&vm);

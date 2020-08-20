@@ -4,7 +4,8 @@
 #include <stdio.h>
 
 #include "value.h"
+#include "vm.h"
 
-struct value* reader_read(FILE* fp);
+struct value* reader_read(struct vm* vm, FILE* fp);
 
 #endif

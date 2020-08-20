@@ -15,7 +15,6 @@ default: squeaky
 all: libsqueaky.a libsqueaky.so squeaky squeaky_tests
 
 libsqueaky_sources =  \
-  src/builtin.c       \
   src/env.c           \
   src/list.c          \
   src/mce.c           \

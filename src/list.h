@@ -4,9 +4,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
-#include "list.h"
+#include "value.h"
 
-struct value* list_make(long count, struct value* value, ...);
+//struct value* list_make(long count, struct value* value, ...);
 long list_length(const struct value* list);
 struct value* list_nth(const struct value* list, long n);
 

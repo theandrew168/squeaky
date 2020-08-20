@@ -28,10 +28,14 @@ enum value_type {
 };
 
 struct value;
-typedef struct value* (*builtin_func)(struct value* args);
+struct vm;
+typedef struct value* (*builtin_func)(struct vm* vm, struct value* args);
 
 struct value {
-    int type;  // this int will pad to 8 bytes on a 64-bit system
+    int type;
+    int gc_mark;
+// TODO: SLL for free list?
+//    struct value* next;
     union {
         bool boolean;
         int character;  // "int" for future-proofing UTF-8 support
@@ -62,44 +66,26 @@ struct value {
     } as;
 };
 
-// dynamic type checks
-bool value_is_empty_list(const struct value* exp);
-bool value_is_boolean(const struct value* exp);
-bool value_is_true(const struct value* exp);
-bool value_is_false(const struct value* exp);
-bool value_is_character(const struct value* exp);
-bool value_is_number(const struct value* exp);
-bool value_is_string(const struct value* exp);
-bool value_is_symbol(const struct value* exp);
-bool value_is_vector(const struct value* exp);
-bool value_is_pair(const struct value* exp);
-bool value_is_builtin(const struct value* exp);
-bool value_is_lambda(const struct value* exp);
-bool value_is_procedure(const struct value* exp);
-bool value_is_input_port(const struct value* exp);
-bool value_is_output_port(const struct value* exp);
-bool value_is_window(const struct value* exp);
-bool value_is_event(const struct value* exp);
-bool value_is_eof(const struct value* exp);
+// singular type checks
+#define value_is_empty_list(value)  ((value)->type == VALUE_EMPTY_LIST)
+#define value_is_boolean(value)     ((value)->type == VALUE_BOOLEAN)
+#define value_is_character(value)   ((value)->type == VALUE_CHARACTER)
+#define value_is_number(value)      ((value)->type == VALUE_NUMBER)
+#define value_is_string(value)      ((value)->type == VALUE_STRING)
+#define value_is_symbol(value)      ((value)->type == VALUE_SYMBOL)
+#define value_is_pair(value)        ((value)->type == VALUE_PAIR)
+#define value_is_builtin(value)     ((value)->type == VALUE_BUILTIN)
+#define value_is_lambda(value)      ((value)->type == VALUE_LAMBDA)
+#define value_is_input_port(value)  ((value)->type == VALUE_INPUT_PORT)
+#define value_is_output_port(value) ((value)->type == VALUE_OUTPUT_PORT)
+#define value_is_window(value)      ((value)->type == VALUE_WINDOW)
+#define value_is_event(value)       ((value)->type == VALUE_EVENT)
+#define value_is_eof(value)         ((value)->type == VALUE_EOF)
 
-// constructors
-struct value* value_make_empty_list(void);
-struct value* value_make_boolean(bool boolean);
-struct value* value_make_character(int character);
-struct value* value_make_number(long number);
-struct value* value_make_string(const char* string);
-struct value* value_make_stringn(const char* string, long length);
-struct value* value_make_symbol(const char* symbol);
-struct value* value_make_symboln(const char* symbol, long length);
-struct value* value_make_vector(void);
-struct value* value_make_pair(struct value* car, struct value* cdr);
-struct value* value_make_builtin(builtin_func builtin);
-struct value* value_make_lambda(struct value* params, struct value* body, struct value* env);
-struct value* value_make_input_port(FILE* port);
-struct value* value_make_output_port(FILE* port);
-struct value* value_make_window(const char* title, long width, long height);
-struct value* value_make_event(SDL_Event* event);
-struct value* value_make_eof(void);
+// composite type checks (would be unsafe as macros)
+bool value_is_true(const struct value* value);
+bool value_is_false(const struct value* value);
+bool value_is_procedure(const struct value* value);
 
 // printing
 void value_print(FILE* fp, const struct value* value);
@@ -110,7 +96,5 @@ const char* value_type_name(int type);
 bool value_is_eq(const struct value* a, const struct value* b);
 bool value_is_eqv(const struct value* a, const struct value* b);
 bool value_is_equal(const struct value* a, const struct value* b);
-
-#define CONS(a,b) (value_make_pair((a), (b)))
 
 #endif

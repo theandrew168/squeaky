@@ -7,6 +7,7 @@
 #include "list.h"
 #include "reader.h"
 #include "value.h"
+#include "vm.h"
 
 #define MAX_NUMBER_SIZE 128
 #define MAX_STRING_SIZE 256
@@ -135,7 +136,7 @@ peek_expect_delimiter(FILE* fp)
 }
 
 struct value*
-read_character(FILE* fp)
+read_character(struct vm* vm, FILE* fp)
 {
     int c = advance(fp);
     switch (c) {
@@ -146,14 +147,14 @@ read_character(FILE* fp)
             if (peek(fp) == 'p') {
                 eat_string(fp, "pace");
                 peek_expect_delimiter(fp);
-                return value_make_character(' ');
+                return vm_make_character(vm, ' ');
             }
             break;
         case 'n':
             if (peek(fp) == 'e') {
                 eat_string(fp, "ewline");
                 peek_expect_delimiter(fp);
-                return value_make_character('\n');
+                return vm_make_character(vm, '\n');
             }
             break;
     }
@@ -164,11 +165,11 @@ read_character(FILE* fp)
     }
 
     peek_expect_delimiter(fp);
-    return value_make_character(c);
+    return vm_make_character(vm, c);
 }
 
 struct value*
-read_number(FILE* fp)
+read_number(struct vm* vm, FILE* fp)
 {
     // temp buffer to hold the number's contents
     char buf[MAX_NUMBER_SIZE] = { 0 };
@@ -194,11 +195,11 @@ read_number(FILE* fp)
     peek_expect_delimiter(fp);
 
     long number = strtol(buf, NULL, 10);
-    return value_make_number(number);
+    return vm_make_number(vm, number);
 }
 
 struct value*
-read_string(FILE* fp)
+read_string(struct vm* vm, FILE* fp)
 {
     // temp buffer to hold the string's contents
     char buf[MAX_STRING_SIZE] = { 0 };
@@ -229,11 +230,11 @@ read_string(FILE* fp)
     }
 
     peek_expect_delimiter(fp);
-    return value_make_string(buf);
+    return vm_make_string(vm, buf);
 }
 
 struct value*
-read_symbol(FILE* fp)
+read_symbol(struct vm* vm, FILE* fp)
 {
     // temp buffer to hold the symbol's contents
     char buf[MAX_STRING_SIZE] = { 0 };
@@ -247,7 +248,7 @@ read_symbol(FILE* fp)
     if (is_peculiar_identifier(c)) {
         if (c == '+' || c == '-') {
             peek_expect_delimiter(fp);
-            return value_make_symbol(buf);
+            return vm_make_symbol(vm, buf);
         }
 
         // only other peculiar identifier left at this point is "..."
@@ -255,7 +256,7 @@ read_symbol(FILE* fp)
         buf[i++] = advance(fp);
         if (strcmp(buf, "...") == 0) {
             peek_expect_delimiter(fp);
-            return value_make_symbol(buf);
+            return vm_make_symbol(vm, buf);
         }
 
         fprintf(stderr, "reader: invalid symbol: %s\n", buf);
@@ -281,22 +282,22 @@ read_symbol(FILE* fp)
     // put non-symbol char back and ensure it was a delimiter
     rollback(fp, c);
     peek_expect_delimiter(fp);
-    return value_make_symbol(buf);
+    return vm_make_symbol(vm, buf);
 }
 
 struct value*
-read_pair(FILE* fp)
+read_pair(struct vm* vm, FILE* fp)
 {
     eat_whitespace(fp);
 
     // return the empty list upon finding a closing paren
     if (peek(fp) == ')') {
         advance(fp);
-        return value_make_empty_list();
+        return vm_make_empty_list(vm);
     }
 
     // read the first half of the pair
-    struct value* car = reader_read(fp);
+    struct value* car = reader_read(vm, fp);
     eat_whitespace(fp);
 
     // check for an "improper" list
@@ -305,7 +306,7 @@ read_pair(FILE* fp)
         peek_expect_delimiter(fp);
 
         // read the last expr
-        struct value* cdr = reader_read(fp);
+        struct value* cdr = reader_read(vm, fp);
         eat_whitespace(fp);
 
         // ensure a closing paren comes next
@@ -316,16 +317,16 @@ read_pair(FILE* fp)
 
         // consume the closing paren
         advance(fp);
-        return CONS(car, cdr);
+        return vm_make_pair(vm, car, cdr);
     }
 
     // read the next expr in a "normal" list
-    struct value* cdr = read_pair(fp);
-    return CONS(car, cdr);
+    struct value* cdr = read_pair(vm, fp);
+    return vm_make_pair(vm, car, cdr);
 }
 
 struct value*
-reader_read(FILE* fp)
+reader_read(struct vm* vm, FILE* fp)
 {
     assert(fp != NULL);
 
@@ -333,7 +334,7 @@ reader_read(FILE* fp)
     int c = peek(fp);
 
     if (c == EOF) {
-        return value_make_eof();
+        return vm_make_eof(vm);
     }
 
     // sharp expr: boolean, character, vector, etc
@@ -341,11 +342,11 @@ reader_read(FILE* fp)
         advance(fp);  // skip sharp
         c = advance(fp);
         if (c == 't') {
-            return value_make_boolean(true);
+            return vm_make_boolean(vm, true);
         } else if (c == 'f') {
-            return value_make_boolean(false);
+            return vm_make_boolean(vm, false);
         } else if (c == '\\') {
-            return read_character(fp);
+            return read_character(vm, fp);
         // TODO: read vectors
 //        } else if (c == '(') {
 //            return read_vector(fp);
@@ -357,31 +358,35 @@ reader_read(FILE* fp)
 
     // numeric literal
     if (is_digit(c)) {
-        return read_number(fp);
+        return read_number(vm, fp);
     }
 
     // string literal
     if (c == '"') {
-        return read_string(fp);
+        return read_string(vm, fp);
     }
 
     // symbol
     if (is_initial(c) || is_peculiar_identifier(c)) {
-        return read_symbol(fp);
+        return read_symbol(vm, fp);
     }
 
     // quoted expr
     if (c == '\'') {
         advance(fp);  // skip quote
-        struct value* exp = reader_read(fp);
-        return list_make(2, value_make_symbol("quote"), exp);
+        struct value* exp = reader_read(vm, fp);
+        return vm_make_pair(vm, vm_make_symbol(vm, "quote"),
+                                vm_make_pair(vm, exp,
+                                                 vm_make_empty_list(vm)));
     }
 
     // quasiquoted expr
     if (c == '`') {
         advance(fp);  // skip quasiquote
-        struct value* exp = reader_read(fp);
-        return list_make(2, value_make_symbol("quasiquote"), exp);
+        struct value* exp = reader_read(vm, fp);
+        return vm_make_pair(vm, vm_make_symbol(vm, "quasiquote"),
+                                vm_make_pair(vm, exp,
+                                                 vm_make_empty_list(vm)));
     }
 
     // unquote / unquote-splicing expr
@@ -389,18 +394,22 @@ reader_read(FILE* fp)
         advance(fp);  // skip unquote
         if (peek(fp) == '@') {
             advance(fp);  // skip splicing
-            struct value* exp = reader_read(fp);
-            return list_make(2, value_make_symbol("unquote-splicing"), exp);
+            struct value* exp = reader_read(vm, fp);
+            return vm_make_pair(vm, vm_make_symbol(vm, "unquote-splicing"),
+                                    vm_make_pair(vm, exp,
+                                                     vm_make_empty_list(vm)));
         }
 
-        struct value* exp = reader_read(fp);
-        return list_make(2, value_make_symbol("unquote"), exp);
+        struct value* exp = reader_read(vm, fp);
+        return vm_make_pair(vm, vm_make_symbol(vm, "unquote"),
+                                vm_make_pair(vm, exp,
+                                                 vm_make_empty_list(vm)));
     }
 
     // pair / list / s-expression
     if (c == '(') {
         advance(fp);  // skip opening paren
-        return read_pair(fp);
+        return read_pair(vm, fp);
     }
 
     fprintf(stderr, "reader: invalid expression\n");

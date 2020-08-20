@@ -6,25 +6,25 @@
 #include "list.h"
 #include "value.h"
 
-struct value*
-list_make(long count, struct value* value, ...)
-{
-    va_list args;
-    va_start(args, value);
-
-    struct value* head = CONS(value, value_make_empty_list());
-    struct value* tail = head;
-
-    // i starts at 1 because the first element is part of the initial 'head'
-    for (long i = 1; i < count; i++) { 
-        struct value* v = va_arg(args, struct value*);
-        tail->as.pair.cdr = CONS(v, tail->as.pair.cdr);
-        tail = CDR(tail);
-    }
-
-    va_end(args);
-    return head;
-}
+//struct value*
+//list_make(long count, struct value* value, ...)
+//{
+//    va_list args;
+//    va_start(args, value);
+//
+//    struct value* head = CONS(value, value_make_empty_list());
+//    struct value* tail = head;
+//
+//    // i starts at 1 because the first element is part of the initial 'head'
+//    for (long i = 1; i < count; i++) { 
+//        struct value* v = va_arg(args, struct value*);
+//        tail->as.pair.cdr = CONS(v, tail->as.pair.cdr);
+//        tail = CDR(tail);
+//    }
+//
+//    va_end(args);
+//    return head;
+//}
 
 long
 list_length(const struct value* list)

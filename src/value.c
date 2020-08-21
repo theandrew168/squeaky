@@ -133,7 +133,6 @@ value_type_name(int type)
         case VALUE_NUMBER: return "Number";
         case VALUE_STRING: return "String";
         case VALUE_SYMBOL: return "Symbol";
-        case VALUE_VECTOR: return "Vector";
         case VALUE_PAIR: return "Pair";
         case VALUE_BUILTIN: return "Builtin";
         case VALUE_LAMBDA: return "Lambda";
@@ -179,14 +178,6 @@ value_is_equal(const struct value* a, const struct value* b)
             return strcmp(a->as.string, b->as.string) == 0;
         case VALUE_SYMBOL:
             return strcmp(a->as.symbol, b->as.symbol) == 0;
-        case VALUE_VECTOR:
-            if (a->as.vector.count != b->as.vector.count) return false;
-            for (long i = 0; i < a->as.vector.count; i++) {
-                if (!value_is_equal(a->as.vector.array[i], b->as.vector.array[i])) {
-                    return false;
-                }
-            }
-            return true;
         case VALUE_PAIR:
             return value_is_equal(a->as.pair.car, b->as.pair.car) &&
                    value_is_equal(a->as.pair.cdr, b->as.pair.cdr);

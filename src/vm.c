@@ -16,28 +16,11 @@ value_free(struct value* value)
     assert(value != NULL);
 
     switch (value->type) {
-        case VALUE_EMPTY_LIST:
-            break;
-        case VALUE_BOOLEAN:
-            break;
-        case VALUE_CHARACTER:
-            break;
-        case VALUE_NUMBER:
-            break;
         case VALUE_STRING:
             free(value->as.string);
             break;
         case VALUE_SYMBOL:
             free(value->as.symbol);
-            break;
-        case VALUE_PAIR:
-            break;
-        case VALUE_BUILTIN:
-            break;
-        case VALUE_LAMBDA:
-            value_free(value->as.lambda.params);
-            value_free(value->as.lambda.body);
-            value_free(value->as.lambda.env);
             break;
         case VALUE_INPUT_PORT:
         case VALUE_OUTPUT_PORT:
@@ -49,8 +32,6 @@ value_free(struct value* value)
             break;
         case VALUE_EVENT:
             free(value->as.event);
-            break;
-        case VALUE_EOF:
             break;
     }
 }
@@ -92,7 +73,15 @@ gc_mark(struct vm* vm, struct value* root)
 
     // mark everything reachable from a given root node
     root->gc_mark = GC_MARKED;
-    printf("marking: %s\n", value_type_name(root->type));
+
+    // recursively mark the contents of a lambda
+    if (value_is_lambda(root)) {
+        gc_mark(vm, root->as.lambda.params);
+        gc_mark(vm, root->as.lambda.body);
+        gc_mark(vm, root->as.lambda.env);
+    }
+
+    // recursively mark pairs / lists
     if (value_is_pair(root)) {
         gc_mark(vm, root->as.pair.car);
         gc_mark(vm, root->as.pair.cdr);
@@ -105,11 +94,13 @@ gc_sweep(struct vm* vm)
     // sweep anything that isn't marked
     for (long i = 0; i < vm->capacity; i++) {
         if (vm->heap[i].gc_mark == GC_UNMARKED) {
+            // free the value's dynamic contents
             value_free(&vm->heap[i]);
+            vm->heap[i].type = VALUE_UNDEFINED;
 
-            // put freed value back into the free list
-//            vm->heap[i].next = vm->free;
-//            vm->free = &vm->heap[i];
+            // put freed values back into the free list
+            vm->heap[i].next = vm->free;
+            vm->free = &vm->heap[i];
         }
 
         // every value goes back to unmarked after GC
@@ -122,7 +113,9 @@ vm_gc(struct vm* vm, struct value* root)
 {
     assert(vm != NULL);
 
+    printf("MARKING\n");
     gc_mark(vm, root);
+    printf("SWEEPING\n");
     gc_sweep(vm);
 }
 
@@ -135,7 +128,9 @@ next_available_value(struct vm* vm)
         exit(EXIT_FAILURE);
     }
 
+    // pull the free value out of the free list
     vm->free = value->next;
+    value->next = NULL;
     return value;
 }
 

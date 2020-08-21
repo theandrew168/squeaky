@@ -169,6 +169,11 @@ load(struct vm* vm, struct value* args, struct value* env)
     return vm_make_empty_list(vm);
 }
 
+#define is_gc(exp)  \
+  is_tagged_list(exp, "gc")
+#define gc_root(exp)  \
+  CADR(exp)
+
 #define is_lambda(exp)  \
   is_tagged_list(exp, "lambda")
 #define lambda_params(exp)  \
@@ -222,6 +227,9 @@ tailcall:
         return env;
     } else if (is_load(exp)) {
         return load(vm, load_args(exp), env);
+    } else if (is_gc(exp)) {
+        vm_gc(vm, env);
+        return vm_make_empty_list(vm);
     } else if (is_lambda(exp)) {
         // TODO: check for the three different lambda forms:
         // (lambda (x) (* x x))

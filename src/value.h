@@ -16,7 +16,6 @@ enum value_type {
     VALUE_NUMBER,
     VALUE_STRING,
     VALUE_SYMBOL,
-    VALUE_VECTOR,
     VALUE_PAIR,
     VALUE_BUILTIN,
     VALUE_LAMBDA,
@@ -41,11 +40,6 @@ struct value {
         long number;
         char* string;
         char* symbol;
-        struct {
-            long count;
-            long capacity;
-            struct value** array;
-        } vector;
         struct {
             struct value* car;
             struct value* cdr;

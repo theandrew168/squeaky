@@ -147,7 +147,7 @@ main(int argc, char* argv[])
             struct value* res = mce_eval(&vm, exp, env);
             value_println(stdout, res);
 
-            vm_gc(&vm, env);
+//            vm_gc(&vm, env);
         }
     }
 

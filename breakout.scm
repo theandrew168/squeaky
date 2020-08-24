@@ -45,6 +45,7 @@
           (right? (cdr events)))))
 
 (define (loop window platform events)
+  (gc)
   (if (and (left? events) (> platform 40))
       (set! platform (- platform 10)))
   (if (and (right? events) (< platform 760))

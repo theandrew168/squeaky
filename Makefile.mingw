@@ -13,6 +13,7 @@ LDLIBS   = -lmingw32
 LDLIBS  += ./SDL2/lib/libSDL2main.a ./SDL2/lib/libSDL2.a
 LDLIBS  += -lgdi32 -limm32 -lole32 -loleaut32
 LDLIBS  += -lopengl32 -lsetupapi -lversion -lwinmm
+LDLIBS  += -lws2_32
 
 default: squeaky.exe
 all: libsqueaky.a libsqueaky.dll squeaky.exe squeaky_tests.exe

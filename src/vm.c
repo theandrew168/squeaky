@@ -23,7 +23,11 @@ value_free(struct value* value)
             free(value->as.symbol);
             break;
         case VALUE_INPUT_PORT:
+            if (value->as.port == stdin) break;
+            fclose(value->as.port);
+            break;
         case VALUE_OUTPUT_PORT:
+            if (value->as.port == stdout) break;
             fclose(value->as.port);
             break;
         case VALUE_WINDOW:
@@ -32,6 +36,8 @@ value_free(struct value* value)
             break;
         case VALUE_EVENT:
             free(value->as.event);
+            break;
+        default:
             break;
     }
 }
@@ -113,9 +119,7 @@ vm_gc(struct vm* vm, struct value* root)
 {
     assert(vm != NULL);
 
-    printf("MARKING\n");
     gc_mark(vm, root);
-    printf("SWEEPING\n");
     gc_sweep(vm);
 }
 

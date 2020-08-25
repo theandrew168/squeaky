@@ -67,9 +67,6 @@ struct value* builtin_write_char(struct vm* vm, struct value* args);
 
 /* Squeaky Extensions */
 
-// General Utilities
-struct value* builtin_sleep(struct vm* vm, struct value* args);
-
 // Windows
 struct value* builtin_is_window(struct vm* vm, struct value* args);
 struct value* builtin_make_window(struct vm* vm, struct value* args);
@@ -79,8 +76,8 @@ struct value* builtin_window_present(struct vm* vm, struct value* args);
 
 // Events
 struct value* builtin_is_event(struct vm* vm, struct value* args);
-struct value* builtin_window_event_poll(struct vm* vm, struct value* args);
-struct value* builtin_window_event_type(struct vm* vm, struct value* args);
-struct value* builtin_window_event_key(struct vm* vm, struct value* args);
+struct value* builtin_event_poll(struct vm* vm, struct value* args);
+struct value* builtin_event_type(struct vm* vm, struct value* args);
+struct value* builtin_event_key(struct vm* vm, struct value* args);
 
 #endif

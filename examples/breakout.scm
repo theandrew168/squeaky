@@ -13,7 +13,7 @@
 ; this would be simpler with 'let'
 (define (poll-events w)
   (define (iter w events)
-    (set! events (cons (window-event-poll w) events))
+    (set! events (cons (event-poll w) events))
     (if (eqv? (car events) '())
         (reverse (cdr events))
         (iter w events)))
@@ -22,25 +22,25 @@
 (define (quit? events)
   (if (null? events)
       #f
-      (if (or (eqv? (window-event-type (car events)) 'event-quit)
-              (and (eqv? (window-event-type (car events)) 'event-keyboard)
-                   (eqv? (window-event-key (car events)) 'key-escape)))
+      (if (or (eqv? (event-type (car events)) 'event-quit)
+              (and (eqv? (event-type (car events)) 'event-keyboard)
+                   (eqv? (event-key (car events)) 'key-escape)))
           #t
           (quit? (cdr events)))))
 
 (define (left? events)
   (if (null? events)
       #f
-      (if (and (eqv? (window-event-type (car events)) 'event-keyboard)
-               (eqv? (window-event-key (car events)) 'key-left))
+      (if (and (eqv? (event-type (car events)) 'event-keyboard)
+               (eqv? (event-key (car events)) 'key-left))
           #t
           (left? (cdr events)))))
 
 (define (right? events)
   (if (null? events)
       #f
-      (if (and (eqv? (window-event-type (car events)) 'event-keyboard)
-               (eqv? (window-event-key (car events)) 'key-right))
+      (if (and (eqv? (event-type (car events)) 'event-keyboard)
+               (eqv? (event-key (car events)) 'key-right))
           #t
           (right? (cdr events)))))
 

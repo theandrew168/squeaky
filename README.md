@@ -59,17 +59,77 @@ It also details the builtin multimedia extensions for creating windows and handl
 **(equal? a b)** - Compare two scheme values for equality  
 
 ### Numerical Operations
+**(number? x)** - Check if 'x' is a number  
+**(= a b ...)** - Check if all given numbers are equal  
+**(< a b ...)** - Check if all given numbers are increasing  
+**(> a b ...)** - Check if all given numbers are decreasing  
+**(<= a b ...)** - Check if all given numbers are non-decreasing  
+**(>= a b ...)** - Check if all given numbers are non-increasing  
+**(+ a b ...)** - Successively add all of the given numbers  
+**(\* a b ...)** - Successively mulitply all of the given numbers  
+**(- a b ...)** - Successively subtract all of the given numbers  
+**(/ a b ...)** - Successively divide all of the given numbers  
+
 ### Booleans
+**(boolean? x)** - Check if 'x' is a boolean  
+
 ### Pairs and Lists
+**(pair? x)** - Check if 'x' is a pair  
+**(cons a b)** - Join 'a' and 'b' together in a pair  
+**(car p)** - Return the first element of pair 'p'  
+**(cdr p)** - Return the second element of pair 'p'  
+**(set-car! p x)** - Update the first element of 'p' to 'x'  
+**(set-cdr! p x)** - Update the second element of 'p' to 'x'  
+**(null? l)** - Check if 'x' is an empty list  
+
 ### Symbols
+**(symbol? x)** - Check if 'x' is a symbol  
+
 ### Strings
+**(string? x)** - Check if 'x' is a string  
+
 ### Control Features
+**(procedure? x)** - Check if 'x' is a procedure  
+**(apply op args ...)** - Apply procedure 'op' to the given args  
+
 ### Eval
+**(eval exp env)** - Evaluate the expression 'exp' in environment 'env'  
+
 ### Ports
+**(input-port? x)** - Check if 'x' is an input port  
+**(output-port? x)** - Check if 'x' is an output port  
+**(current-input-port)** - Return the current input port (stdin)  
+**(current-output-port)** - Return the current output port (stdout)  
+**(open-input-file path)** - Open file 'path' for reading  
+**(open-output-file path)** - Open file 'path' for writing  
+**(close-input-port port)** - Close the input port 'port'  
+**(close-output-port port)** - Close the output port 'port'  
+
 ### Input
+**(read [port])** - Read an expression from 'port' (defaults to stdin)  
+**(read-char [port])** - Read a character from 'port' (defaults to stdin)  
+**(peek-char [port])** - Peek a character from 'port' (defaults to stdin)  
+**(eof-object? x)** - Check if 'x' is an EOF object (end of file)  
+**(char-ready? [port])** - Check if a character is ready on 'port' (defaults to stdin)  
+
 ### Output
+**(write exp [port])** - Write an expresstion to 'port' (defaults to stdout)  
+**(display exp [port])** - Print an expression to 'port' (defaults to stdout)  
+**(newline [port])** - Print a newline to 'port' (defaults to stdout)  
+**(write-char char [port])** - Write a character to 'port' (defaults to stdout)
+
 ### Windows
+**(window? x)** - Check if 'x' is a window  
+**(make-window title width height)** - Create a window with the given parameters  
+**(window-clear! w)** - Clear the contents of a window  
+**(window-draw-line! w x0 y0 x1 y1)** - Draw a line from point 0 to point 1  
+**(window-present! w)** - Present the window's current contents  
+
 ### Events
+**(event? x)** - Check if 'x' is an event  
+**(event-poll w)** - Grab the next event on window 'w'  
+**(event-type e)** - Return the type of event 'e' (keyboard, quit, etc)  
+**(event-key e)** - Return the key from a keyboard event (left, right, escape, etc)  
 
 ## References
 You will likely see references to these throughout the code.

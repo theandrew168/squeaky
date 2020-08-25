@@ -103,9 +103,6 @@ main(int argc, char* argv[])
 
     /* Squeaky Extensions */
 
-    // General Utilities
-    add_builtin(&vm, "sleep!", builtin_sleep, env);
-
     // Windows
     add_builtin(&vm, "window?", builtin_is_window, env);
     add_builtin(&vm, "make-window", builtin_make_window, env);
@@ -115,9 +112,9 @@ main(int argc, char* argv[])
 
     // Events
     add_builtin(&vm, "event?", builtin_is_event, env);
-    add_builtin(&vm, "window-event-poll", builtin_window_event_poll, env);
-    add_builtin(&vm, "window-event-type", builtin_window_event_type, env);
-    add_builtin(&vm, "window-event-key", builtin_window_event_key, env);
+    add_builtin(&vm, "event-poll", builtin_event_poll, env);
+    add_builtin(&vm, "event-type", builtin_event_type, env);
+    add_builtin(&vm, "event-key", builtin_event_key, env);
 
     // load prelude (small library of R5RS funcs and extensions)
     struct value* exp = vm_make_pair(&vm,

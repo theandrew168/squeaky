@@ -629,18 +629,6 @@ builtin_write_char(struct vm* vm, struct value* args)
 }
 
 struct value*
-builtin_sleep(struct vm* vm, struct value* args)
-{
-    ASSERT_ARITY("sleep!", args, 1);
-    ASSERT_TYPE("sleep!", args, 0, VALUE_NUMBER);
-
-    struct value* delay_ms = CAR(args);
-    SDL_Delay(delay_ms->as.number);
-
-    return vm_make_empty_list(vm);
-}
-
-struct value*
 builtin_is_window(struct vm* vm, struct value* args)
 {
     ASSERT_ARITY("window?", args, 1);
@@ -722,10 +710,10 @@ builtin_is_event(struct vm* vm, struct value* args)
 }
 
 struct value*
-builtin_window_event_poll(struct vm* vm, struct value* args)
+builtin_event_poll(struct vm* vm, struct value* args)
 {
-    ASSERT_ARITY("window-event-poll", args, 1);
-    ASSERT_TYPE("window-event-poll", args, 0, VALUE_WINDOW);
+    ASSERT_ARITY("event-poll", args, 1);
+    ASSERT_TYPE("event-poll", args, 0, VALUE_WINDOW);
 
     SDL_Event* event = malloc(sizeof(SDL_Event));
     int rc = SDL_PollEvent(event);
@@ -738,10 +726,10 @@ builtin_window_event_poll(struct vm* vm, struct value* args)
 }
 
 struct value*
-builtin_window_event_type(struct vm* vm, struct value* args)
+builtin_event_type(struct vm* vm, struct value* args)
 {
-    ASSERT_ARITY("window-event-type", args, 1);
-    ASSERT_TYPE("window-event-type", args, 0, VALUE_EVENT);
+    ASSERT_ARITY("event-type", args, 1);
+    ASSERT_TYPE("event-type", args, 0, VALUE_EVENT);
 
     struct value* event = CAR(args);
     switch (event->as.event->type) {
@@ -763,10 +751,10 @@ builtin_window_event_type(struct vm* vm, struct value* args)
 }
 
 struct value*
-builtin_window_event_key(struct vm* vm, struct value* args)
+builtin_event_key(struct vm* vm, struct value* args)
 {
-    ASSERT_ARITY("window-event-type", args, 1);
-    ASSERT_TYPE("window-event-type", args, 0, VALUE_EVENT);
+    ASSERT_ARITY("event-type", args, 1);
+    ASSERT_TYPE("event-type", args, 0, VALUE_EVENT);
 
     struct value* event = CAR(args);
     switch (event->as.event->key.keysym.sym) {

@@ -39,10 +39,10 @@ make -f Makefile.mingw
 
 ## Special Forms
 **(quote foo)** - Quote the expression 'foo'  
-**'foo** - Quote the expression 'foo'
+**'foo** - Quote the expression 'foo'  
 **(define x 42)** - Define a value in the current environment  
-**(define square (lambda (x) (* x x))** - Define a lambda  
-**(define (square x) (* x x))** - Define a lambda  
+**(define square (lambda (x) (\* x x))** - Define a lambda  
+**(define (square x) (\* x x))** - Define a lambda  
 **(set! x 24)** - Update an existing value in the current environment  
 **(if a b c)** - Conditional operator: if 'a' is true then 'b', else 'c'  
 **(interaction-environment)** - Return the current environment  

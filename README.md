@@ -1,22 +1,17 @@
 # squeaky
-Squeaky is a new programming languages for making games.
+Squeaky is a proof of concept programming languages for making games.
 It is an implementation of Scheme (subset of R5RS) with a focus on writing simple and portable multimedia applications.
 
-## Details (also Goals)
+## Details
 In no particular order:
 * Written in C99
 * Portable between Linux, macOS, and Windows
-* Utilizes a stack-based bytecode VM
-* Load and display images!
-* Load and play sounds!
-* Load and render fonts (bitmap and TTF)!
-* Builtin multimedia powered by SDL2
-* Builtin relational databases powered by SQLite
-* High-level and low-level APIs (to be simple or specific as necssary)
+* Simple line-based graphics
+* Basic keyboard / mouse input
+* Powered by SDL2
 
 ## Dependencies
 [SDL2](https://www.libsdl.org/index.php) (zlib) - Simple DirectMedia Layer  
-[SQLite](https://www.sqlite.org/index.html) (public domain) - Small, fast, and full-featured SQL database  
 
 ## Building
 This project is built using POSIX-compatible [make](https://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html).
@@ -42,11 +37,27 @@ sudo apt install make wget tar mingw-w64
 make -f Makefile.mingw
 ```
 
-From macOS:
-```
-brew install make wget gnu-tar mingw-w64
-make -f Makefile.mingw
-```
+## Procedures
+This section describes the subset of R5RS that Squeaky supports.
+It also details the builtin multimedia extensions for creating windows and handling events.
+
+### Equivalence Predicates
+**(eq? a b)** - Compare two scheme values for equality
+**(eqv? a b)** - Compare two scheme values for equality
+**(equal? a b)** - Compare two scheme values for equality
+
+### Numerical Operations
+### Booleans
+### Pairs and Lists
+### Symbols
+### Strings
+### Control Features
+### Eval
+### Ports
+### Input
+### Output
+### Windows
+### Events
 
 ## References
 You will likely see references to these throughout the code.

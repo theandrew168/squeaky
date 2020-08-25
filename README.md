@@ -37,14 +37,26 @@ sudo apt install make wget tar mingw-w64
 make -f Makefile.mingw
 ```
 
+## Special Forms
+**(quote foo)** - Quote the expression 'foo'  
+**'foo** - Quote the expression 'foo'
+**(define x 42)** - Define a value in the current environment  
+**(define square (lambda (x) (* x x))** - Define a lambda  
+**(define (square x) (* x x))** - Define a lambda  
+**(set! x 24)** - Update an existing value in the current environment  
+**(if a b c)** - Conditional operator: if 'a' is true then 'b', else 'c'  
+**(interaction-environment)** - Return the current environment  
+**(load "foo.scm")** - Load a scheme source file into the current environment  
+**(gc)** - Run the garbage collector to free unused memory  
+
 ## Procedures
 This section describes the subset of R5RS that Squeaky supports.
 It also details the builtin multimedia extensions for creating windows and handling events.
 
 ### Equivalence Predicates
-**(eq? a b)** - Compare two scheme values for equality
-**(eqv? a b)** - Compare two scheme values for equality
-**(equal? a b)** - Compare two scheme values for equality
+**(eq? a b)** - Compare two scheme values for equality  
+**(eqv? a b)** - Compare two scheme values for equality  
+**(equal? a b)** - Compare two scheme values for equality  
 
 ### Numerical Operations
 ### Booleans

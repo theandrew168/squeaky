@@ -22,10 +22,10 @@
 int
 main(int argc, char* argv[])
 {
-//    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-//        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
-//        return EXIT_FAILURE;
-//    }
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "failed to init SDL2: %s\n", SDL_GetError());
+        return EXIT_FAILURE;
+    }
 
     struct vm vm = { 0 };
     vm_init(&vm);
@@ -146,12 +146,10 @@ main(int argc, char* argv[])
 
             struct value* res = mce_eval(&vm, exp, env);
             value_println(stdout, res);
-
-//            vm_gc(&vm, env);
         }
     }
 
     vm_free(&vm);
-//    SDL_Quit();
+    SDL_Quit();
     return EXIT_SUCCESS;
 }
